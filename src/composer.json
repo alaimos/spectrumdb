@@ -11,6 +11,7 @@
         "laravel/pail": "^1.1",
         "laravel/prompts": "^0.3",
         "laravel/tinker": "^2.0",
+        "laravolt/avatar": "^6.0",
         "livewire/flux": "^1.0",
         "livewire/flux-pro": "^1.1",
         "livewire/livewire": "^3.0",

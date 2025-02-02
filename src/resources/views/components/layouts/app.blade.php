@@ -36,57 +36,60 @@ new class extends Component {
 </head>
 
 <body class="min-h-screen bg-white dark:bg-zinc-800">
-    <flux:header container
-        class="pt-2 border-b bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 lg:pt-0">
-        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" />
+    <flux:sidebar sticky stashable class="bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700">
+        <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-        <flux:brand href="#" logo="https://fluxui.dev/img/demo/logo.png" name="Acme Inc."
-            class="max-lg:hidden dark:hidden" />
-        <flux:brand href="#" logo="https://fluxui.dev/img/demo/dark-mode-logo.png" name="Acme Inc."
-            class="max-lg:!hidden hidden dark:flex" />
+        <flux:brand href="#" logo="https://fluxui.dev/img/demo/logo.png" name="SPECTRUM" class="px-2 dark:hidden" />
+        <flux:brand href="#" logo="https://fluxui.dev/img/demo/dark-mode-logo.png" name="SPECTRUM" class="px-2 hidden dark:flex" />
 
-        <flux:navbar class="max-lg:hidden">
-            <flux:navbar.item icon="home" href="/" wire:navigate>Home</flux:navbar.item>
-            <flux:separator vertical variant="subtle" class="my-2" />
-            <flux:navbar.item icon="face-smile" href="/playground" wire:navigate>Playground</flux:navbar.item>
 
-        </flux:navbar>
+        <flux:navlist variant="outline">
+            <flux:navlist.item icon="home" href="/" wire:navigate>Home</flux:navlist.item>
+            <flux:navlist.item icon="face-smile" href="/playground" wire:navigate>Playground</flux:navlist.item>
+
+            {{--<flux:navlist.group expandable heading="Favorites" class="hidden lg:grid">
+                <flux:navlist.item href="#">Marketing site</flux:navlist.item>
+                <flux:navlist.item href="#">Android app</flux:navlist.item>
+                <flux:navlist.item href="#">Brand guidelines</flux:navlist.item>
+            </flux:navlist.group>--}}
+        </flux:navlist>
 
         <flux:spacer />
 
+        <flux:navlist variant="outline">
+            <flux:navlist.item icon="cog-6-tooth" href="#">Settings</flux:navlist.item>
+            <flux:navlist.item icon="information-circle" href="#">Help</flux:navlist.item>
+        </flux:navlist>
 
-        <flux:dropdown position="bottom" align="end">
-            <flux:button icon-trailing="chevron-down" variant="ghost">{{ auth()->user()->name }}</flux:button>
+        <flux:dropdown position="top" align="start" class="max-lg:hidden">
+            <flux:profile avatar="{{ Avatar::create(auth()->user()->name)->toBase64() }}" name="{{ auth()->user()->name }}" />
 
-            @volt('layout.navigation.profile.dropdown')
-                <flux:navmenu>
-                    <flux:navmenu.item href="{{ route('profile.update') }}" wire:navigate icon="building-storefront">Profile
-                    </flux:navmenu.item>
-                    <flux:navmenu.item wire:click='logout' icon="arrow-right-start-on-rectangle">Logout</flux:navmenu.item>
-                </flux:navmenu>
-            @endvolt
+            <flux:menu>
+                <flux:menu.item href="{{ route('profile.update') }}" wire:navigate icon="building-storefront">Profile</flux:menu.item>
+                <flux:menu.separator />
+                <flux:menu.item wire:click='logout()' icon="arrow-right-start-on-rectangle">Logout</flux:menu.item>
+            </flux:menu>
+        </flux:dropdown>
+    </flux:sidebar>
+
+    <flux:header class="lg:hidden">
+        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+
+        <flux:spacer />
+
+        <flux:dropdown position="top" alignt="start">
+            <flux:profile avatar="{{ Avatar::create(auth()->user()->name)->toBase64() }}" />
+
+            <flux:menu>
+                <flux:menu.item href="{{ route('profile.update') }}" wire:navigate icon="building-storefront">Profile</flux:menu.item>
+                <flux:menu.separator />
+                <flux:menu.item wire:click='logout()' icon="arrow-right-start-on-rectangle">Logout</flux:menu.item>
+            </flux:menu>
         </flux:dropdown>
     </flux:header>
 
-    <flux:sidebar stashable sticky
-        class="border-r lg:hidden bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
-        <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
-
-        <flux:brand href="/" logo="https://fluxui.dev/img/demo/logo.png" name="Acme Inc."
-            class="px-2 dark:hidden" />
-        <flux:brand href="/" logo="https://fluxui.dev/img/demo/dark-mode-logo.png" name="Acme Inc."
-            class="hidden px-2 dark:flex" />
-
-        <flux:navlist variant="outline">
-            <flux:navlist.item icon="home" href="/">Home</flux:navlist.item>
-            <flux:navlist.item icon="face-smile" href="/playground">Playground</flux:navlist.item>
-        </flux:navlist>
-    </flux:sidebar>
-
-    <flux:main container>
-        <div class="self-stretch flex-1 max-md:pt-6">
-            {{ $slot }}
-        </div>
+    <flux:main>
+        {{ $slot }}
     </flux:main>
     @persist('toast')
         <flux:toast />

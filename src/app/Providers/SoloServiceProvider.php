@@ -14,7 +14,7 @@ class SoloServiceProvider extends SoloApplicationServiceProvider
             ->addCommands([
                 'Logs' => 'php artisan pail',
                 'Vite' => 'npm run dev',
-                'HTTP' => 'php artisan serve',
+                // 'HTTP' => 'php artisan serve',
                 'About' => 'php artisan solo:about',
             ])
             // Not auto-started
