@@ -37,9 +37,10 @@
 
             <flux:spacer/>
 
+            <flux:button x-data x-on:click="$flux.dark = ! $flux.dark">Toggle</flux:button>
+
             <flux:navlist variant="outline">
-                <flux:navlist.item icon="cog-6-tooth" href="#">Settings</flux:navlist.item>
-                <flux:navlist.item icon="information-circle" href="#">Help</flux:navlist.item>
+                <livewire:components.layout.notification-button />
             </flux:navlist>
 
             <flux:dropdown position="top" align="start" class="max-lg:hidden">
