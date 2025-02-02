@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Livewire\Pages\Profile;
+
+use App\Livewire\Actions\Logout;
+use App\Models\User;
+use Flux;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
+use Livewire\Component;
+
+class Index extends Component
+{
+    public string $name = '';
+
+    public string $email = '';
+
+    // Update Password Properties
+    public string $current_password = '';
+
+    public string $password = '';
+
+    public string $password_confirmation = '';
+
+    // Delete User Property
+    public string $delete_password = '';
+
+    public function mount(): void
+    {
+        $this->name = Auth::user()->name;
+        $this->email = Auth::user()->email;
+    }
+
+    public function updateProfileInformation(): void
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $validated = $this->validate(
+            [
+                'name' => ['required', 'string', 'max:255'],
+                'email' => [
+                    'required',
+                    'string',
+                    'lowercase',
+                    'email',
+                    'max:255',
+                    Rule::unique(User::class)->ignore($user->id),
+                ],
+            ]
+        );
+
+        $user->fill($validated);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        Flux::toast('Profile updated successfully.', variant: 'success');
+    }
+
+    public function sendVerification(): void
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->hasVerifiedEmail()) {
+            $this->redirectIntended(default: route('dashboard', absolute: false));
+
+            return;
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        Flux::toast('Verification link sent!', variant: 'success');
+    }
+
+    public function updatePassword(): void
+    {
+        try {
+            $validated = $this->validate(
+                [
+                    'current_password' => ['required', 'string', 'current_password'],
+                    'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+                ]
+            );
+        } catch (ValidationException $e) {
+            $this->reset('current_password', 'password', 'password_confirmation');
+            throw $e;
+        }
+
+        Auth::user()?->update(
+            [
+                'password' => Hash::make($validated['password']),
+            ]
+        );
+
+        $this->reset('current_password', 'password', 'password_confirmation');
+
+        Flux::toast('Password updated successfully.', variant: 'success');
+    }
+
+    public function deleteUser(Logout $logout): void
+    {
+        $this->validate(
+            [
+                'delete_password' => ['required', 'string', 'current_password'],
+            ]
+        );
+
+        tap(Auth::user(), $logout(...))->delete();
+
+        Flux::toast('Account deleted successfully.', variant: 'success');
+
+        $this->redirect('/', navigate: true);
+    }
+
+    public function render(): View
+    {
+        return view('livewire.pages.profile.index');
+    }
+}
