@@ -76,7 +76,9 @@
         </flux:header>
 
         <flux:main>
-            {{ $slot }}
+            <flux:container>
+                {{ $slot }}
+            </flux:container>
         </flux:main>
         @persist('toast')
         <flux:toast/>
