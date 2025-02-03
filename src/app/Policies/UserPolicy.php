@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Auth\Access\Response;
 
 class UserPolicy
 {
@@ -18,45 +19,44 @@ class UserPolicy
         return null;
     }
 
-    public function viewAny(User $user): bool
+    public function viewAny(User $user): Response
     {
-        // Only admins can list users (handled by before())
-        return false;
+        return Response::deny('Only administrators can view the list of users.');
     }
 
-    public function view(User $user, User $model): bool
+    public function view(User $user, User $model): Response
     {
-        // Users can view their own profile
-        return $user->id === $model->id;
+        return $user->id === $model->id
+            ? Response::allow()
+            : Response::deny('You can only view your own profile.');
     }
 
-    public function create(User $user): bool
+    public function create(User $user): Response
     {
-        // Only admins can create users (handled by before())
-        return false;
+        return Response::deny('Only administrators can create new users.');
     }
 
-    public function update(User $user, User $model): bool
+    public function update(User $user, User $model): Response
     {
-        // Users can update their own profile
-        return $user->id === $model->id;
+        return $user->id === $model->id
+            ? Response::allow()
+            : Response::deny('You can only update your own profile.');
     }
 
-    public function delete(User $user, User $model): bool
+    public function delete(User $user, User $model): Response
     {
-        // Users can delete their own profile
-        return $user->id === $model->id;
+        return $user->id === $model->id
+            ? Response::allow()
+            : Response::deny('You can only delete your own account.');
     }
 
-    public function restore(User $user, User $model): bool
+    public function restore(User $user, User $model): Response
     {
-        // Only admins can restore users (handled by before())
-        return false;
+        return Response::deny('Only administrators can restore deleted users.');
     }
 
-    public function forceDelete(User $user, User $model): bool
+    public function forceDelete(User $user, User $model): Response
     {
-        // Only admins can force delete users (handled by before())
-        return false;
+        return Response::deny('Only administrators can permanently delete users.');
     }
 }
