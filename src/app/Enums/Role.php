@@ -12,4 +12,22 @@ enum Role: string
     {
         return self::RESEARCHER;
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::ADMIN => 'Admin',
+            self::FARM => 'Farm',
+            self::RESEARCHER => 'Researcher',
+        };
+    }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::ADMIN => 'red',
+            self::FARM => 'green',
+            self::RESEARCHER => 'blue',
+        };
+    }
 }

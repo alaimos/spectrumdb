@@ -33,13 +33,15 @@
                 <flux:select
                     wire:model="role"
                     label="User Role"
+                    placeholder="Select a role"
                     icon="user-group"
                     required
                 >
-                    <option value="">Select a role</option>
-                    <option value="{{ \App\Enums\Role::ADMIN->value }}">Administrator</option>
-                    <option value="{{ \App\Enums\Role::FARM->value }}">Farm</option>
-                    <option value="{{ \App\Enums\Role::RESEARCHER->value }}">Researcher</option>
+                    @foreach(\App\Enums\Role::cases() as $role)
+                        <flux:option value="{{ $role->value }}">
+                            {{ $role->label() }}
+                        </flux:option>
+                    @endforeach
                 </flux:select>
             </div>
 

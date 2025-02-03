@@ -18,6 +18,8 @@ class Index extends Component
 
     public string $search = '';
 
+    public ?string $roleFilter = null;
+
     public string $sortBy = 'name';
 
     public string $sortDirection = 'asc';
@@ -30,6 +32,16 @@ class Index extends Component
             $this->sortBy = $column;
             $this->sortDirection = 'asc';
         }
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedRoleFilter(): void
+    {
+        $this->resetPage();
     }
 
     public function deleteUser(User $user): void
@@ -47,17 +59,15 @@ class Index extends Component
     public function users(): LengthAwarePaginator
     {
         return User::query()
-            ->when(
-                $this->search,
-                function ($query) {
-                    $query->where(
-                        function ($query) {
-                            $query->where('name', 'like', '%'.$this->search.'%')
-                                ->orWhere('email', 'like', '%'.$this->search.'%');
-                        }
-                    );
-                }
-            )
+            ->when($this->search, function ($query) {
+                $query->where(function ($query) {
+                    $query->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('email', 'like', '%'.$this->search.'%');
+                });
+            })
+            ->when($this->roleFilter, function ($query) {
+                $query->where('role', $this->roleFilter);
+            })
             ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate(10);
     }
