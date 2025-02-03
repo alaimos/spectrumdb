@@ -31,28 +31,31 @@ class Index extends Component
 
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        /** @var User $user */
+        $user = Auth::user();
+        $this->authorize('view', $user);
+
+        $this->name = $user->name;
+        $this->email = $user->email;
     }
 
     public function updateProfileInformation(): void
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
+        $this->authorize('update', $user);
 
-        $validated = $this->validate(
-            [
-                'name' => ['required', 'string', 'max:255'],
-                'email' => [
-                    'required',
-                    'string',
-                    'lowercase',
-                    'email',
-                    'max:255',
-                    Rule::unique(User::class)->ignore($user->id),
-                ],
-            ]
-        );
+        $validated = $this->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                Rule::unique(User::class)->ignore($user->id),
+            ],
+        ]);
 
         $user->fill($validated);
 
@@ -83,23 +86,23 @@ class Index extends Component
 
     public function updatePassword(): void
     {
+        /** @var User $user */
+        $user = Auth::user();
+        $this->authorize('update', $user);
+
         try {
-            $validated = $this->validate(
-                [
-                    'current_password' => ['required', 'string', 'current_password'],
-                    'password' => ['required', 'string', Password::defaults(), 'confirmed'],
-                ]
-            );
+            $validated = $this->validate([
+                'current_password' => ['required', 'string', 'current_password'],
+                'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            ]);
         } catch (ValidationException $e) {
             $this->reset('current_password', 'password', 'password_confirmation');
             throw $e;
         }
 
-        Auth::user()?->update(
-            [
-                'password' => Hash::make($validated['password']),
-            ]
-        );
+        $user->forceFill([
+            'password' => Hash::make($validated['password']),
+        ])->save();
 
         $this->reset('current_password', 'password', 'password_confirmation');
 
@@ -108,13 +111,15 @@ class Index extends Component
 
     public function deleteUser(Logout $logout): void
     {
-        $this->validate(
-            [
-                'delete_password' => ['required', 'string', 'current_password'],
-            ]
-        );
+        /** @var User $user */
+        $user = Auth::user();
+        $this->authorize('delete', $user);
 
-        tap(Auth::user(), $logout(...))->delete();
+        $this->validate([
+            'delete_password' => ['required', 'string', 'current_password'],
+        ]);
+
+        tap($user, $logout(...))->delete();
 
         Flux::toast('Account deleted successfully.', variant: 'success');
 

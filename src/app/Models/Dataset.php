@@ -57,7 +57,7 @@ class Dataset extends Model
             ->wherePivot('user_id', $user->id)
             ->get()
             ->contains(function ($userWithPivot) use ($permission) {
-                return $userWithPivot->pivot->permission->includes($permission);
+                return $userWithPivot->pivot->permission->includes($permission); // @phpstan-ignore-line
             });
     }
 
@@ -78,5 +78,28 @@ class Dataset extends Model
     public function revokeAllPermissions(User $user): void
     {
         $this->users()->detach($user->id);
+    }
+
+    /**
+     * Scope a query to only include datasets visible to the given user.
+     */
+    public function scopeVisibleTo($query, ?User $user = null)
+    {
+        $user = $user ?? auth()->user();
+
+        // Admin can see all datasets
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function ($query) use ($user) {
+            $query
+                // Datasets owned by the user
+                ->where('created_by', $user->id)
+                // OR datasets where the user has been granted any permission
+                ->orWhereHas('users', function ($query) use ($user) {
+                    $query->where('users.id', $user->id);
+                });
+        });
     }
 }

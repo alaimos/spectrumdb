@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Pages\Notifications;
 
+use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -14,6 +16,13 @@ class Index extends Component
     public array $selectedNotifications = [];
 
     public bool $selectAll = false;
+
+    public function mount(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $this->authorize('view', $user);
+    }
 
     public function getListeners(): array
     {
@@ -57,37 +66,41 @@ class Index extends Component
 
     public function markAsRead(): void
     {
+        /** @var User $user */
+        $user = Auth::user();
+        $this->authorize('update', $user);
+
         if (empty($this->selectedNotifications)) {
             return;
         }
 
-        auth()->user()
-            ->notifications()
+        $user->notifications()
             ->whereIn('id', $this->selectedNotifications)
             ->update(['read_at' => now()]);
 
         $this->selectedNotifications = [];
         $this->selectAll = false;
 
-        // Dispatch event to update notification count
         $this->dispatch('notifications-updated');
     }
 
     public function delete(): void
     {
+        /** @var User $user */
+        $user = Auth::user();
+        $this->authorize('update', $user);
+
         if (empty($this->selectedNotifications)) {
             return;
         }
 
-        auth()->user()
-            ->notifications()
+        $user->notifications()
             ->whereIn('id', $this->selectedNotifications)
             ->delete();
 
         $this->selectedNotifications = [];
         $this->selectAll = false;
 
-        // Dispatch event to update notification count
         $this->dispatch('notifications-updated');
     }
 }
