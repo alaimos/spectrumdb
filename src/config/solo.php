@@ -50,7 +50,7 @@ return [
         'Vite' => 'npm run dev',
         'Make' => new MakeCommand,
         'About' => 'php artisan solo:about',
-        'Reverb' =>'php artisan reverb:start',
+        'Reverb' => 'php artisan reverb:start',
         'Dumps' => Command::from('php artisan solo:dumps')->lazy(),
         'Pint' => Command::from('./vendor/bin/pint --ansi')->lazy(),
         'Queue' => Command::from('php artisan queue:work')->lazy(),

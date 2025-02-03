@@ -23,4 +23,7 @@ auth.json
 .zed
 .vagrant
 /src_old
+.DS_Store
+Thumbs.db
+
 
