@@ -26,13 +26,9 @@
 
             <flux:navlist variant="outline">
                 <flux:navlist.item icon="home" href="/" wire:navigate>Home</flux:navlist.item>
+                <flux:navlist.item icon="document-text" href="{{ route('datasets.index') }}" wire:navigate>Datasets
+                </flux:navlist.item>
                 <flux:navlist.item icon="face-smile" href="/playground" wire:navigate>Playground</flux:navlist.item>
-
-                {{--<flux:navlist.group expandable heading="Favorites" class="hidden lg:grid">
-                    <flux:navlist.item href="#">Marketing site</flux:navlist.item>
-                    <flux:navlist.item href="#">Android app</flux:navlist.item>
-                    <flux:navlist.item href="#">Brand guidelines</flux:navlist.item>
-                </flux:navlist.group>--}}
             </flux:navlist>
 
             <flux:spacer/>
@@ -40,7 +36,11 @@
             <flux:button x-data x-on:click="$flux.dark = ! $flux.dark">Toggle</flux:button>
 
             <flux:navlist variant="outline">
-                <livewire:components.layout.notification-button />
+                @if(auth()->user()->isAdmin())
+                    <flux:navlist.item icon="users" href="{{ route('admin.users.index') }}" wire:navigate>Users
+                    </flux:navlist.item>
+                @endif
+                <livewire:components.layout.notification-button/>
             </flux:navlist>
 
             <flux:dropdown position="top" align="start" class="max-lg:hidden">

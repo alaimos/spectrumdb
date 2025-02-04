@@ -17,5 +17,4 @@ class AuthServiceProvider extends ServiceProvider
         Sample::class => SamplePolicy::class,
         User::class => UserPolicy::class,
     ];
-
 }

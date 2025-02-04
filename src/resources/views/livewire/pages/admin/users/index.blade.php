@@ -1,44 +1,45 @@
-<flux:card>
-    <div class="flex items-center justify-between mb-6">
+<div>
+    <div class="flex items-center mb-6">
         <div>
             <flux:heading size="lg">Manage Users</flux:heading>
             <flux:subheading>View and manage all users in the system</flux:subheading>
         </div>
-
-        <flux:button
-            href="{{ route('admin.users.create') }}"
-            wire:navigate
-            variant="primary"
-            icon="plus"
-        >
-            Add User
-        </flux:button>
-    </div>
-
-    <div class="space-y-4">
-        <div class="grid gap-4 sm:grid-cols-2">
-            <flux:input
-                wire:model.live.debounce.300ms="search"
-                placeholder="Search by name or email..."
-                icon="magnifying-glass"
-                clearable
-            />
-
-            <flux:select
-                wire:model.live="roleFilter"
-                variant="listbox"
-                placeholder="Filter by role"
-                icon="user-group"
-                clearable
+        <flux:spacer/>
+        <div class="flex flex-col-reverse gap-4">
+            {{-- Search --}}
+            <div class="grid gap-4 sm:grid-cols-2">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Search by name or email..."
+                    icon="magnifying-glass"
+                    clearable
+                />
+                <flux:select
+                    wire:model.live="roleFilter"
+                    variant="listbox"
+                    placeholder="Filter by role"
+                    icon="user-group"
+                    clearable
+                >
+                    @foreach(\App\Enums\Role::cases() as $role)
+                        <flux:option value="{{ $role->value }}">
+                            {{ $role->label() }}
+                        </flux:option>
+                    @endforeach
+                </flux:select>
+            </div>
+            {{-- Create button --}}
+            <flux:button
+                href="{{ route('admin.users.create') }}"
+                wire:navigate
+                variant="primary"
+                icon="plus"
             >
-                @foreach(\App\Enums\Role::cases() as $role)
-                    <flux:option value="{{ $role->value }}">
-                        {{ $role->label() }}
-                    </flux:option>
-                @endforeach
-            </flux:select>
+                Add User
+            </flux:button>
         </div>
-
+    </div>
+    <flux:card>
         <flux:table :paginate="$this->users">
             <flux:columns>
                 <flux:column
@@ -116,5 +117,5 @@
                 @endforeach
             </flux:rows>
         </flux:table>
-    </div>
-</flux:card>
+    </flux:card>
+</div>

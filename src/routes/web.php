@@ -20,4 +20,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/users/{user}', App\Livewire\Pages\Admin\Users\Edit::class)->name('admin.users.edit');
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/datasets', App\Livewire\Pages\Datasets\Index::class)->name('datasets.index');
+    Route::get('/datasets/create', fn () => 'Create')->name('datasets.create');
+    Route::get('/datasets/{dataset}/edit', fn () => 'Edit')->name('datasets.edit');
+    // Route::get('/datasets/create', App\Livewire\Pages\Datasets\Create::class)->name('datasets.create');
+    // Route::get('/datasets/{dataset}/edit', App\Livewire\Pages\Datasets\Edit::class)->name('datasets.edit');
+});
+
 require __DIR__.'/auth.php';
