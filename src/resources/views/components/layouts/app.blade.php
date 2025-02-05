@@ -44,8 +44,7 @@
             </flux:navlist>
 
             <flux:dropdown position="top" align="start" class="max-lg:hidden">
-                <flux:profile avatar="{{ Avatar::create(auth()->user()->name)->toBase64() }}"
-                              name="{{ auth()->user()->name }}"/>
+                <flux:profile name="{{ auth()->user()->name }}"/>
 
                 <flux:menu>
                     <flux:menu.item href="{{ route('profile.edit') }}" wire:navigate icon="building-storefront">
@@ -63,7 +62,7 @@
             <flux:spacer/>
 
             <flux:dropdown position="top" alignt="start">
-                <flux:profile avatar="{{ Avatar::create(auth()->user()->name)->toBase64() }}"/>
+                <flux:profile name="{{ auth()->user()->name }}"/>
 
                 <flux:menu>
                     <flux:menu.item href="{{ route('profile.edit') }}" wire:navigate icon="building-storefront">

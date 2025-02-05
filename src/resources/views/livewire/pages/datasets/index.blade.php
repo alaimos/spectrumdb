@@ -9,7 +9,7 @@
                 <flux:input wire:model.live.debounce.300ms="search"
                             placeholder="Search datasets..."
                             icon="magnifying-glass"/>
-                <flux:tooltip content="Advanced Search">
+                <flux:tooltip content="Advanced Search" x-data="{}">
                     <flux:button icon="adjustments-horizontal" x-on:click="$flux.modal('advanced-search').show()"/>
                 </flux:tooltip>
             </flux:input.group>
@@ -90,22 +90,22 @@
     </flux:card>
 
     {{-- Advanced Search Dialog --}}
-    <flux:modal 
-        name="advanced-search" 
-        variant="flyout" 
+    <flux:modal
+        name="advanced-search"
+        variant="flyout"
         position="bottom"
         wire:model="showAdvancedSearch"
     >
-        <livewire:components.dataset-advanced-search />
+        <livewire:components.dataset-advanced-search/>
     </flux:modal>
 
     {{-- Add Dataset Permissions Modals --}}
-    @if($selectedDataset)
-        <flux:modal name="dataset-permissions" size="xl">
-            <livewire:components.dataset-permissions 
-                :dataset="$selectedDataset" 
-                :key="'permissions-'.$selectedDataset->id" 
+    <flux:modal name="dataset-permissions" size="xl" class="w-screen md:w-[40rem]">
+        @if($selectedDataset)
+            <livewire:components.dataset-permissions
+                :dataset="$selectedDataset"
+                :key="'permissions-'.$selectedDataset->id"
             />
-        </flux:modal>
-    @endif
+        @endif
+    </flux:modal>
 </div>

@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Components;
 
-use App\Models\Dataset;
+use App\Builders\DatasetAdvancedSearchBuilder;
 use App\Models\DatasetMetadata;
 use App\Models\SampleMetadata;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -15,41 +16,12 @@ class DatasetAdvancedSearch extends Component
 
     public array $connectors = [];
 
-    // Available operators for different data types
-    const STRING_OPERATORS = [
-        'equals' => 'Equals',
-        'not_equals' => 'Not Equals',
-        'contains' => 'Contains',
-        'not_contains' => 'Not Contains',
-        'starts_with' => 'Starts With',
-        'ends_with' => 'Ends With',
-    ];
-
-    const NUMERIC_OPERATORS = [
-        'equals' => 'Equals',
-        'not_equals' => 'Not Equals',
-        'less_than' => 'Less Than',
-        'greater_than' => 'Greater Than',
-        'less_than_equal' => 'Less Than or Equal',
-        'greater_than_equal' => 'Greater Than or Equal',
-    ];
-
-    const SAMPLE_FIXED_FIELDS = [
-        'variety' => 'Variety',
-        'plant_stage' => 'Plant Stage',
-        'biological_replica' => 'Biological Replica',
-        'sample_conditions' => 'Sample Conditions',
-        'plant_section' => 'Plant Section',
-        'sampling_date' => 'Sampling Date',
-        'location' => 'Location',
-    ];
-
-    public function mount()
+    public function mount(): void
     {
         $this->addCondition();
     }
 
-    public function addCondition()
+    public function addCondition(): void
     {
         $this->conditions[] = [
             'type' => 'dataset', // dataset or sample
@@ -63,7 +35,7 @@ class DatasetAdvancedSearch extends Component
         }
     }
 
-    public function removeCondition($index)
+    public function removeCondition($index): void
     {
         unset($this->conditions[$index]);
         $this->conditions = array_values($this->conditions);
@@ -84,7 +56,7 @@ class DatasetAdvancedSearch extends Component
     public function sampleMetadataKeys(): Collection
     {
         // Combine fixed fields with dynamic metadata
-        return collect(self::SAMPLE_FIXED_FIELDS)
+        return collect(DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS)
             ->keys()
             ->concat(SampleMetadata::distinct()->pluck('key'))
             ->unique();
@@ -101,19 +73,19 @@ class DatasetAdvancedSearch extends Component
 
     public function getFieldLabel(string $type, string $key): string
     {
-        if ($type === 'sample' && array_key_exists($key, self::SAMPLE_FIXED_FIELDS)) {
-            return self::SAMPLE_FIXED_FIELDS[$key];
+        if ($type === 'sample' && array_key_exists($key, DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS)) {
+            return DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS[$key];
         }
 
-        return $key;
+        return str($key)->replace('_', ' ')->title();
     }
 
-    public function applySearch()
+    public function applySearch(): void
     {
         $this->dispatch('advanced-search-applied', conditions: $this->conditions, connectors: $this->connectors);
     }
 
-    public function updatedConditions($value, $key)
+    public function updatedConditions($value, $key): void
     {
         // If the type was changed, reset the metadata key
         if (str_ends_with($key, '.type')) {
@@ -122,7 +94,7 @@ class DatasetAdvancedSearch extends Component
         }
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.dataset-advanced-search');
     }

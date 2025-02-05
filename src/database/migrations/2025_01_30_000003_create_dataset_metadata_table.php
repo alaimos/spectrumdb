@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('dataset_id')->constrained()->cascadeOnDelete();
             $table->string('key');
-            $table->json('value');
+            $table->text('value');
 
             $table->index('key');
         });

@@ -27,4 +27,14 @@ enum DatasetPermission: string
 
         return $this === $permission;
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::READ => 'Read',
+            self::DOWNLOAD_RAW => 'Download Raw',
+            self::DOWNLOAD_PROCESSED => 'Download Processed',
+            self::ALL => 'All',
+        };
+    }
 }

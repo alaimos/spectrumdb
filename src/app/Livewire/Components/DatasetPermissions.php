@@ -6,6 +6,7 @@ use App\Enums\DatasetPermission;
 use App\Models\Dataset;
 use App\Models\User;
 use Flux;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -20,7 +21,7 @@ class DatasetPermissions extends Component
 
     public bool $showAddForm = false;
 
-    public function mount(Dataset $dataset)
+    public function mount(Dataset $dataset): void
     {
         $this->dataset = $dataset;
         $this->selectedPermission = DatasetPermission::READ->value;
@@ -44,17 +45,7 @@ class DatasetPermissions extends Component
     #[Computed]
     public function currentUsers(): Collection
     {
-        return $this->dataset->users()
-            ->select('users.*', 'dataset_user_permissions.permission')
-            ->get()
-            ->map(function ($user) {
-                $user->pivot = (object) [
-                    'permission' => $user->permission,
-                ];
-                unset($user->permission);
-
-                return $user;
-            });
+        return $this->dataset->users;
     }
 
     public function grantAccess(): void
@@ -69,17 +60,23 @@ class DatasetPermissions extends Component
         $this->dataset->grantPermission($user, $permission);
 
         $this->selectedUserId = null;
-        Flux::toast('Permission granted successfully', 'success');
+        Flux::toast(
+            text: 'Permission granted successfully',
+            variant: 'success'
+        );
     }
 
     public function revokeAccess(int $userId): void
     {
         $user = User::find($userId);
         $this->dataset->revokeAllPermissions($user);
-        Flux::toast('Permission revoked successfully', 'success');
+        Flux::toast(
+            text: 'Permission revoked successfully',
+            variant: 'success'
+        );
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.components.dataset-permissions');
     }
