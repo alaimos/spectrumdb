@@ -22,7 +22,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/datasets', App\Livewire\Pages\Datasets\Index::class)->name('datasets.index');
-    Route::get('/datasets/create', fn () => 'Create')->name('datasets.create');
+    Route::get('/datasets/create', App\Livewire\Pages\Datasets\Create::class)->name('datasets.create');
     Route::get('/datasets/{dataset}/edit', fn () => 'Edit')->name('datasets.edit');
     // Route::get('/datasets/create', App\Livewire\Pages\Datasets\Create::class)->name('datasets.create');
     // Route::get('/datasets/{dataset}/edit', App\Livewire\Pages\Datasets\Edit::class)->name('datasets.edit');
