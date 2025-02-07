@@ -3,6 +3,7 @@
 namespace App\Livewire\Pages\Datasets;
 
 use App\Jobs\ProcessDatasetJob;
+use Exception;
 use Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -35,7 +36,7 @@ class Create extends Component
     public $taxonomyFile;
 
     #[Validate('required|file|mimes:txt,tsv')]
-    public $sampleDataFile;
+    public $asvTableFile;
 
     #[Validate('required|file|mimes:txt,tsv')]
     public $metadataFile;
@@ -45,6 +46,9 @@ class Create extends Component
 
     #[Validate('required|file')]
     public $shannonFile;
+
+    #[Validate('required|file|mimes:txt,tsv')]
+    public $picrustFile;
 
     /** @var array<string, array{original_name: string, stored_name: string}> */
     public array $uploadedFiles = [];
@@ -77,11 +81,7 @@ class Create extends Component
         'location',
     ];
 
-    public function mount(): void
-    {
-        $this->tempDir = 'temp/'.Str::uuid();
-        Storage::makeDirectory($this->tempDir);
-    }
+    public function mount(): void {}
 
     public function updatedMetadataFile(): void
     {
@@ -89,13 +89,13 @@ class Create extends Component
             return;
         }
 
-        // Read the first few lines of the metadata file to get columns and preview
+        // Read directly from the temporary upload location
         $path = $this->metadataFile->getRealPath();
-        $handle = fopen($path, 'r');
+        $handle = fopen($path, 'rb');
 
         // Get headers
         $headers = fgetcsv($handle, 0, "\t");
-        $this->metadataColumns = $headers ?? [];
+        $this->metadataColumns = $headers;
 
         // Get preview data (first 5 rows)
         $this->metadataPreview = [];
@@ -153,22 +153,18 @@ class Create extends Component
             ]),
             2 => $this->validate([
                 'taxonomyFile' => 'required|file|mimes:txt,tsv',
-                'sampleDataFile' => 'required|file|mimes:txt,tsv',
+                'asvTableFile' => 'required|file|mimes:txt,tsv',
                 'metadataFile' => 'required|file|mimes:txt,tsv',
                 'brayCurtisFile' => 'required|file',
                 'shannonFile' => 'required|file',
+                'picrustFile' => 'required|file|mimes:txt,tsv',
             ]),
             3 => $this->validate([
                 'sampleCodeColumn' => 'required|string',
                 'columnMapping' => 'required|array',
-            ]),
-            4 => true, // Dataset metadata is optional
+            ]), // Dataset metadata is optional
             default => true,
         };
-
-        if ($this->currentStep === 2) {
-            $this->saveUploadedFiles();
-        }
 
         $this->currentStep++;
     }
@@ -182,10 +178,11 @@ class Create extends Component
     {
         $files = [
             'taxonomy' => $this->taxonomyFile,
-            'sample_data' => $this->sampleDataFile,
+            'asv_table' => $this->asvTableFile,
             'metadata' => $this->metadataFile,
             'bray_curtis' => $this->brayCurtisFile,
             'shannon' => $this->shannonFile,
+            'picrust' => $this->picrustFile,
         ];
 
         $fileNames = [];
@@ -218,32 +215,67 @@ class Create extends Component
 
     public function submit(): void
     {
-        // Create dataset processing job
-        dispatch(new ProcessDatasetJob(
-            userId: auth()->id(),
-            name: $this->name,
-            description: $this->description,
-            tempDir: $this->tempDir,
-            columnMapping: $this->columnMapping,
-            sampleCodeColumn: $this->sampleCodeColumn,
-            datasetMetadata: array_filter($this->datasetMetadata, fn ($item) => ! empty($item['key']) && ! empty($item['value'])
-            ),
-            uploadedFiles: $this->uploadedFiles
-        ));
+        $this->validate();
 
-        Flux::toast(
-            text: 'Your dataset is being processed. You will be notified when it is ready.',
-            heading: 'Dataset creation started',
-            variant: 'success'
-        );
+        try {
+            // Create temporary storage directory only when submitting
+            $tempDir = 'datasets/'.Str::uuid();
+            Storage::makeDirectory($tempDir);
 
-        $this->redirect(route('datasets.index'));
-    }
+            // Store files
+            $files = [
+                'taxonomy' => $this->taxonomyFile,
+                'asv_table' => $this->asvTableFile,
+                'metadata' => $this->metadataFile,
+                'bray_curtis' => $this->brayCurtisFile,
+                'shannon' => $this->shannonFile,
+                'picrust' => $this->picrustFile,
+            ];
 
-    public function cancel(): void
-    {
-        Storage::deleteDirectory($this->tempDir);
-        $this->redirect(route('datasets.index'));
+            $uploadedFiles = [];
+            foreach ($files as $name => $file) {
+                if ($file) {
+                    $originalName = $file->getClientOriginalName();
+                    $extension = $file->getClientOriginalExtension();
+                    $storedName = $name.'.'.$extension;
+                    $file->storeAs($tempDir, $storedName);
+                    $uploadedFiles[$name] = [
+                        'original_name' => $originalName,
+                        'stored_name' => $storedName,
+                    ];
+                }
+            }
+
+            // Dispatch job to handle all database operations
+            ProcessDatasetJob::dispatch(
+                userId: auth()->id(),
+                name: $this->name,
+                description: $this->description,
+                storagePath: $tempDir,
+                columnMapping: $this->columnMapping,
+                sampleCodeColumn: $this->sampleCodeColumn,
+                datasetMetadata: $this->datasetMetadata,
+                uploadedFiles: $uploadedFiles,
+            );
+
+            Flux::toast(
+                text: 'Your dataset is being processed. You will be notified when it is ready.',
+                heading: 'Dataset creation started',
+                variant: 'success'
+            );
+
+            $this->redirect(route('datasets.index'), navigate: true);
+        } catch (Exception $e) {
+            Storage::deleteDirectory($tempDir);
+
+            Flux::toast(
+                text: 'An error occurred while creating your dataset.',
+                heading: 'Error',
+                variant: 'danger'
+            );
+
+            throw $e;
+        }
     }
 
     public function render(): View

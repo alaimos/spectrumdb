@@ -6,20 +6,14 @@
         <div class="flex gap-2">
             {{-- Search --}}
             <flux:input.group>
-                <flux:input wire:model.live.debounce.300ms="search"
-                            placeholder="Search datasets..."
+                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search datasets..."
                             icon="magnifying-glass"/>
                 <flux:tooltip content="Advanced Search" x-data="{}">
                     <flux:button icon="adjustments-horizontal" x-on:click="$flux.modal('advanced-search').show()"/>
                 </flux:tooltip>
             </flux:input.group>
             {{-- Create button --}}
-            <flux:button
-                variant="primary"
-                icon="plus"
-                wire:navigate
-                href="{{ route('datasets.create') }}"
-            >
+            <flux:button variant="primary" icon="plus" wire:navigate href="{{ route('datasets.create') }}">
                 New Dataset
             </flux:button>
         </div>
@@ -42,45 +36,40 @@
             </flux:columns>
 
             <flux:rows>
-                @foreach($this->datasets as $dataset)
+                @foreach ($this->datasets as $dataset)
                     <flux:row wire:key="{{ $dataset->id }}">
                         <flux:cell>{{ $dataset->name }}</flux:cell>
                         <flux:cell>{{ Str::limit($dataset->description, 50) }}</flux:cell>
                         <flux:cell>{{ $dataset->created_at->diffForHumans() }}</flux:cell>
                         <flux:cell>
                             <div class="flex justify-end gap-2">
-                                @can('update', $dataset)
-                                    <flux:button
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="users"
-                                        wire:click="showPermissions({{ $dataset->id }})"
-                                    >
-                                        Manage Access
-                                    </flux:button>
-                                @endcan
-                                @can('update', $dataset)
-                                    <flux:button
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="pencil-square"
-                                        wire:navigate
-                                        href="{{ route('datasets.edit', $dataset) }}"
-                                    >
-                                        Edit
-                                    </flux:button>
-                                @endcan
-                                @can('delete', $dataset)
-                                    <x-delete-button
-                                        size="sm"
-                                        icon="trash"
-                                        wire:click="deleteDataset({{ $dataset->id }})"
-                                        :id="$dataset->id"
-                                        title="Delete {{ $dataset->name }}?">
-                                        <p>Are you sure you want to delete this dataset?</p>
-                                        <p>This action cannot be undone.</p>
-                                    </x-delete-button>
-                                @endcan
+                                @canany(['update', 'delete'], $dataset)
+                                    <flux:dropdown>
+                                        <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal"/>
+                                        <flux:menu>
+                                            @can('update', $dataset)
+                                                <flux:menu.item icon="pencil-square" wire:navigate
+                                                                href="{{ route('datasets.edit', $dataset) }}">Edit
+                                                </flux:menu.item>
+                                                <flux:menu.item icon="users"
+                                                                wire:click="showPermissions({{ $dataset->id }})">Manage
+                                                    Access
+                                                </flux:menu.item>
+                                            @endcan
+                                            @can('delete', $dataset)
+                                                <flux:menu.separator/>
+                                                <x-delete-menu-item
+                                                    icon="trash"
+                                                    wire:click="deleteDataset({{ $dataset->id }})"
+                                                    :id="$dataset->id"
+                                                    title="Delete dataset {{ $dataset->name }}?">
+                                                    <p>Are you sure you want to delete this dataset?</p>
+                                                    <p>This action cannot be undone.</p>
+                                                </x-delete-menu-item>
+                                            @endcan
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                @endcanany
                             </div>
                         </flux:cell>
                     </flux:row>
@@ -90,22 +79,15 @@
     </flux:card>
 
     {{-- Advanced Search Dialog --}}
-    <flux:modal
-        name="advanced-search"
-        variant="flyout"
-        position="bottom"
-        wire:model="showAdvancedSearch"
-    >
+    <flux:modal name="advanced-search" variant="flyout" position="bottom" wire:model="showAdvancedSearch">
         <livewire:components.dataset-advanced-search/>
     </flux:modal>
 
     {{-- Add Dataset Permissions Modals --}}
     <flux:modal name="dataset-permissions" size="xl" class="w-screen md:w-[40rem]">
-        @if($selectedDataset)
-            <livewire:components.dataset-permissions
-                :dataset="$selectedDataset"
-                :key="'permissions-'.$selectedDataset->id"
-            />
+        @if ($selectedDataset)
+            <livewire:components.dataset-permissions :dataset="$selectedDataset"
+                                                     :key="'permissions-' . $selectedDataset->id"/>
         @endif
     </flux:modal>
 </div>
