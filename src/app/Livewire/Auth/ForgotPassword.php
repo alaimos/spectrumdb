@@ -1,15 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Auth;
 
-use Flux;
-use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('components.layouts.auth')]
-class ForgotPassword extends Component
+final class ForgotPassword extends Component
 {
     public string $email = '';
 
@@ -18,30 +18,12 @@ class ForgotPassword extends Component
      */
     public function sendPasswordResetLink(): void
     {
-        $this->validate(
-            [
-                'email' => ['required', 'string', 'email'],
-            ]
-        );
+        $this->validate([
+            'email' => ['required', 'string', 'email'],
+        ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink($this->only('email'));
+        Password::sendResetLink($this->only('email'));
 
-        if ($status != Password::RESET_LINK_SENT) {
-            $this->addError('email', __($status));
-
-            return;
-        }
-
-        $this->reset('email');
-
-        Flux::toast(__($status), variant: 'success');
-    }
-
-    public function render(): View
-    {
-        return view('livewire.auth.forgot-password');
+        session()->flash('status', __('A reset link will be sent if the account exists.'));
     }
 }

@@ -1,1 +1,4 @@
-Always use the latest version of Laravel. Always use the latest version of PHP. Always use Flux Livewire components.
+Always use PHP 8.4 and Laravel 12 best practises.
+Use Livewire components witthout Volt.
+Use Flux components for the UI.
+use context7

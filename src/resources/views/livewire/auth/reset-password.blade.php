@@ -1,27 +1,45 @@
-<flux:card>
-    <form wire:submit="resetPassword" class="space-y-6">
-        <div>
-            <flux:heading size="lg">Reset your password</flux:heading>
-            <flux:subheading>Enter your new password</flux:subheading>
-        </div>
+<div class="flex flex-col gap-6">
+    <x-auth-header :title="__('Reset password')" :description="__('Please enter your new password below')" />
 
-        <div class="space-y-6">
-            <flux:input wire:model="email" label="Email" type="email" placeholder="Your email address" required
-                        autofocus/>
-            <flux:input wire:model="password" label="New Password" type="password" placeholder="Your new password"
-                        required/>
-            <flux:input wire:model="password_confirmation" label="Confirm Password" type="password"
-                        placeholder="Confirm your new password" required/>
-        </div>
+    <!-- Session Status -->
+    <x-auth-session-status class="text-center" :status="session('status')" />
 
-        <div class="space-y-2">
-            <flux:button variant="primary" class="w-full" type="submit">
-                {{ __('Reset Password') }}
-            </flux:button>
+    <form wire:submit="resetPassword" class="flex flex-col gap-6">
+        <!-- Email Address -->
+        <flux:input
+            wire:model="email"
+            :label="__('Email')"
+            type="email"
+            required
+            autocomplete="email"
+        />
 
-            <flux:button variant="ghost" class="w-full" href="{{ route('login') }}" wire:navigate>
-                Back to login
+        <!-- Password -->
+        <flux:input
+            wire:model="password"
+            :label="__('Password')"
+            type="password"
+            required
+            autocomplete="new-password"
+            :placeholder="__('Password')"
+            viewable
+        />
+
+        <!-- Confirm Password -->
+        <flux:input
+            wire:model="password_confirmation"
+            :label="__('Confirm password')"
+            type="password"
+            required
+            autocomplete="new-password"
+            :placeholder="__('Confirm password')"
+            viewable
+        />
+
+        <div class="flex items-center justify-end">
+            <flux:button type="submit" variant="primary" class="w-full">
+                {{ __('Reset password') }}
             </flux:button>
         </div>
     </form>
-</flux:card>
+</div>

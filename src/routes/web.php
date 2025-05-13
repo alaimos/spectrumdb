@@ -1,29 +1,26 @@
 <?php
 
-use App\Livewire\Pages\Dashboard;
-use App\Livewire\Pages\Notifications\Index as NotificationsIndex;
-use App\Livewire\Pages\Profile\Index as ProfileIndex;
+declare(strict_types=1);
+
+use App\Livewire\Settings\Appearance;
+use App\Livewire\Settings\Password;
+use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->group(
-    function () {
-        Route::get('/', Dashboard::class)->name('dashboard');
-        Route::get('/playground', \App\Livewire\Pages\Playground::class)->name('playground');
-        Route::get('/profile', ProfileIndex::class)->name('profile.edit');
-        Route::get('/notifications', NotificationsIndex::class)->name('notifications');
-    }
-);
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
 
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/admin/users', App\Livewire\Pages\Admin\Users\Index::class)->name('admin.users.index');
-    Route::get('/admin/users/create', App\Livewire\Pages\Admin\Users\Create::class)->name('admin.users.create');
-    Route::get('/admin/users/{user}', App\Livewire\Pages\Admin\Users\Edit::class)->name('admin.users.edit');
-});
+Route::view('dashboard', 'dashboard')
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/datasets', App\Livewire\Pages\Datasets\Index::class)->name('datasets.index');
-    Route::get('/datasets/create', App\Livewire\Pages\Datasets\Create::class)->name('datasets.create');
-    Route::get('/datasets/{dataset}/edit', App\Livewire\Pages\Datasets\Edit::class)->name('datasets.edit');
+    Route::redirect('settings', 'settings/profile');
+
+    Route::get('settings/profile', Profile::class)->name('settings.profile');
+    Route::get('settings/password', Password::class)->name('settings.password');
+    Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
 });
 
 require __DIR__.'/auth.php';
