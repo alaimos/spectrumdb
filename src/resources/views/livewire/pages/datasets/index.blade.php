@@ -22,26 +22,26 @@
     {{-- Table --}}
     <flux:card>
         <flux:table :paginate="$this->datasets">
-            <flux:columns>
-                <flux:column sortable :sorted="$sortBy === 'name'" :direction="$sortDirection"
+            <flux:table.columns>
+                <flux:table.column sortable :sorted="$sortBy === 'name'" :direction="$sortDirection"
                              wire:click="sort('name')">Name
-                </flux:column>
-                <flux:column sortable :sorted="$sortBy === 'description'" :direction="$sortDirection"
+                </flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'description'" :direction="$sortDirection"
                              wire:click="sort('description')">Description
-                </flux:column>
-                <flux:column sortable :sorted="$sortBy === 'created_at'" :direction="$sortDirection"
+                </flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'created_at'" :direction="$sortDirection"
                              wire:click="sort('created_at')">Created
-                </flux:column>
-                <flux:column><span class="sr-only">Actions</span></flux:column>
-            </flux:columns>
+                </flux:table.column>
+                <flux:table.column><span class="sr-only">Actions</span></flux:table.column>
+            </flux:table.columns>
 
-            <flux:rows>
+            <flux:table.rows>
                 @foreach ($this->datasets as $dataset)
-                    <flux:row wire:key="{{ $dataset->id }}">
-                        <flux:cell>{{ $dataset->name }}</flux:cell>
-                        <flux:cell>{{ Str::limit($dataset->description, 50) }}</flux:cell>
-                        <flux:cell>{{ $dataset->created_at->diffForHumans() }}</flux:cell>
-                        <flux:cell>
+                    <flux:table.row wire:key="{{ $dataset->id }}">
+                        <flux:table.cell>{{ $dataset->name }}</flux:table.cell>
+                        <flux:table.cell>{{ Str::limit($dataset->description, 50) }}</flux:table.cell>
+                        <flux:table.cell>{{ $dataset->created_at->diffForHumans() }}</flux:table.cell>
+                        <flux:table.cell>
                             <div class="flex justify-end gap-2">
                                 @canany(['update', 'delete'], $dataset)
                                     <flux:dropdown>
@@ -71,10 +71,10 @@
                                     </flux:dropdown>
                                 @endcanany
                             </div>
-                        </flux:cell>
-                    </flux:row>
+                        </flux:table.cell>
+                    </flux:table.row>
                 @endforeach
-            </flux:rows>
+            </flux:table.rows>
         </flux:table>
     </flux:card>
 

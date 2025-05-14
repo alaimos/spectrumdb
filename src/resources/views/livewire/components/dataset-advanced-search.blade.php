@@ -14,9 +14,9 @@
                             size="sm"
                             class="!w-24"
                         >
-                            <flux:option value="AND">AND</flux:option>
-                            <flux:option value="OR">OR</flux:option>
-                            <flux:option value="NOT">NOT</flux:option>
+                            <flux:select.option value="AND">AND</flux:select.option>
+                            <flux:select.option value="OR">OR</flux:select.option>
+                            <flux:select.option value="NOT">NOT</flux:select.option>
                         </flux:select>
                     @else
                         <div class="!w-24"></div>
@@ -30,8 +30,8 @@
                                 size="sm"
                                 label-sr-only="Search in"
                             >
-                                <flux:option value="dataset">Dataset</flux:option>
-                                <flux:option value="sample">Sample</flux:option>
+                                <flux:select.option value="dataset">Dataset</flux:select.option>
+                                <flux:select.option value="sample">Sample</flux:select.option>
                             </flux:select>
                         </div>
 
@@ -45,8 +45,8 @@
                                 placeholder="Select field..."
                             >
                                 @foreach($this->getMetadataKeysForType($condition['type']) as $key)
-                                    <flux:option
-                                        value="{{ $key }}">{{ $this->getFieldLabel($condition['type'], $key) }}</flux:option>
+                                    <flux:select.option
+                                        value="{{ $key }}">{{ $this->getFieldLabel($condition['type'], $key) }}</flux:select.option>
                                 @endforeach
                             </flux:select>
                         </div>
@@ -60,12 +60,12 @@
                             >
                                 <optgroup label="String">
                                     @foreach(\App\Builders\DatasetAdvancedSearchBuilder::STRING_OPERATORS as $value => $label)
-                                        <flux:option value="{{ $value }}">{{ $label }}</flux:option>
+                                        <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                     @endforeach
                                 </optgroup>
                                 <optgroup label="Numeric">
                                     @foreach(\App\Builders\DatasetAdvancedSearchBuilder::NUMERIC_OPERATORS as $value => $label)
-                                        <flux:option value="{{ $value }}">{{ $label }}</flux:option>
+                                        <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                     @endforeach
                                 </optgroup>
                             </flux:select>

@@ -71,12 +71,12 @@
                             hint="Search by name or email"
                         >
                             @foreach($this->availableUsers as $user)
-                                <flux:option value="{{ $user->id }}">
+                                <flux:select.option value="{{ $user->id }}">
                                     <div>
                                         <div>{{ $user->name }}</div>
                                         <div class="text-sm text-gray-500">{{ $user->email }}</div>
                                     </div>
-                                </flux:option>
+                                </flux:select.option>
                             @endforeach
                         </flux:select>
 
@@ -86,9 +86,9 @@
                             hint="Choose what the user can do"
                         >
                             @foreach(App\Enums\DatasetPermission::getAllPermissions() as $permission)
-                                <flux:option value="{{ $permission->value }}">
+                                <flux:select.option value="{{ $permission->value }}">
                                     {{ $permission->label() }}
-                                </flux:option>
+                                </flux:select.option>
                             @endforeach
                         </flux:select>
                     </div>

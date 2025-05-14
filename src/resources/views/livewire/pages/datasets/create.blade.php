@@ -131,7 +131,7 @@
 
                         <div>
                             <flux:select wire:model="dataType" label="Data Type">
-                                <flux:option value="processed">QIIME 2 Processed Data</flux:option>
+                                <flux:select.option value="processed">QIIME 2 Processed Data</flux:select.option>
                             </flux:select>
                         </div>
                     </div>
@@ -168,7 +168,7 @@
                             <div class="lg:col-span-1">
                                 <flux:select wire:model.live="sampleCodeColumn" label="Sample Code Column">
                                     @foreach ($metadataColumns as $column)
-                                        <flux:option value="{{ $column }}">{{ $column }}</flux:option>
+                                        <flux:select.option value="{{ $column }}">{{ $column }}</flux:select.option>
                                     @endforeach
                                 </flux:select>
                             </div>
@@ -186,12 +186,12 @@
                                             @if ($column !== $sampleCodeColumn)
                                                 <flux:select wire:model.live="columnMapping.{{ $column }}"
                                                     label="{{ $column }}" size="sm">
-                                                    <flux:option value="custom">Custom Metadata</flux:option>
-                                                    <flux:option value="exclude">Exclude</flux:option>
+                                                    <flux:select.option value="custom">Custom Metadata</flux:select.option>
+                                                    <flux:select.option value="exclude">Exclude</flux:select.option>
                                                     @foreach ($availableSampleFields as $field)
-                                                        <flux:option value="{{ $field }}">
+                                                        <flux:select.option value="{{ $field }}">
                                                             {{ Str::title(str_replace('_', ' ', $field)) }}
-                                                        </flux:option>
+                                                        </flux:select.option>
                                                     @endforeach
                                                 </flux:select>
                                             @endif
@@ -206,9 +206,9 @@
                             <flux:fieldset>
                                 <flux:legend>Data Preview</flux:legend>
                                 <flux:table>
-                                    <flux:columns>
+                                    <flux:table.columns>
                                         @foreach ($metadataColumns as $column)
-                                            <flux:column class="whitespace-nowrap">
+                                            <flux:table.column class="whitespace-nowrap">
                                                 <div class="flex flex-col">
                                                     <span>{{ $column }}</span>
                                                     @if ($column === $sampleCodeColumn)
@@ -219,20 +219,20 @@
                                                         </span>
                                                     @endif
                                                 </div>
-                                            </flux:column>
+                                            </flux:table.column>
                                         @endforeach
-                                    </flux:columns>
+                                    </flux:table.columns>
 
-                                    <flux:rows>
+                                    <flux:table.rows>
                                         @foreach ($metadataPreview as $row)
-                                            <flux:row>
+                                            <flux:table.row>
                                                 @foreach ($metadataColumns as $column)
-                                                    <flux:cell class="whitespace-nowrap">{{ $row[$column] }}
-                                                    </flux:cell>
+                                                    <flux:table.cell class="whitespace-nowrap">{{ $row[$column] }}
+                                                    </flux:table.cell>
                                                 @endforeach
-                                            </flux:row>
+                                            </flux:table.row>
                                         @endforeach
-                                    </flux:rows>
+                                    </flux:table.rows>
                                 </flux:table>
                             </flux:fieldset>
                         @endif
