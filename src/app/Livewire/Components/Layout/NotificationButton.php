@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Components\Layout;
 
 use App\Enums\NotificationLevel;
@@ -8,7 +10,7 @@ use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-class NotificationButton extends Component
+final class NotificationButton extends Component
 {
     public $unreadCount = 0;
 

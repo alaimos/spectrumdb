@@ -85,7 +85,7 @@ final class DatasetAdvancedSearchBuilder
         if ($condition['type'] === 'sample' && array_key_exists($condition['key'], self::SAMPLE_FIXED_FIELDS)) {
             $query->whereHas(
                 'samples',
-                fn (Builder $query): \Illuminate\Database\Eloquent\Builder => $this->applyOperatorCondition(
+                fn (Builder $query): Builder => $this->applyOperatorCondition(
                     query: $query,
                     field: $condition['key'],
                     operator: $condition['operator'],

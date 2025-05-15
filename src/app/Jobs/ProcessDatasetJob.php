@@ -122,44 +122,44 @@ final class ProcessDatasetJob implements ShouldQueue
 
     private function processASVTable(Dataset $dataset): void
     {
-        $filePath = "{$this->storagePath}/asv_table.tsv";
-        $handle = fopen(Storage::path($filePath), 'r');
-        $headers = fgetcsv($handle, 0, "\t", escape: '\\');
+        // $filePath = "{$this->storagePath}/asv_table.tsv";
+        // $handle = fopen(Storage::path($filePath), 'r');
+        // $headers = fgetcsv($handle, 0, "\t", escape: '\\');
 
-        // First column is Feature ID, rest are sample codes
-        $sampleCodes = array_slice($headers, 1);
+        // // First column is Feature ID, rest are sample codes
+        // $sampleCodes = array_slice($headers, 1);
 
-        // Cache sample IDs to avoid repeated queries
-        $sampleIds = Sample::where('dataset_id', $dataset->id)
-            ->whereIn('sample_code', $sampleCodes)
-            ->pluck('id', 'sample_code')
-            ->all();
+        // // Cache sample IDs to avoid repeated queries
+        // $sampleIds = Sample::where('dataset_id', $dataset->id)
+        //     ->whereIn('sample_code', $sampleCodes)
+        //     ->pluck('id', 'sample_code')
+        //     ->all();
 
-        while (($row = fgetcsv($handle, 0, "\t", escape: '\\')) !== false) {
-            $featureId = $row[0];
-            $abundances = array_slice($row, 1);
+        // while (($row = fgetcsv($handle, 0, "\t", escape: '\\')) !== false) {
+        //     $featureId = $row[0];
+        //     $abundances = array_slice($row, 1);
 
-            // Create metadata records in bulk
-            $records = [];
-            foreach ($sampleCodes as $index => $sampleCode) {
-                if (isset($sampleIds[$sampleCode]) && $abundances[$index] > 0) {
-                    $records[] = [
-                        'sample_id' => $sampleIds[$sampleCode],
-                        'key' => 'asv_abundance',
-                        'value' => json_encode([
-                            'feature_id' => $featureId,
-                            'abundance' => (float) $abundances[$index],
-                        ]),
-                    ];
-                }
-            }
+        //     // Create metadata records in bulk
+        //     $records = [];
+        //     foreach ($sampleCodes as $index => $sampleCode) {
+        //         if (isset($sampleIds[$sampleCode]) && $abundances[$index] > 0) {
+        //             $records[] = [
+        //                 'sample_id' => $sampleIds[$sampleCode],
+        //                 'key' => 'asv_abundance',
+        //                 'value' => json_encode([
+        //                     'feature_id' => $featureId,
+        //                     'abundance' => (float) $abundances[$index],
+        //                 ]),
+        //             ];
+        //         }
+        //     }
 
-            if ($records !== []) {
-                SampleMetadata::insert($records);
-            }
-        }
+        //     if ($records !== []) {
+        //         SampleMetadata::insert($records);
+        //     }
+        // }
 
-        fclose($handle);
+        // fclose($handle);
     }
 
     private function processMetadataFile(Dataset $dataset): void
@@ -185,7 +185,7 @@ final class ProcessDatasetJob implements ShouldQueue
                     $metadataRecords[] = [
                         'sample_id' => $sample->id,
                         'key' => $column,
-                        'value' => json_encode($value),
+                        'value' => $value,
                     ];
                 }
             }
@@ -225,24 +225,24 @@ final class ProcessDatasetJob implements ShouldQueue
                 'feature_name' => $description,
             ]);
 
-            // Store predictions in bulk
-            $records = [];
-            foreach ($sampleCodes as $index => $sampleCode) {
-                if (isset($sampleIds[$sampleCode]) && $values[$index] > 0) {
-                    $records[] = [
-                        'sample_id' => $sampleIds[$sampleCode],
-                        'key' => 'picrust_prediction',
-                        'value' => json_encode([
-                            'feature_id' => $featureId,
-                            'value' => (float) $values[$index],
-                        ]),
-                    ];
-                }
-            }
+            // // Store predictions in bulk
+            // $records = [];
+            // foreach ($sampleCodes as $index => $sampleCode) {
+            //     if (isset($sampleIds[$sampleCode]) && $values[$index] > 0) {
+            //         $records[] = [
+            //             'sample_id' => $sampleIds[$sampleCode],
+            //             'key' => 'picrust_prediction',
+            //             'value' => json_encode([
+            //                 'feature_id' => $featureId,
+            //                 'value' => (float) $values[$index],
+            //             ]),
+            //         ];
+            //     }
+            // }
 
-            if ($records !== []) {
-                SampleMetadata::insert($records);
-            }
+            // if ($records !== []) {
+            //     SampleMetadata::insert($records);
+            // }
         }
 
         fclose($handle);

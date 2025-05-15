@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Notifications;
 
 use App\Models\User;
@@ -9,7 +11,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class Index extends Component
+final class Index extends Component
 {
     use WithPagination;
 

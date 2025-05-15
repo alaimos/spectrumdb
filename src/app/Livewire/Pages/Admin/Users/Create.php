@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Admin\Users;
 
 use App\Enums\Role;
@@ -11,7 +13,7 @@ use Livewire\Attributes\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-class Create extends Component
+final class Create extends Component
 {
     #[Rule('required|string|max:255')]
     public string $name = '';

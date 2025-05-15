@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Profile;
 
 use App\Livewire\Actions\Logout;
@@ -13,7 +15,7 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
-class Index extends Component
+final class Index extends Component
 {
     public string $name = '';
 
@@ -70,7 +72,7 @@ class Index extends Component
 
     public function sendVerification(): void
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->hasVerifiedEmail()) {

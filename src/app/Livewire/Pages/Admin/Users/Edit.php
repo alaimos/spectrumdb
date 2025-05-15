@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Admin\Users;
 
 use App\Enums\Role;
@@ -12,7 +14,7 @@ use Livewire\Attributes\Rule as ValidationRule;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-class Edit extends Component
+final class Edit extends Component
 {
     public User $user;
 

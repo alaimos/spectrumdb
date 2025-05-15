@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DatasetPermission;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -85,7 +86,8 @@ final class Dataset extends Model
     /**
      * Scope a query to only include datasets visible to the given user.
      */
-    public function scopeVisibleTo($query, ?User $user = null)
+    #[Scope]
+    protected function visibleTo($query, ?User $user = null)
     {
         $user ??= auth()->user();
 

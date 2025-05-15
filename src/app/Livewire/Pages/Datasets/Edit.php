@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Datasets;
 
 use App\Models\Dataset;
 use App\Models\DatasetMetadata;
+use Exception;
 use Flux;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
-class Edit extends Component
+final class Edit extends Component
 {
     public Dataset $dataset;
 
@@ -24,28 +27,6 @@ class Edit extends Component
     public array $datasetMetadata = [];
 
     public bool $showMetadata = false;
-
-    protected function rules(): array
-    {
-        return [
-            'name' => 'required|min:3|max:255',
-            'description' => 'required|min:3|max:1000',
-            'datasetMetadata.*.key' => [
-                'nullable',
-                'string',
-                'max:255',
-                'not_regex:/^original_.+_filename$/',
-            ],
-            'datasetMetadata.*.value' => 'nullable',
-        ];
-    }
-
-    protected function messages(): array
-    {
-        return [
-            'datasetMetadata.*.key.not_regex' => 'The metadata key is not valid.',
-        ];
-    }
 
     public function mount(Dataset $dataset): void
     {
@@ -122,7 +103,7 @@ class Edit extends Component
             );
 
             $this->redirect(route('datasets.index'), navigate: true);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Flux::toast(
                 text: 'An error occurred while updating the dataset.',
                 heading: 'Error',
@@ -136,5 +117,27 @@ class Edit extends Component
     public function render(): View
     {
         return view('livewire.pages.datasets.edit');
+    }
+
+    protected function rules(): array
+    {
+        return [
+            'name' => 'required|min:3|max:255',
+            'description' => 'required|min:3|max:1000',
+            'datasetMetadata.*.key' => [
+                'nullable',
+                'string',
+                'max:255',
+                'not_regex:/^original_.+_filename$/',
+            ],
+            'datasetMetadata.*.value' => 'nullable',
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'datasetMetadata.*.key.not_regex' => 'The metadata key is not valid.',
+        ];
     }
 }

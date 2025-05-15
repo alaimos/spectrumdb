@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Datasets;
 
 use App\Jobs\ProcessDatasetJob;
@@ -12,7 +14,7 @@ use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-class Create extends Component
+final class Create extends Component
 {
     use WithFileUploads;
 
@@ -111,37 +113,6 @@ class Create extends Component
         $this->autoMapColumns();
     }
 
-    protected function autoMapColumns(): void
-    {
-        $this->columnMapping = [];
-
-        // Find best match for sample code column
-        $sampleCodeMatches = array_filter($this->metadataColumns, function ($column) {
-            return Str::contains(Str::lower($column), ['sample', 'code', 'id']);
-        });
-        $this->sampleCodeColumn = count($sampleCodeMatches) > 0 ? array_values($sampleCodeMatches)[0] : $this->metadataColumns[0];
-
-        // Map other columns
-        foreach ($this->metadataColumns as $column) {
-            if ($column === $this->sampleCodeColumn) {
-                continue;
-            }
-
-            $bestMatch = null;
-            $highestSimilarity = 0;
-
-            foreach ($this->availableSampleFields as $field) {
-                $similarity = similar_text(Str::lower($column), $field, $percent);
-                if ($percent > $highestSimilarity && $percent > 70) {
-                    $highestSimilarity = $percent;
-                    $bestMatch = $field;
-                }
-            }
-
-            $this->columnMapping[$column] = $bestMatch ?? 'custom';
-        }
-    }
-
     public function nextStep(): void
     {
         // Validate only current step
@@ -172,34 +143,6 @@ class Create extends Component
     public function previousStep(): void
     {
         $this->currentStep--;
-    }
-
-    protected function saveUploadedFiles(): void
-    {
-        $files = [
-            'taxonomy' => $this->taxonomyFile,
-            'asv_table' => $this->asvTableFile,
-            'metadata' => $this->metadataFile,
-            'bray_curtis' => $this->brayCurtisFile,
-            'shannon' => $this->shannonFile,
-            'picrust' => $this->picrustFile,
-        ];
-
-        $fileNames = [];
-        foreach ($files as $name => $file) {
-            if ($file) {
-                $originalName = $file->getClientOriginalName();
-                $extension = $file->getClientOriginalExtension();
-                $fileNames[$name] = [
-                    'original_name' => $originalName,
-                    'stored_name' => $name.'.'.$extension,
-                ];
-                $file->storeAs($this->tempDir, $name.'.'.$extension);
-            }
-        }
-
-        // Store file names in the component for passing to the job
-        $this->uploadedFiles = $fileNames;
     }
 
     public function addDatasetMetadata(): void
@@ -281,5 +224,64 @@ class Create extends Component
     public function render(): View
     {
         return view('livewire.pages.datasets.create');
+    }
+
+    protected function autoMapColumns(): void
+    {
+        $this->columnMapping = [];
+
+        // Find best match for sample code column
+        $sampleCodeMatches = array_filter($this->metadataColumns, function ($column) {
+            return Str::contains(Str::lower($column), ['sample', 'code', 'id']);
+        });
+        $this->sampleCodeColumn = count($sampleCodeMatches) > 0 ? array_values($sampleCodeMatches)[0] : $this->metadataColumns[0];
+
+        // Map other columns
+        foreach ($this->metadataColumns as $column) {
+            if ($column === $this->sampleCodeColumn) {
+                continue;
+            }
+
+            $bestMatch = null;
+            $highestSimilarity = 0;
+
+            foreach ($this->availableSampleFields as $field) {
+                $similarity = similar_text(Str::lower($column), $field, $percent);
+                if ($percent > $highestSimilarity && $percent > 70) {
+                    $highestSimilarity = $percent;
+                    $bestMatch = $field;
+                }
+            }
+
+            $this->columnMapping[$column] = $bestMatch ?? 'custom';
+        }
+    }
+
+    protected function saveUploadedFiles(): void
+    {
+        $files = [
+            'taxonomy' => $this->taxonomyFile,
+            'asv_table' => $this->asvTableFile,
+            'metadata' => $this->metadataFile,
+            'bray_curtis' => $this->brayCurtisFile,
+            'shannon' => $this->shannonFile,
+            'picrust' => $this->picrustFile,
+        ];
+
+        $fileNames = [];
+        foreach ($files as $name => $file) {
+            if ($file) {
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $fileNames[$name] = [
+                    'original_name' => $originalName,
+                    'stored_name' => $name.'.'.$extension,
+                ];
+                $file->storeAs($this->tempDir, $name.'.'.$extension);
+            }
+        }
+
+        // Store file names in the component for passing to the job
+        $this->uploadedFiles = $fileNames;
     }
 }

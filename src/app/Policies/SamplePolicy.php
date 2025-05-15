@@ -39,7 +39,7 @@ final class SamplePolicy
 
     public function create(User $user, ?Sample $sample = null): Response
     {
-        if (!$sample instanceof \App\Models\Sample) {
+        if (! $sample instanceof Sample) {
             return $user->isFarm() || $user->isResearcher()
                 ? Response::allow()
                 : Response::deny('Only farms and researchers can create samples.');

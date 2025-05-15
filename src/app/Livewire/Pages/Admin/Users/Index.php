@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages\Admin\Users;
 
 use App\Models\User;
@@ -12,7 +14,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Title('Users Management')]
-class Index extends Component
+final class Index extends Component
 {
     use WithPagination;
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Components;
 
 use App\Builders\DatasetAdvancedSearchBuilder;
@@ -9,8 +11,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Stringable;
 
-class DatasetAdvancedSearch extends Component
+final class DatasetAdvancedSearch extends Component
 {
     public array $conditions = [];
 
@@ -71,7 +74,7 @@ class DatasetAdvancedSearch extends Component
         };
     }
 
-    public function getFieldLabel(string $type, string $key): string
+    public function getFieldLabel(string $type, string $key): Stringable
     {
         if ($type === 'sample' && array_key_exists($key, DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS)) {
             return DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS[$key];

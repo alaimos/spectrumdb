@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Pages\Notifications\Index as NotificationsIndex;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
 use App\Livewire\Settings\Profile;
-use App\Livewire\Pages\Notifications\Index as NotificationsIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {

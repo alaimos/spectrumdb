@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Components;
 
 use App\Enums\DatasetPermission;
@@ -11,7 +13,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-class DatasetPermissions extends Component
+final class DatasetPermissions extends Component
 {
     public Dataset $dataset;
 

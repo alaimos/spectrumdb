@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Livewire\Pages;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
-class Playground extends Component
+final class Playground extends Component
 {
     public function render(): View
     {
