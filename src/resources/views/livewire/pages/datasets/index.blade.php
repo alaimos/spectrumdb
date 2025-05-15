@@ -1,8 +1,5 @@
 <div>
-    {{-- Header --}}
-    <div class="flex items-center mb-6">
-        <flux:heading size="lg">Datasets</flux:heading>
-        <flux:spacer/>
+    <x-page-heading-split title="Datasets" subtitle="View and manage all datasets in the system">
         <div class="flex gap-2">
             {{-- Search --}}
             <flux:input.group>
@@ -17,8 +14,7 @@
                 New Dataset
             </flux:button>
         </div>
-    </div>
-
+    </x-page-heading-split>
     {{-- Table --}}
     <flux:card>
         <flux:table :paginate="$this->datasets">

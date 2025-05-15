@@ -1,11 +1,6 @@
 <div>
-    <div class="flex items-center mb-6">
-        <div>
-            <flux:heading size="lg">Manage Users</flux:heading>
-            <flux:subheading>View and manage all users in the system</flux:subheading>
-        </div>
-        <flux:spacer />
-        <div class="flex flex-col-reverse gap-4">
+    <x-page-heading-split title="Manage Users" subtitle="View and manage all users in the system">
+        <div class="flex flex-col-reverse gap-4 mb-2">
             {{-- Search --}}
             <div class="grid gap-4 sm:grid-cols-2">
                 <flux:input wire:model.live.debounce.300ms="search" placeholder="Search by name or email..."
@@ -24,7 +19,7 @@
                 Add User
             </flux:button>
         </div>
-    </div>
+    </x-page-heading-split>
     <flux:card>
         <flux:table :paginate="$this->users">
             <flux:table.columns>
