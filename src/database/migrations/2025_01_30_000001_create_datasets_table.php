@@ -10,12 +10,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('datasets', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name');
-            $table->text('description');
-            $table->foreignId('created_by')->constrained('users');
-            $table->timestamps();
-        });
+        Schema::create(
+            'datasets',
+            static function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->text('description');
+                $table->json('files')->nullable();
+                $table->foreignId('created_by')->constrained('users');
+                $table->timestamps();
+            }
+        );
     }
 };

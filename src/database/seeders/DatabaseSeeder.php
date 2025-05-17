@@ -17,8 +17,6 @@ final class DatabaseSeeder extends Seeder
             [
                 UserSeeder::class,
                 DatasetSeeder::class,
-                TaxonSeeder::class,
-                GeneticFeatureSeeder::class,
             ]
         );
     }

@@ -8,6 +8,7 @@ use App\Jobs\ProcessDatasetJob;
 use Exception;
 use Flux;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Validate;
@@ -17,6 +18,12 @@ use Livewire\WithFileUploads;
 final class Create extends Component
 {
     use WithFileUploads;
+
+    public const string REQUIRED_TSV_FILES_RULES = 'required|file|mimes:txt,tsv';
+
+    public const string OPTIONAL_TSV_FILES_RULES = 'nullable|file|mimes:txt,tsv';
+
+    public const string OPTIONAL_FILES_RULES = 'nullable|file';
 
     // Current step tracking
     public int $currentStep = 1;
@@ -34,23 +41,49 @@ final class Create extends Component
     public string $dataType = 'processed';
 
     // Step 2 - File Uploads
-    #[Validate('required|file|mimes:txt,tsv')]
+    #[Validate(self::REQUIRED_TSV_FILES_RULES)]
     public $taxonomyFile;
 
-    #[Validate('required|file|mimes:txt,tsv')]
+    #[Validate(self::REQUIRED_TSV_FILES_RULES)]
     public $asvTableFile;
 
-    #[Validate('required|file|mimes:txt,tsv')]
+    #[Validate(self::REQUIRED_TSV_FILES_RULES)]
     public $metadataFile;
 
-    #[Validate('required|file')]
-    public $brayCurtisFile;
+    // Alpha diversity files
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $faithFile;
 
-    #[Validate('required|file')]
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $chaoFile;
+
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $evennessFile;
+
+    #[Validate(self::OPTIONAL_FILES_RULES)]
     public $shannonFile;
 
-    #[Validate('required|file|mimes:txt,tsv')]
-    public $picrustFile;
+    // Beta diversity files
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $jaccardFile;
+
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $brayCurtisFile;
+
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $unweightedUnifracFile;
+
+    #[Validate(self::OPTIONAL_FILES_RULES)]
+    public $weightedUnifracFile;
+
+    #[Validate(self::OPTIONAL_TSV_FILES_RULES)]
+    public $picrustKoFile;
+
+    #[Validate(self::OPTIONAL_TSV_FILES_RULES)]
+    public $picrustEcFile;
+
+    #[Validate(self::OPTIONAL_TSV_FILES_RULES)]
+    public $picrustPathwaysFile;
 
     /** @var array<string, array{original_name: string, stored_name: string}> */
     public array $uploadedFiles = [];
@@ -96,13 +129,13 @@ final class Create extends Component
         $handle = fopen($path, 'rb');
 
         // Get headers
-        $headers = fgetcsv($handle, 0, "\t");
+        $headers = fgetcsv($handle, 0, "\t", escape: '\\');
         $this->metadataColumns = $headers;
 
         // Get preview data (first 5 rows)
         $this->metadataPreview = [];
         for ($i = 0; $i < 5; $i++) {
-            $row = fgetcsv($handle, 0, "\t");
+            $row = fgetcsv($handle, 0, "\t", escape: '\\');
             if ($row) {
                 $this->metadataPreview[] = array_combine($headers, $row);
             }
@@ -117,23 +150,37 @@ final class Create extends Component
     {
         // Validate only current step
         match ($this->currentStep) {
-            1 => $this->validate([
-                'name' => 'required|min:3|max:255',
-                'description' => 'required|min:3|max:1000',
-                'dataType' => 'required|in:processed',
-            ]),
-            2 => $this->validate([
-                'taxonomyFile' => 'required|file|mimes:txt,tsv',
-                'asvTableFile' => 'required|file|mimes:txt,tsv',
-                'metadataFile' => 'required|file|mimes:txt,tsv',
-                'brayCurtisFile' => 'required|file',
-                'shannonFile' => 'required|file',
-                'picrustFile' => 'required|file|mimes:txt,tsv',
-            ]),
-            3 => $this->validate([
-                'sampleCodeColumn' => 'required|string',
-                'columnMapping' => 'required|array',
-            ]), // Dataset metadata is optional
+            1 => $this->validate(
+                [
+                    'name' => 'required|min:3|max:255',
+                    'description' => 'required|min:3|max:1000',
+                    'dataType' => 'required|in:processed',
+                ]
+            ),
+            2 => $this->validate(
+                [
+                    'taxonomyFile' => self::REQUIRED_TSV_FILES_RULES,
+                    'asvTableFile' => self::REQUIRED_TSV_FILES_RULES,
+                    'metadataFile' => self::REQUIRED_TSV_FILES_RULES,
+                    'faithFile' => self::OPTIONAL_FILES_RULES,
+                    'chaoFile' => self::OPTIONAL_FILES_RULES,
+                    'evennessFile' => self::OPTIONAL_FILES_RULES,
+                    'shannonFile' => self::OPTIONAL_FILES_RULES,
+                    'jaccardFile' => self::OPTIONAL_FILES_RULES,
+                    'brayCurtisFile' => self::OPTIONAL_FILES_RULES,
+                    'unweightedUnifracFile' => self::OPTIONAL_FILES_RULES,
+                    'weightedUnifracFile' => self::OPTIONAL_FILES_RULES,
+                    'picrustKoFile' => self::OPTIONAL_TSV_FILES_RULES,
+                    'picrustEcFile' => self::OPTIONAL_TSV_FILES_RULES,
+                    'picrustPathwaysFile' => self::OPTIONAL_TSV_FILES_RULES,
+                ]
+            ),
+            3 => $this->validate(
+                [
+                    'sampleCodeColumn' => 'required|string',
+                    'columnMapping' => 'required|array',
+                ]
+            ), // Dataset metadata is optional
             default => true,
         };
 
@@ -160,20 +207,14 @@ final class Create extends Component
     {
         $this->validate();
 
+        $tempDir = 'datasets/'.Str::uuid();
+
         try {
             // Create temporary storage directory only when submitting
-            $tempDir = 'datasets/'.Str::uuid();
             Storage::makeDirectory($tempDir);
 
             // Store files
-            $files = [
-                'taxonomy' => $this->taxonomyFile,
-                'asv_table' => $this->asvTableFile,
-                'metadata' => $this->metadataFile,
-                'bray_curtis' => $this->brayCurtisFile,
-                'shannon' => $this->shannonFile,
-                'picrust' => $this->picrustFile,
-            ];
+            $files = $this->prepareDatasetFilesArray();
 
             $uploadedFiles = [];
             foreach ($files as $name => $file) {
@@ -188,6 +229,7 @@ final class Create extends Component
                     ];
                 }
             }
+            $uploadedFiles = Arr::undot($uploadedFiles);
 
             // Dispatch job to handle all database operations
             ProcessDatasetJob::dispatch(
@@ -209,15 +251,16 @@ final class Create extends Component
 
             $this->redirect(route('datasets.index'), navigate: true);
         } catch (Exception $e) {
-            Storage::deleteDirectory($tempDir);
+            if (file_exists($tempDir)) {
+                // Delete the temporary directory if it exists
+                Storage::deleteDirectory($tempDir);
+            }
 
             Flux::toast(
                 text: 'An error occurred while creating your dataset.',
                 heading: 'Error',
                 variant: 'danger'
             );
-
-            throw $e;
         }
     }
 
@@ -231,10 +274,15 @@ final class Create extends Component
         $this->columnMapping = [];
 
         // Find best match for sample code column
-        $sampleCodeMatches = array_filter($this->metadataColumns, function ($column) {
-            return Str::contains(Str::lower($column), ['sample', 'code', 'id']);
-        });
-        $this->sampleCodeColumn = count($sampleCodeMatches) > 0 ? array_values($sampleCodeMatches)[0] : $this->metadataColumns[0];
+        $sampleCodeMatches = array_filter(
+            $this->metadataColumns,
+            static function ($column) {
+                return Str::contains(Str::lower($column), ['sample', 'code', 'id']);
+            }
+        );
+        $this->sampleCodeColumn = count($sampleCodeMatches) > 0 ? array_values(
+            $sampleCodeMatches
+        )[0] : $this->metadataColumns[0];
 
         // Map other columns
         foreach ($this->metadataColumns as $column) {
@@ -257,31 +305,84 @@ final class Create extends Component
         }
     }
 
-    protected function saveUploadedFiles(): void
+    /**
+     * @return array{
+     *     taxonomy: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile,
+     *     asvTable: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile,
+     *     metadata: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile,
+     *     picrust: array{
+     *         ko: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         pathways: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         ec: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null
+     *     },
+     *     alphaDiversity: array{
+     *         faith: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         chao: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         evenness: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         shannon: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null
+     *     },
+     *     betaDiversity: array{
+     *         jaccard: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         brayCurtis: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         unweightedUnifrac: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null,
+     *         weightedUnifrac: \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null
+     *     }
+     * }
+     */
+    protected function prepareDatasetFilesArray(): array
     {
-        $files = [
-            'taxonomy' => $this->taxonomyFile,
-            'asv_table' => $this->asvTableFile,
-            'metadata' => $this->metadataFile,
-            'bray_curtis' => $this->brayCurtisFile,
-            'shannon' => $this->shannonFile,
-            'picrust' => $this->picrustFile,
-        ];
-
-        $fileNames = [];
-        foreach ($files as $name => $file) {
-            if ($file) {
-                $originalName = $file->getClientOriginalName();
-                $extension = $file->getClientOriginalExtension();
-                $fileNames[$name] = [
-                    'original_name' => $originalName,
-                    'stored_name' => $name.'.'.$extension,
-                ];
-                $file->storeAs($this->tempDir, $name.'.'.$extension);
-            }
-        }
-
-        // Store file names in the component for passing to the job
-        $this->uploadedFiles = $fileNames;
+        return Arr::dot(
+            [
+                'taxonomy' => $this->taxonomyFile,
+                'asvTable' => $this->asvTableFile,
+                'metadata' => $this->metadataFile,
+                'picrust' => [
+                    'ko' => $this->picrustKoFile,
+                    'pathways' => $this->picrustPathwaysFile,
+                    'ec' => $this->picrustEcFile,
+                ],
+                'alphaDiversity' => [
+                    'faith' => $this->faithFile,
+                    'chao' => $this->chaoFile,
+                    'evenness' => $this->evennessFile,
+                    'shannon' => $this->shannonFile,
+                ],
+                'betaDiversity' => [
+                    'jaccard' => $this->jaccardFile,
+                    'brayCurtis' => $this->brayCurtisFile,
+                    'unweightedUnifrac' => $this->unweightedUnifracFile,
+                    'weightedUnifrac' => $this->weightedUnifracFile,
+                ],
+            ]
+        );
     }
+
+    //    protected function saveUploadedFiles(): void
+    //    {
+    //        dd("Chiamato");
+    //        $files = [
+    //            'taxonomy' => $this->taxonomyFile,
+    //            'asv_table' => $this->asvTableFile,
+    //            'metadata' => $this->metadataFile,
+    //            'bray_curtis' => $this->brayCurtisFile,
+    //            'shannon' => $this->shannonFile,
+    //            'picrust' => $this->picrustFile,
+    //        ];
+    //
+    //        $fileNames = [];
+    //        foreach ($files as $name => $file) {
+    //            if ($file) {
+    //                $originalName = $file->getClientOriginalName();
+    //                $extension = $file->getClientOriginalExtension();
+    //                $fileNames[$name] = [
+    //                    'original_name' => $originalName,
+    //                    'stored_name' => $name.'.'.$extension,
+    //                ];
+    //                $file->storeAs($this->tempDir, $name.'.'.$extension);
+    //            }
+    //        }
+    //
+    //        // Store file names in the component for passing to the job
+    //        $this->uploadedFiles = $fileNames;
+    //    }
 }

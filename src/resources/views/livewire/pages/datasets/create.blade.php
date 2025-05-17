@@ -30,17 +30,6 @@
             ],
         ],
         [
-            'model' => 'picrustFile',
-            'label' => 'PICRUSt Metagenome Table (TSV)',
-            'description' => 'A tab-separated file containing predicted metagenomic features',
-            'accept' => '.tsv,.txt',
-            'help' => [
-                'First column: Genetic Feature ID',
-                'Second column: Feature Description',
-                'Other columns: Sample values (matching ASV table)',
-            ],
-        ],
-        [
             'model' => 'metadataFile',
             'label' => 'Sample Metadata (TSV)',
             'description' => 'A tab-separated file containing sample metadata',
@@ -49,6 +38,17 @@
                 'Sample code column (matching feature table)',
                 'Additional columns for sample metadata',
                 'One row per sample',
+            ],
+        ],
+        [
+            'model' => 'picrustFile',
+            'label' => 'PICRUSt Metagenome Table (TSV)',
+            'description' => 'A tab-separated file containing predicted metagenomic features',
+            'accept' => '.tsv,.txt',
+            'help' => [
+                'First column: Genetic Feature ID',
+                'Second column: Feature Description',
+                'Other columns: Sample values (matching ASV table)',
             ],
         ],
         [
@@ -104,7 +104,7 @@
                                 'text-zinc-900 dark:text-white' => $currentStep >= $index + 1,
                                 'text-zinc-500 dark:text-zinc-400' => $currentStep < $index + 1,
                             ])>
-                                <flux:icon :name="$step['icon']" class="mr-2 h-4 w-4" />{{ $step['name'] }}
+                                <flux:icon :name="$step['icon']" class="mr-2 h-4 w-4"/>{{ $step['name'] }}
                             </span>
                         </div>
                     @endforeach
@@ -121,12 +121,12 @@
                     <div class="space-y-6">
                         <div>
                             <flux:input wire:model="name" label="Dataset Name"
-                                placeholder="Enter a descriptive name for your dataset" />
+                                        placeholder="Enter a descriptive name for your dataset"/>
                         </div>
 
                         <div>
                             <flux:textarea wire:model="description" label="Description"
-                                placeholder="Describe the purpose and contents of your dataset" rows="4" />
+                                           placeholder="Describe the purpose and contents of your dataset" rows="4"/>
                         </div>
 
                         <div>
@@ -144,7 +144,7 @@
                             @foreach ($fileFields as $file)
                                 <div class="p-4">
                                     <flux:input type="file" :wire:model="$file['model']" :label="$file['label']"
-                                        :description="$file['description']" :accept="$file['accept']" />
+                                                :description="$file['description']" :accept="$file['accept']"/>
                                     @if (isset($file['help']))
                                         <div class="mt-2 pl-4 border-l-2 border-primary">
                                             <ul class="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
@@ -185,8 +185,9 @@
                                         @foreach ($metadataColumns as $column)
                                             @if ($column !== $sampleCodeColumn)
                                                 <flux:select wire:model.live="columnMapping.{{ $column }}"
-                                                    label="{{ $column }}" size="sm">
-                                                    <flux:select.option value="custom">Custom Metadata</flux:select.option>
+                                                             label="{{ $column }}" size="sm">
+                                                    <flux:select.option value="custom">Custom Metadata
+                                                    </flux:select.option>
                                                     <flux:select.option value="exclude">Exclude</flux:select.option>
                                                     @foreach ($availableSampleFields as $field)
                                                         <flux:select.option value="{{ $field }}">
@@ -249,7 +250,7 @@
                                     dataset</p>
                             </div>
                             <flux:button variant="primary" size="sm" icon="plus"
-                                wire:click="addDatasetMetadata">
+                                         wire:click="addDatasetMetadata">
                                 Add Metadata
                             </flux:button>
                         </div>
@@ -264,11 +265,12 @@
                                 @foreach ($datasetMetadata as $index => $metadata)
                                     <div class="flex gap-4 items-center align-middle">
                                         <flux:input wire:model="datasetMetadata.{{ $index }}.key"
-                                            placeholder="e.g. Collection Date, Location, Method..." class="flex-1" />
+                                                    placeholder="e.g. Collection Date, Location, Method..."
+                                                    class="flex-1"/>
                                         <flux:input wire:model="datasetMetadata.{{ $index }}.value"
-                                            placeholder="Enter value..." class="flex-1" />
+                                                    placeholder="Enter value..." class="flex-1"/>
                                         <flux:button variant="danger" size="sm" icon="trash"
-                                            wire:click="removeDatasetMetadata({{ $index }})" />
+                                                     wire:click="removeDatasetMetadata({{ $index }})"/>
                                     </div>
                                 @endforeach
                             </div>
@@ -286,7 +288,7 @@
                         </div>
 
                         <dl
-                            class="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                class="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700">
                             <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
                                 <dt class="text-sm font-medium text-zinc-500">Name</dt>
                                 <dd class="mt-1 text-sm text-primary sm:col-span-2 sm:mt-0">{{ $name }}</dd>
@@ -305,7 +307,7 @@
                                     <ul class="space-y-1">
                                         @foreach ($uploadedFiles as $file)
                                             <li class="flex items-center gap-2">
-                                                <flux:icon name="document" class="w-4 h-4 text-zinc-400" />
+                                                <flux:icon name="document" class="w-4 h-4 text-zinc-400"/>
                                                 {{ $file['original_name'] }}
                                             </li>
                                         @endforeach

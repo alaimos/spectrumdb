@@ -13,9 +13,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->enum('role', array_column(Role::cases(), 'value'))
-                ->default(Role::default()->value);
-        });
+        Schema::table(
+            'users',
+            static function (Blueprint $table): void {
+                $table->enum('role', array_column(Role::cases(), 'value'))
+                    ->default(Role::default()->value);
+            }
+        );
     }
 };

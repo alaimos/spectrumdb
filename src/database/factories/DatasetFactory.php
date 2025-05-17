@@ -17,6 +17,7 @@ final class DatasetFactory extends Factory
         return [
             'name' => fake()->unique()->words(3, true),
             'description' => fake()->paragraph(),
+            'files' => [],
             'created_by' => User::factory(),
         ];
     }

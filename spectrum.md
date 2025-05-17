@@ -4,6 +4,20 @@
 
 ### 1. Integrazione Upload Dati Aggiuntivi
 
+- [X] Aggiungere al Job di upload supporto per:
+  - [X] Output Picrust
+    - [X] KO (KEGG Orthologs)
+    - [X] Pathways (KEGG)
+    - [X] EC (Enzyme Commission Numbers)
+  - [X] Alpha-diversity
+    - [X] Faith’s PD
+    - [X] Chao1
+    - [X] Pielou’s Evenness
+  - [X] Beta-diversity
+    - [X] Jaccard
+    - [X] Bray-Curtis
+    - [X] Unweighted UniFrac
+    - [X] Weighted UniFrac
 - [ ] Integrare l’interfaccia di caricamento con:
   - [ ] Output Picrust
     - [ ] KO (KEGG Orthologs)

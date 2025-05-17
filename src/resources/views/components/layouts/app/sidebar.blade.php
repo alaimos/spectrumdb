@@ -4,11 +4,13 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
+        <flux:sidebar sticky stashable
+                      class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+            <flux:sidebar.toggle class="lg:hidden" icon="x-mark"/>
 
-            <a href="{{ route('dashboard') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
-                <x-app-logo />
+            <a href="{{ route('dashboard') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse"
+               wire:navigate>
+                <x-app-logo/>
             </a>
 
             <flux:navlist variant="outline">
@@ -20,7 +22,7 @@
                 </flux:navlist.item>
             </flux:navlist>
 
-            <flux:spacer />
+            <flux:spacer/>
 
             <flux:navlist variant="outline">
                 @if(auth()->user()->isAdmin())
@@ -60,13 +62,14 @@
                         </div>
                     </flux:menu.radio.group>
 
-                    <flux:menu.separator />
+                    <flux:menu.separator/>
 
                     <flux:menu.radio.group>
-                        <flux:menu.item :href="route('settings.profile')" icon="cog" wire:navigate>{{ __('Settings') }}</flux:menu.item>
+                        <flux:menu.item :href="route('settings.profile')" icon="cog"
+                                        wire:navigate>{{ __('Settings') }}</flux:menu.item>
                     </flux:menu.radio.group>
 
-                    <flux:menu.separator />
+                    <flux:menu.separator/>
 
                     <form method="POST" action="{{ route('logout') }}" class="w-full">
                         @csrf
@@ -80,9 +83,9 @@
 
         <!-- Mobile User Menu -->
         <flux:header class="lg:hidden">
-            <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+            <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left"/>
 
-            <flux:spacer />
+            <flux:spacer/>
 
             <flux:dropdown position="top" align="end">
                 <flux:profile
@@ -110,13 +113,14 @@
                         </div>
                     </flux:menu.radio.group>
 
-                    <flux:menu.separator />
+                    <flux:menu.separator/>
 
                     <flux:menu.radio.group>
-                        <flux:menu.item :href="route('settings.profile')" icon="cog" wire:navigate>{{ __('Settings') }}</flux:menu.item>
+                        <flux:menu.item :href="route('settings.profile')" icon="cog"
+                                        wire:navigate>{{ __('Settings') }}</flux:menu.item>
                     </flux:menu.radio.group>
 
-                    <flux:menu.separator />
+                    <flux:menu.separator/>
 
                     <form method="POST" action="{{ route('logout') }}" class="w-full">
                         @csrf
@@ -130,6 +134,9 @@
 
         {{ $slot }}
 
+        @persist('toast')
+        <flux:toast/>
+        @endpersist
         @fluxScripts
     </body>
 </html>

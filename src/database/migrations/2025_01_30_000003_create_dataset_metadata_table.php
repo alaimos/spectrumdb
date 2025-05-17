@@ -10,13 +10,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('dataset_metadata', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('dataset_id')->constrained()->cascadeOnDelete();
-            $table->string('key');
-            $table->text('value');
+        Schema::create(
+            'dataset_metadata',
+            static function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('dataset_id')->constrained()->cascadeOnDelete();
+                $table->string('key');
+                $table->text('value');
 
-            $table->index('key');
-        });
+                $table->index('key');
+            }
+        );
     }
 };

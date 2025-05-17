@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\AsDatasetFilesDataObject;
 use App\Enums\DatasetPermission;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -59,16 +60,21 @@ final class Dataset extends Model
         return $this->users()
             ->wherePivot('user_id', $user->id)
             ->get()
-            ->contains(function ($userWithPivot) use ($permission) {
-                return $userWithPivot->pivot->permission->includes($permission); // @phpstan-ignore-line
-            });
+            ->contains(
+                function ($userWithPivot) use ($permission) {
+                    return $userWithPivot->pivot->permission->includes($permission); // @phpstan-ignore-line
+                }
+            );
     }
 
     public function grantPermission(User $user, DatasetPermission $permission): void
     {
-        $this->users()->attach($user->id, [
-            'permission' => $permission->value,
-        ]);
+        $this->users()->attach(
+            $user->id,
+            [
+                'permission' => $permission->value,
+            ]
+        );
     }
 
     public function revokePermission(User $user, DatasetPermission $permission): void
@@ -96,14 +102,26 @@ final class Dataset extends Model
             return $query;
         }
 
-        return $query->where(function ($query) use ($user): void {
-            $query
-                // Datasets owned by the user
-                ->where('created_by', $user->id)
-                // OR datasets where the user has been granted any permission
-                ->orWhereHas('users', function ($query) use ($user): void {
-                    $query->where('users.id', $user->id);
-                });
-        });
+        return $query->where(
+            function ($query) use ($user): void {
+                $query
+                    // Datasets owned by the user
+                    ->where('created_by', $user->id)
+                    // OR datasets where the user has been granted any permission
+                    ->orWhereHas(
+                        'users',
+                        function ($query) use ($user): void {
+                            $query->where('users.id', $user->id);
+                        }
+                    );
+            }
+        );
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'files' => AsDatasetFilesDataObject::class,
+        ];
     }
 }

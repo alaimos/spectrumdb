@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\DataObjects\DatasetFilesDataObject;
 use App\Models\Dataset;
 use App\Models\DatasetMetadata;
-use App\Models\GeneticFeature;
 use App\Models\Sample;
 use App\Models\SampleMetadata;
-use App\Models\Taxon;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Casts\Json;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 final class ProcessDatasetJob implements ShouldQueue
 {
@@ -39,133 +42,92 @@ final class ProcessDatasetJob implements ShouldQueue
         public array $uploadedFiles,
     ) {}
 
+    /**
+     * @throws Throwable
+     */
     public function handle(): void
     {
         DB::beginTransaction();
         try {
             // Create the dataset
-            $dataset = Dataset::create([
-                'name' => $this->name,
-                'description' => $this->description,
-                'created_by' => $this->userId,
-            ]);
+            $dataset = Dataset::create(
+                [
+                    'name' => $this->name,
+                    'description' => $this->description,
+                    'created_by' => $this->userId,
+                ]
+            );
 
             // Process dataset metadata
             foreach ($this->datasetMetadata as $metadata) {
                 if (! empty($metadata['key']) && (isset($metadata['value']) && ($metadata['value'] !== '' && $metadata['value'] !== '0'))) {
-                    DatasetMetadata::create([
-                        'dataset_id' => $dataset->id,
-                        'key' => $metadata['key'],
-                        'value' => $metadata['value'],
-                    ]);
+                    DatasetMetadata::create(
+                        [
+                            'dataset_id' => $dataset->id,
+                            'key' => $metadata['key'],
+                            'value' => $metadata['value'],
+                        ]
+                    );
                 }
             }
 
-            // Store original file names as dataset metadata
-            foreach ($this->uploadedFiles as $type => $fileInfo) {
-                DatasetMetadata::create([
-                    'dataset_id' => $dataset->id,
-                    'key' => "original_{$type}_filename",
-                    'value' => $fileInfo['original_name'],
-                ]);
-            }
-
-            // Process files and create records
-            $this->processMetadataFile($dataset);
-            $this->processTaxonomyFile();
-            $this->processASVTable($dataset);
-            $this->processPICRUStFile($dataset);
+            //            // Store original file names as dataset metadata
+            //            foreach ($this->uploadedFiles as $type => $fileInfo) {
+            //                DatasetMetadata::create(
+            //                    [
+            //                        'dataset_id' => $dataset->id,
+            //                        'key' => "original_{$type}_filename",
+            //                        'value' => $fileInfo['original_name'],
+            //                    ]
+            //                );
+            //            }
 
             // Move files to final location
             $finalPath = "datasets/{$dataset->id}/processed";
+            $uploadedArray = [];
             Storage::makeDirectory($finalPath);
-            foreach ($this->uploadedFiles as $fileInfo) {
+            foreach ($this->uploadedFiles as $type => $fileInfo) {
                 Storage::move(
                     $this->storagePath.'/'.$fileInfo['stored_name'],
                     $finalPath.'/'.$fileInfo['stored_name']
                 );
+                $uploadedArray[$type] = $finalPath.'/'.$fileInfo['stored_name'];
             }
             Storage::deleteDirectory($this->storagePath);
+
+            $dataset->update(
+                [
+                    'files' => new DatasetFilesDataObject(Arr::undot($uploadedArray)),
+                ]
+            );
+
+            // Process files and create records
+            $this->processMetadataFile($dataset);
 
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
             Storage::deleteDirectory($this->storagePath);
+            Log::error(
+                $e->getMessage(),
+                [
+                    'trace' => $e->getTraceAsString(),
+                ]
+            );
             throw $e;
         }
     }
 
-    private function processTaxonomyFile(): void
-    {
-        $filePath = "{$this->storagePath}/taxonomy.tsv";
-        $handle = fopen(Storage::path($filePath), 'r');
-        $headers = fgetcsv($handle, 0, "\t", escape: '\\');
-        while (($row = fgetcsv($handle, 0, "\t", escape: '\\')) !== false) {
-            $data = array_combine($headers, $row);
-
-            // Extract taxonomy from full path if needed
-            $taxonomy = $this->extractTaxonomy($data['Taxon']);
-
-            Taxon::create([
-                'feature_id' => $data['Feature ID'],
-                'kingdom' => $taxonomy['kingdom'] ?? null,
-                'phylum' => $taxonomy['phylum'] ?? null,
-                'class' => $taxonomy['class'] ?? null,
-                'order' => $taxonomy['order'] ?? null,
-                'family' => $taxonomy['family'] ?? null,
-                'genus' => $taxonomy['genus'] ?? null,
-                'species' => $taxonomy['species'] ?? null,
-            ]);
-        }
-        fclose($handle);
-    }
-
-    private function processASVTable(Dataset $dataset): void
-    {
-        // $filePath = "{$this->storagePath}/asv_table.tsv";
-        // $handle = fopen(Storage::path($filePath), 'r');
-        // $headers = fgetcsv($handle, 0, "\t", escape: '\\');
-
-        // // First column is Feature ID, rest are sample codes
-        // $sampleCodes = array_slice($headers, 1);
-
-        // // Cache sample IDs to avoid repeated queries
-        // $sampleIds = Sample::where('dataset_id', $dataset->id)
-        //     ->whereIn('sample_code', $sampleCodes)
-        //     ->pluck('id', 'sample_code')
-        //     ->all();
-
-        // while (($row = fgetcsv($handle, 0, "\t", escape: '\\')) !== false) {
-        //     $featureId = $row[0];
-        //     $abundances = array_slice($row, 1);
-
-        //     // Create metadata records in bulk
-        //     $records = [];
-        //     foreach ($sampleCodes as $index => $sampleCode) {
-        //         if (isset($sampleIds[$sampleCode]) && $abundances[$index] > 0) {
-        //             $records[] = [
-        //                 'sample_id' => $sampleIds[$sampleCode],
-        //                 'key' => 'asv_abundance',
-        //                 'value' => json_encode([
-        //                     'feature_id' => $featureId,
-        //                     'abundance' => (float) $abundances[$index],
-        //                 ]),
-        //             ];
-        //         }
-        //     }
-
-        //     if ($records !== []) {
-        //         SampleMetadata::insert($records);
-        //     }
-        // }
-
-        // fclose($handle);
-    }
-
+    /**
+     * @throws Exception
+     */
     private function processMetadataFile(Dataset $dataset): void
     {
-        $filePath = "{$this->storagePath}/metadata.tsv";
-        $handle = fopen(Storage::path($filePath), 'r');
+        $filePath = $dataset->files?->metadata;
+        if (! $filePath) {
+            throw new Exception('Metadata file not found.');
+        }
+        $handle = fopen(Storage::path($filePath), 'rb');
         $headers = fgetcsv($handle, 0, "\t", escape: '\\');
 
         while (($row = fgetcsv($handle, 0, "\t", escape: '\\')) !== false) {
@@ -173,19 +135,22 @@ final class ProcessDatasetJob implements ShouldQueue
             $sampleCode = $data[$this->sampleCodeColumn];
 
             // Create sample record
-            $sample = Sample::create([
-                'dataset_id' => $dataset->id,
-                'sample_code' => $sampleCode,
-            ] + $this->mapSampleFields($data));
+            $sample = Sample::create(
+                [
+                    'dataset_id' => $dataset->id,
+                    'sample_code' => $sampleCode,
+                ] + $this->mapSampleFields($data)
+            );
 
             // Store custom metadata
             $metadataRecords = [];
             foreach ($data as $column => $value) {
-                if ($this->columnMapping[$column] === 'custom') {
+                $mapping = $this->columnMapping[$column] ?? null;
+                if ($mapping === 'custom') {
                     $metadataRecords[] = [
                         'sample_id' => $sample->id,
                         'key' => $column,
-                        'value' => $value,
+                        'value' => Json::encode($value),
                     ];
                 }
             }
@@ -193,56 +158,6 @@ final class ProcessDatasetJob implements ShouldQueue
             if ($metadataRecords !== []) {
                 SampleMetadata::insert($metadataRecords);
             }
-        }
-
-        fclose($handle);
-    }
-
-    private function processPICRUStFile(Dataset $dataset): void
-    {
-        $filePath = "{$this->storagePath}/picrust.tsv";
-        $handle = fopen(Storage::path($filePath), 'r');
-        $headers = fgetcsv($handle, 0, "\t", escape: '\\');
-
-        // First two columns are feature ID and description, rest are sample codes
-        $sampleCodes = array_slice($headers, 2);
-
-        // Cache sample IDs
-        $sampleIds = Sample::where('dataset_id', $dataset->id)
-            ->whereIn('sample_code', $sampleCodes)
-            ->pluck('id', 'sample_code')
-            ->all();
-
-        while (($row = fgetcsv($handle, 0, "\t", escape: '\\')) !== false) {
-            $featureId = $row[0];
-            $description = $row[1];
-            $values = array_slice($row, 2);
-
-            // Store genetic feature
-            GeneticFeature::create([
-                'feature_id' => $featureId,
-                'feature_type' => 'picrust',
-                'feature_name' => $description,
-            ]);
-
-            // // Store predictions in bulk
-            // $records = [];
-            // foreach ($sampleCodes as $index => $sampleCode) {
-            //     if (isset($sampleIds[$sampleCode]) && $values[$index] > 0) {
-            //         $records[] = [
-            //             'sample_id' => $sampleIds[$sampleCode],
-            //             'key' => 'picrust_prediction',
-            //             'value' => json_encode([
-            //                 'feature_id' => $featureId,
-            //                 'value' => (float) $values[$index],
-            //             ]),
-            //         ];
-            //     }
-            // }
-
-            // if ($records !== []) {
-            //     SampleMetadata::insert($records);
-            // }
         }
 
         fclose($handle);
@@ -256,23 +171,30 @@ final class ProcessDatasetJob implements ShouldQueue
                 $mappedFields[$field] = $data[$column];
             }
         }
+        $mappedFields['variety'] ??= '';
+        $mappedFields['plant_stage'] ??= '';
+        $mappedFields['biological_replica'] ??= 0;
+        $mappedFields['sample_conditions'] ??= '';
+        $mappedFields['plant_section'] ??= '';
+        $mappedFields['sampling_date'] ??= now();
+        $mappedFields['location'] ??= '';
 
         return $mappedFields;
     }
 
-    private function extractTaxonomy(string $taxonPath): array
-    {
-        // Example implementation - adjust based on your taxonomy format
-        $levels = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
-        $parts = array_map('trim', explode(';', $taxonPath));
-
-        $taxonomy = [];
-        foreach ($parts as $i => $part) {
-            if (isset($levels[$i]) && ! empty($part)) {
-                $taxonomy[$levels[$i]] = $part;
-            }
-        }
-
-        return $taxonomy;
-    }
+    //    private function extractTaxonomy(string $taxonPath): array
+    //    {
+    //        // Example implementation - adjust based on your taxonomy format
+    //        $levels = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'];
+    //        $parts = array_map('trim', explode(';', $taxonPath));
+    //
+    //        $taxonomy = [];
+    //        foreach ($parts as $i => $part) {
+    //            if (isset($levels[$i]) && ! empty($part)) {
+    //                $taxonomy[$levels[$i]] = $part;
+    //            }
+    //        }
+    //
+    //        return $taxonomy;
+    //    }
 }
