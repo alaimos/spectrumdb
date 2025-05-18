@@ -11,8 +11,10 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
 final class Create extends Component
@@ -84,9 +86,6 @@ final class Create extends Component
 
     #[Validate(self::OPTIONAL_TSV_FILES_RULES)]
     public $picrustPathwaysFile;
-
-    /** @var array<string, array{original_name: string, stored_name: string}> */
-    public array $uploadedFiles = [];
 
     // Step 3 - Metadata Mapping
     /** @var array<int, string> */
@@ -269,6 +268,26 @@ final class Create extends Component
         return view('livewire.pages.datasets.create');
     }
 
+    /**
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function uploadedFiles(): array
+    {
+        $files = $this->prepareDatasetFilesArray();
+
+        return Arr::mapWithKeys(
+            $files,
+            static function (?TemporaryUploadedFile $file, string $name): array {
+                if (! $file) {
+                    return [];
+                }
+
+                return [$name => $file->getClientOriginalName()];
+            }
+        );
+    }
+
     protected function autoMapColumns(): void
     {
         $this->columnMapping = [];
@@ -356,33 +375,4 @@ final class Create extends Component
             ]
         );
     }
-
-    //    protected function saveUploadedFiles(): void
-    //    {
-    //        dd("Chiamato");
-    //        $files = [
-    //            'taxonomy' => $this->taxonomyFile,
-    //            'asv_table' => $this->asvTableFile,
-    //            'metadata' => $this->metadataFile,
-    //            'bray_curtis' => $this->brayCurtisFile,
-    //            'shannon' => $this->shannonFile,
-    //            'picrust' => $this->picrustFile,
-    //        ];
-    //
-    //        $fileNames = [];
-    //        foreach ($files as $name => $file) {
-    //            if ($file) {
-    //                $originalName = $file->getClientOriginalName();
-    //                $extension = $file->getClientOriginalExtension();
-    //                $fileNames[$name] = [
-    //                    'original_name' => $originalName,
-    //                    'stored_name' => $name.'.'.$extension,
-    //                ];
-    //                $file->storeAs($this->tempDir, $name.'.'.$extension);
-    //            }
-    //        }
-    //
-    //        // Store file names in the component for passing to the job
-    //        $this->uploadedFiles = $fileNames;
-    //    }
 }

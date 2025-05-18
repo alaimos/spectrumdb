@@ -138,5 +138,6 @@
         <flux:toast/>
         @endpersist
         @fluxScripts
+        @stack('scripts')
     </body>
 </html>

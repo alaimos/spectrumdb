@@ -448,7 +448,7 @@
                         </div>
 
                         <dl
-                                class="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            class="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700">
                             <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
                                 <dt class="text-sm font-medium text-zinc-500">Name</dt>
                                 <dd class="mt-1 text-sm text-primary sm:col-span-2 sm:mt-0">{{ $name }}</dd>
@@ -465,10 +465,10 @@
                                 <dt class="text-sm font-medium text-zinc-500">Files</dt>
                                 <dd class="mt-1 text-sm text-primary sm:col-span-2 sm:mt-0">
                                     <ul class="space-y-1">
-                                        @foreach ($uploadedFiles as $file)
+                                        @foreach ($this->uploadedFiles as $file)
                                             <li class="flex items-center gap-2">
                                                 <flux:icon name="document" class="w-4 h-4 text-zinc-400"/>
-                                                {{ $file['original_name'] }}
+                                                {{ $file }}
                                             </li>
                                         @endforeach
                                     </ul>

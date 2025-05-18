@@ -2,9 +2,9 @@
     wire:init="updateUnreadCount"
     x-data
 >
-    <flux:navlist.item 
-        icon="bell" 
-        href="{{ route('notifications') }}" 
+    <flux:navlist.item
+        icon="bell"
+        href="{{ route('notifications') }}"
         wire:navigate
         badge="{{ $unreadCount > 0 ? $unreadCount : null }}"
         badge-color="red">
@@ -21,4 +21,4 @@
             });
     });
 </script>
-@endpush 
+@endpush
