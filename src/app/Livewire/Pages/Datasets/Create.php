@@ -229,7 +229,6 @@ final class Create extends Component
                     ];
                 }
             }
-            $uploadedFiles = Arr::undot($uploadedFiles);
 
             // Dispatch job to handle all database operations
             ProcessDatasetJob::dispatch(
@@ -251,7 +250,8 @@ final class Create extends Component
 
             $this->redirect(route('datasets.index'), navigate: true);
         } catch (Exception $e) {
-            if (file_exists($tempDir)) {
+            report($e);
+            if (Storage::directoryExists($tempDir)) {
                 // Delete the temporary directory if it exists
                 Storage::deleteDirectory($tempDir);
             }

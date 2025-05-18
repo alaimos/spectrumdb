@@ -18,20 +18,20 @@
     - [X] Bray-Curtis
     - [X] Unweighted UniFrac
     - [X] Weighted UniFrac
-- [ ] Integrare l’interfaccia di caricamento con:
-  - [ ] Output Picrust
-    - [ ] KO (KEGG Orthologs)
-    - [ ] Pathways (KEGG)
-    - [ ] EC (Enzyme Commission Numbers)
-  - [ ] Alpha-diversity
-    - [ ] Faith’s PD
-    - [ ] Chao1
-    - [ ] Pielou’s Evenness
-  - [ ] Beta-diversity
-    - [ ] Jaccard
-    - [ ] Bray-Curtis
-    - [ ] Unweighted UniFrac
-    - [ ] Weighted UniFrac
+- [X] Integrare l’interfaccia di caricamento con:
+  - [X] Output Picrust
+    - [X] KO (KEGG Orthologs)
+    - [X] Pathways (KEGG)
+    - [X] EC (Enzyme Commission Numbers)
+  - [X] Alpha-diversity
+    - [X] Faith’s PD
+    - [X] Chao1
+    - [X] Pielou’s Evenness
+  - [X] Beta-diversity
+    - [X] Jaccard
+    - [X] Bray-Curtis
+    - [X] Unweighted UniFrac
+    - [X] Weighted UniFrac
 
 ---
 
@@ -51,3 +51,8 @@
     - [ ] Interfaccia per selezione gruppi, log2FC, FDR, ecc.
   - [ ] Esportazione dati e grafici (CSV, PNG, SVG)
 
+---
+
+### 3. Bugfixes
+
+- [ ] Notifiche non funzionanti in tempo reale

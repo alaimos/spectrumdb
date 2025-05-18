@@ -40,10 +40,12 @@
                 'One row per sample',
             ],
         ],
+    ];
+    $picrustFileFields = [
         [
-            'model' => 'picrustFile',
-            'label' => 'PICRUSt Metagenome Table (TSV)',
-            'description' => 'A tab-separated file containing predicted metagenomic features',
+            'model' => 'picrustKoFile',
+            'label' => 'KEGG Orthology Table (TSV)',
+            'description' => 'A tab-separated file containing predicted metagenomic features for kegg orthology',
             'accept' => '.tsv,.txt',
             'help' => [
                 'First column: Genetic Feature ID',
@@ -52,19 +54,88 @@
             ],
         ],
         [
-            'model' => 'brayCurtisFile',
-            'label' => 'Bray-Curtis Distance Matrix (QZA)',
-            'description' => 'QIIME 2 artifact containing the Bray-Curtis dissimilarity matrix',
-            'accept' => '.qza',
-            'help' => ['Generated using the \'beta-diversity\' method in QIIME 2'],
+            'model' => 'picrustEcFile',
+            'label' => 'EC Enzymes Table (TSV)',
+            'description' => 'A tab-separated file containing predicted metagenomic features for EC enzymes',
+            'accept' => '.tsv,.txt',
+            'help' => [
+                'First column: Genetic Feature ID',
+                'Second column: Feature Description',
+                'Other columns: Sample values (matching ASV table)',
+            ],
         ],
+        [
+            'model' => 'picrustPathwaysFile',
+            'label' => 'Pathways Table (TSV)',
+            'description' => 'A tab-separated file containing predicted metagenomic features for pathways',
+            'accept' => '.tsv,.txt',
+            'help' => [
+                'First column: Genetic Feature ID',
+                'Second column: Feature Description',
+                'Other columns: Sample values (matching ASV table)',
+            ],
+        ],
+    ];
+    $alphaDiversityFileFields = [
         [
             'model' => 'shannonFile',
             'label' => 'Shannon Diversity Index (QZA)',
-            'description' => 'QIIME 2 artifact containing Shannon diversity metrics',
+            'description' => 'QIIME 2 artifact containing Shannon index metrics',
             'accept' => '.qza',
-            'help' => ['Generated using the \'alpha-diversity\' method in QIIME 2'],
+            'help' => ['Generated using the \'qiime diversity beta --p-metric shannon\' method in QIIME 2'],
         ],
+        [
+            'model' => 'faithFile',
+            'label' => 'Faith’s phylogenetic diversity Index (QZA)',
+            'description' => 'QIIME 2 artifact containing Faith’s phylogenetic diversity metrics',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric faith_pd\' method in QIIME 2'],
+        ],
+        [
+            'model' => 'chaoFile',
+            'label' => 'Chao1 index (QZA)',
+            'description' => 'QIIME 2 artifact containing Chao1 index metrics',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric chao1\' method in QIIME 2'],
+        ],
+        [
+            'model' => 'evennessFile',
+            'label' => 'Evenness Index (QZA)',
+            'description' => 'QIIME 2 artifact containing Evenness metrics',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric heip_e|mcintosh_e|pielou_e|simpson_e\' method in QIIME 2'],
+        ],
+    ];
+    $betaDiversityFileFields = [
+        [
+            'model' => 'brayCurtisFile',
+            'label' => 'Bray-Curtis Distance Matrix (QZA)',
+            'description' => 'QIIME 2 artifact containing the Bray-Curtis matrix',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric braycurtis\' method in QIIME 2'],
+        ],
+        [
+            'model' => 'jaccardFile',
+            'label' => 'Jaccard Distance Matrix (QZA)',
+            'description' => 'QIIME 2 artifact containing the Jaccard matrix',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric jaccard\' method in QIIME 2'],
+        ],
+        [
+            'model' => 'weightedUnifracFile',
+            'label' => 'Weighted UniFrac Distance Matrix (QZA)',
+            'description' => 'QIIME 2 artifact containing the Weighted UniFrac matrix',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric weighted_unifrac\' method in QIIME 2'],
+        ],
+        [
+            'model' => 'unweightedUnifracFile',
+            'label' => 'Unweighted UniFrac Distance Matrix (QZA)',
+            'description' => 'QIIME 2 artifact containing the Unweighted UniFrac matrix',
+            'accept' => '.qza',
+            'help' => ['Generated using the \'qiime diversity beta --p-metric unweighted_unifrac\' method in QIIME 2'],
+        ],
+
     ];
 @endphp
 <div>
@@ -157,6 +228,95 @@
                                 </div>
                             @endforeach
                         </div>
+                    </div>
+                    <flux:separator variant="subtle"/>
+                    <div class="mt-2">
+                        <flux:accordion variant="reverse" transition>
+                            <flux:accordion.item>
+                                <flux:accordion.heading>
+                                    PICRUSt Metagenome Tables (Optional)
+                                </flux:accordion.heading>
+                                <flux:accordion.content>
+                                    <div class="space-y-8">
+                                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            @foreach ($picrustFileFields as $file)
+                                                <div class="p-4">
+                                                    <flux:input type="file" :wire:model="$file['model']"
+                                                                :label="$file['label']"
+                                                                :description="$file['description']"
+                                                                :accept="$file['accept']"/>
+                                                    @if (isset($file['help']))
+                                                        <div class="mt-2 pl-4 border-l-2 border-primary">
+                                                            <ul class="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                                                                @foreach ($file['help'] as $item)
+                                                                    <li>• {{ $item }}</li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </flux:accordion.content>
+                            </flux:accordion.item>
+                            <flux:accordion.item>
+                                <flux:accordion.heading>
+                                    Alpha Diversity Metrics (Optional)
+                                </flux:accordion.heading>
+                                <flux:accordion.content>
+                                    <div class="space-y-8">
+                                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            @foreach ($alphaDiversityFileFields as $file)
+                                                <div class="p-4">
+                                                    <flux:input type="file" :wire:model="$file['model']"
+                                                                :label="$file['label']"
+                                                                :description="$file['description']"
+                                                                :accept="$file['accept']"/>
+                                                    @if (isset($file['help']))
+                                                        <div class="mt-2 pl-4 border-l-2 border-primary">
+                                                            <ul class="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                                                                @foreach ($file['help'] as $item)
+                                                                    <li>• {{ $item }}</li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </flux:accordion.content>
+                            </flux:accordion.item>
+                            <flux:accordion.item>
+                                <flux:accordion.heading>
+                                    Beta Diversity Metrics (Optional)
+                                </flux:accordion.heading>
+                                <flux:accordion.content>
+                                    <div class="space-y-8">
+                                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            @foreach ($betaDiversityFileFields as $file)
+                                                <div class="p-4">
+                                                    <flux:input type="file" :wire:model="$file['model']"
+                                                                :label="$file['label']"
+                                                                :description="$file['description']"
+                                                                :accept="$file['accept']"/>
+                                                    @if (isset($file['help']))
+                                                        <div class="mt-2 pl-4 border-l-2 border-primary">
+                                                            <ul class="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                                                                @foreach ($file['help'] as $item)
+                                                                    <li>• {{ $item }}</li>
+                                                                @endforeach
+                                                            </ul>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </flux:accordion.content>
+                            </flux:accordion.item>
+                        </flux:accordion>
                     </div>
                 @endif
 

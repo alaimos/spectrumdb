@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\DataObjects\DatasetFilesDataObject;
+use App\Enums\NotificationLevel;
 use App\Models\Dataset;
 use App\Models\DatasetMetadata;
 use App\Models\Sample;
 use App\Models\SampleMetadata;
+use App\Models\User;
+use App\Notifications\GeneralNotification;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -47,6 +50,7 @@ final class ProcessDatasetJob implements ShouldQueue
      */
     public function handle(): void
     {
+        $toDelete = [];
         DB::beginTransaction();
         try {
             // Create the dataset
@@ -86,6 +90,7 @@ final class ProcessDatasetJob implements ShouldQueue
             $finalPath = "datasets/{$dataset->id}/processed";
             $uploadedArray = [];
             Storage::makeDirectory($finalPath);
+            $toDelete[] = $finalPath;
             foreach ($this->uploadedFiles as $type => $fileInfo) {
                 Storage::move(
                     $this->storagePath.'/'.$fileInfo['stored_name'],
@@ -105,14 +110,41 @@ final class ProcessDatasetJob implements ShouldQueue
             $this->processMetadataFile($dataset);
 
             DB::commit();
+            User::find($this->userId)?->notify(
+                new GeneralNotification(
+                    title: 'Dataset processing completed',
+                    message: 'Your dataset has been processed successfully.',
+                    level: NotificationLevel::SUCCESS
+                )
+            );
         } catch (Exception $e) {
             DB::rollBack();
             Storage::deleteDirectory($this->storagePath);
+            foreach ($toDelete as $directory) {
+                if (Storage::exists($directory)) {
+                    Storage::deleteDirectory($directory);
+                }
+            }
             Log::error(
                 $e->getMessage(),
                 [
                     'trace' => $e->getTraceAsString(),
+                    'user_id' => $this->userId,
+                    'name' => $this->name,
+                    'description' => $this->description,
+                    'storage_path' => $this->storagePath,
+                    'column_mapping' => $this->columnMapping,
+                    'sample_code_column' => $this->sampleCodeColumn,
+                    'dataset_metadata' => $this->datasetMetadata,
+                    'uploaded_files' => $this->uploadedFiles,
                 ]
+            );
+            User::find($this->userId)?->notify(
+                new GeneralNotification(
+                    title: 'Dataset processing failed',
+                    message: 'An error occurred while processing your dataset: '.$e->getMessage(),
+                    level: NotificationLevel::ERROR
+                )
             );
             throw $e;
         }
