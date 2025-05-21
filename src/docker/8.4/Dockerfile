@@ -47,10 +47,24 @@ RUN apt-get update && apt-get upgrade -y \
     && echo "deb [signed-by=/etc/apt/keyrings/yarn.gpg] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
     && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/keyrings/pgdg.gpg >/dev/null \
     && echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt noble-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && curl -sS https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc >/dev/null \
+    && echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cran_ubuntu_key.asc] https://cloud.r-project.org/bin/linux/ubuntu noble-cran40/" > /etc/apt/sources.list.d/cran.list \
+    && curl -sS https://eddelbuettel.github.io/r2u/assets/dirk_eddelbuettel_key.asc | tee /etc/apt/trusted.gpg.d/cranapt_key.asc >/dev/null \
+    && echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cranapt_key.asc] https://r2u.stat.illinois.edu/ubuntu noble main" > /etc/apt/sources.list.d/cranapt.list \
+    && echo "Package: *" > /etc/apt/preferences.d/99cranapt \
+    && echo "Pin: release o=CRAN-Apt Project" >> /etc/apt/preferences.d/99cranapt \
+    && echo "Pin: release l=CRAN-Apt Packages" >> /etc/apt/preferences.d/99cranapt \
+    && echo "Pin-Priority: 700"  >> /etc/apt/preferences.d/99cranapt \
     && apt-get update \
-    && apt-get install -y yarn \
+    && apt-get install -y yarn python3-dbus python3-gi python3-apt make r-base-core \
     && apt-get install -y $MYSQL_CLIENT \
     && apt-get install -y postgresql-client-$POSTGRES_VERSION \
+    && Rscript -e 'install.packages("bspm")' \
+    && RHOME=$(R RHOME) \
+    && echo "suppressMessages(bspm::enable())" >> ${RHOME}/etc/Rprofile.site \
+    && echo "options(bspm.version.check=FALSE)" >> ${RHOME}/etc/Rprofile.site \
+    && Rscript -e 'install.packages(c("edgeR", "limma", "ggplot2", "reshape", "tidyverse", "ggplot2", "ggpubr", "ggforce", "phyloseq", "DESeq2", "reshape2", "ggstatsplot", "dplyr", "RColorBrewer", "remotes"), quiet = TRUE)' \
+    && Rscript -e 'remotes::install_github("jbisanz/qiime2R", quiet = TRUE, upgrade = "never")' \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
