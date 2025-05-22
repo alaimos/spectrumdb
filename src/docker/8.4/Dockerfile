@@ -61,10 +61,16 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y postgresql-client-$POSTGRES_VERSION \
     && Rscript -e 'install.packages("bspm")' \
     && RHOME=$(R RHOME) \
+    && cp ${RHOME}/etc/Rprofile.site ${RHOME}/etc/Rprofile.site.bak \
     && echo "suppressMessages(bspm::enable())" >> ${RHOME}/etc/Rprofile.site \
     && echo "options(bspm.version.check=FALSE)" >> ${RHOME}/etc/Rprofile.site \
-    && Rscript -e 'install.packages(c("edgeR", "limma", "ggplot2", "reshape", "tidyverse", "ggplot2", "ggpubr", "ggforce", "phyloseq", "DESeq2", "reshape2", "ggstatsplot", "dplyr", "RColorBrewer", "remotes"), quiet = TRUE)' \
-    && Rscript -e 'remotes::install_github("jbisanz/qiime2R", quiet = TRUE, upgrade = "never")' \
+    && Rscript -e 'install.packages(c("edgeR", "limma", "ggplot2", "reshape", "tidyverse", "ggplot2", "ggpubr", "ggforce", "DESeq2", "reshape2", "ggstatsplot", "dplyr", "RColorBrewer", "remotes"), quiet = TRUE)' \
+    && Rscript -e 'install.packages(c("permute", "biocgenerics", "iterators", "ape", "foreach", "biocversion", "sp", "vegan", "pixmap", "rcpparmadillo", "optparse"), quiet = TRUE)' \
+    && Rscript -e 'install.packages(c("matrixstats", "matrixgenerics", "truncnorm", "checkmate", "snow", "yulab.utils", "htmlwidgets", "viridis", "colorspace", "futile.options", "later", "formatr", "nada", "lazyeval", "crosstalk", "lambda.r", "htmltable", "zcompositions", "tidytree", "futile.logger", "promises", "treeio", "hmisc", "httpuv", "dt"), quiet = TRUE)' \
+    && Rscript -e 'if (Sys.info()["machine"] %in% c("arm64", "aarch64")) { install.packages("BiocManager"); BiocManager::install("phyloseq", type = "source", ask = FALSE); } else { install.packages("phyloseq", quiet = TRUE); }' \
+    && Rscript -e 'if (Sys.info()["machine"] %in% c("arm64", "aarch64")) { remotes::install_github("jbisanz/qiime2R", quiet = TRUE, upgrade = "never", type = "source"); } else { remotes::install_github("jbisanz/qiime2R", quiet = TRUE, upgrade = "never") }' \
+    && cp ${RHOME}/etc/Rprofile.site.bak  ${RHOME}/etc/Rprofile.site \
+    && Rscript -e 'remove.packages("bspm")' \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
