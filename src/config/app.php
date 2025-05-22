@@ -125,4 +125,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'bin_path' => resource_path('bin'),
+    'analysis_path' => 'app/private/analysis',
+    'cache_path' => 'app/private/cache',
+
 ];

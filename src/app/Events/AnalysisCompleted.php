@@ -17,14 +17,8 @@ final class AnalysisCompleted implements ShouldBroadcast
 
     /**
      * Create a new event instance.
-     *
-     * @param  array<string, mixed>  $data
      */
-    public function __construct(
-        public readonly string $batchId,
-        public readonly array $data,
-        private readonly int $userId
-    ) {}
+    public function __construct(public readonly string $batchId, private readonly int $userId) {}
 
     /**
      * Get the channels the event should broadcast on.
