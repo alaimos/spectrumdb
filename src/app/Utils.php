@@ -6,16 +6,10 @@ namespace App;
 
 use App\Exceptions\IgnoredException;
 use App\Exceptions\ProcessingJobException;
-use BackedEnum;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use JsonException;
-use JsonSerializable;
-use Stringable;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
-use UnitEnum;
 
 final class Utils
 {
@@ -80,54 +74,13 @@ final class Utils
         return config('app.bin_path').'/'.$script.$extension;
     }
 
-    public static function cachePath(string|array $name): string
+    public static function analysisPath(int $userId, string $batchId): string
     {
-        return self::makeCachePath($name, config('app.cache_path'));
-    }
-
-    private static function makeCachePath(string|array $name, string $cachePath): string
-    {
-        if (is_array($name)) {
-            $name = Arr::map(
-                Arr::flatten($name),
-                static function (mixed $item) {
-                    if ($item === null) {
-                        return 'NULL';
-                    }
-                    if (! is_object($item)) {
-                        return (string) $item;
-                    }
-                    if ($item instanceof BackedEnum) {
-                        return $item->value;
-                    }
-                    if ($item instanceof UnitEnum) {
-                        return $item->name;
-                    }
-                    if ($item instanceof JsonSerializable) {
-                        return $item->jsonSerialize();
-                    }
-                    if ($item instanceof Arrayable) {
-                        return $item->toArray();
-                    }
-                    if ($item instanceof Stringable) {
-                        return $item->__toString();
-                    }
-
-                    return (string) $item;
-                }
-            );
-            $name = md5(implode('_', $name));
+        $path = config('app.analysis_path').'/'.$userId.'/'.$batchId;
+        if (Storage::directoryMissing($path)) {
+            Storage::makeDirectory($path);
         }
-        $firstPath = mb_substr($name, 0, 2);
-        $secondPath = mb_substr($name, 2, 2);
-        $cachePath .= '/'.$firstPath.'/'.$secondPath;
-        if (Storage::directoryMissing($cachePath)) {
-            Storage::makeDirectory($cachePath);
-        }
-        //        if (! file_exists($cachePath) && ! mkdir($cachePath, 0755, true) && ! is_dir($cachePath)) {
-        //            throw new RuntimeException(sprintf('Directory "%s" was not created', $cachePath));
-        //        }
 
-        return $cachePath.'/'.$name;
+        return $path;
     }
 }

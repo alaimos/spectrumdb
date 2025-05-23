@@ -8,6 +8,7 @@ use App\Events\AnalysisCanceled;
 use App\Events\AnalysisCompleted;
 use App\Events\AnalysisError;
 use App\Events\AnalysisProcessing;
+use App\Models\User;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * @template T of \App\Actions\ActionInterface
+ * @template T of \App\Actions\BatchableActionInterface
  */
 final class PerformActionJob implements ShouldQueue
 {
@@ -36,7 +37,7 @@ final class PerformActionJob implements ShouldQueue
      */
     public function __construct(
         private readonly string $actionClass,
-        private readonly int $userId,
+        private readonly User $user,
         private readonly array $actionParams = []
     ) {}
 
@@ -47,26 +48,22 @@ final class PerformActionJob implements ShouldQueue
      */
     public function handle(): void
     {
-        AnalysisProcessing::dispatch($this->batch()->id, $this->userId);
+        AnalysisProcessing::dispatch($this->batch()->id, $this->user->id);
         if ($this->batch()?->canceled()) {
-            AnalysisCanceled::dispatch($this->batch()->id, $this->userId);
+            AnalysisCanceled::dispatch($this->batch()->id, $this->user->id);
 
             return;
         }
         try {
             /** @var T $action */
-            $action = app()->make(
-                $this->actionClass,
-                [
-                    ...$this->actionParams,
-                    'userId' => $this->userId,
-                ]
-            );
+            $action = app()->make($this->actionClass, $this->actionParams);
+            $action->batchId = $this->batch()->id;
+            $action->user = $this->user;
             $action->handle();
-            AnalysisCompleted::dispatch($this->batch()->id, $this->userId);
+            AnalysisCompleted::dispatch($this->batch()->id, $this->user->id);
         } catch (Throwable $e) {
             Log::error($e->getMessage(), $e->getTrace());
-            AnalysisError::dispatch($this->batch()->id, $e->getMessage(), $e->getTraceAsString(), $this->userId);
+            AnalysisError::dispatch($this->batch()->id, $e->getMessage(), $e->getTraceAsString(), $this->user->id);
             throw $e;
         }
     }

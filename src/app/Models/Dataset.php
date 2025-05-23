@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property \App\DataObjects\DatasetFilesDataObject $files
+ */
 final class Dataset extends Model
 {
     use HasFactory;
