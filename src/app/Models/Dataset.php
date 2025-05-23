@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Casts\AsDatasetFilesDataObject;
+use App\Enums\AlphaDiversityMetrics;
+use App\Enums\BetaDiversityMetrics;
 use App\Enums\DatasetPermission;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -90,6 +92,26 @@ final class Dataset extends Model
     public function revokeAllPermissions(User $user): void
     {
         $this->users()->detach($user->id);
+    }
+
+    public function getAlphaDiversityFile(AlphaDiversityMetrics $metrics): ?string
+    {
+        return match ($metrics) {
+            AlphaDiversityMetrics::SHANNON => $this->dataset->files->alphaDiversity->shannon,
+            AlphaDiversityMetrics::CHAO => $this->dataset->files->alphaDiversity->chao,
+            AlphaDiversityMetrics::EVENNESS => $this->dataset->files->alphaDiversity->evenness,
+            AlphaDiversityMetrics::FAITH => $this->dataset->files->alphaDiversity->faith,
+        };
+    }
+
+    public function getBetaDiversityFile(BetaDiversityMetrics $metrics): ?string
+    {
+        return match ($metrics) {
+            BetaDiversityMetrics::BRAY_CURTIS => $this->dataset->files->betaDiversity->brayCurtis,
+            BetaDiversityMetrics::JACCARD => $this->dataset->files->betaDiversity->jaccard,
+            BetaDiversityMetrics::UNWEIGHTED_UNIFRAC => $this->dataset->files->betaDiversity->unweightedUnifrac,
+            BetaDiversityMetrics::WEIGHTED_UNIFRAC => $this->dataset->files->betaDiversity->weightedUnifrac,
+        };
     }
 
     /**

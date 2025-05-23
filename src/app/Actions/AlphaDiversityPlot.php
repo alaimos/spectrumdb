@@ -74,12 +74,7 @@ final class AlphaDiversityPlot implements BatchableActionInterface
 
     private function alphaDiversityFile(): string
     {
-        $file = match ($this->metrics) {
-            AlphaDiversityMetrics::SHANNON => $this->dataset->files->alphaDiversity->shannon,
-            AlphaDiversityMetrics::CHAO => $this->dataset->files->alphaDiversity->chao,
-            AlphaDiversityMetrics::EVENNESS => $this->dataset->files->alphaDiversity->evenness,
-            AlphaDiversityMetrics::FAITH => $this->dataset->files->alphaDiversity->faith,
-        };
+        $file = $this->dataset->getAlphaDiversityFile($this->metrics);
         if (! $file) {
             throw new RuntimeException('This dataset does not have the requested alpha diversity file.');
         }

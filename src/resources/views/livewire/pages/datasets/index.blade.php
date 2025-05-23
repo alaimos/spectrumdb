@@ -20,13 +20,13 @@
         <flux:table :paginate="$this->datasets">
             <flux:table.columns>
                 <flux:table.column sortable :sorted="$sortBy === 'name'" :direction="$sortDirection"
-                             wire:click="sort('name')">Name
+                                   wire:click="sort('name')">Name
                 </flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'description'" :direction="$sortDirection"
-                             wire:click="sort('description')">Description
+                                   wire:click="sort('description')">Description
                 </flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'created_at'" :direction="$sortDirection"
-                             wire:click="sort('created_at')">Created
+                                   wire:click="sort('created_at')">Created
                 </flux:table.column>
                 <flux:table.column><span class="sr-only">Actions</span></flux:table.column>
             </flux:table.columns>
@@ -38,14 +38,19 @@
                         <flux:table.cell>{{ Str::limit($dataset->description, 50) }}</flux:table.cell>
                         <flux:table.cell>{{ $dataset->created_at->diffForHumans() }}</flux:table.cell>
                         <flux:table.cell>
-                            <div class="flex justify-end gap-2">
+                            <div class="flex justify-end gap-2 items-center">
+                                <flux:button variant="ghost" size="sm" icon="eye"
+                                             :href="route('datasets.show', $dataset)"
+                                             wire:navigate>
+                                    Explore
+                                </flux:button>
                                 @canany(['update', 'delete'], $dataset)
                                     <flux:dropdown>
                                         <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal"/>
                                         <flux:menu>
                                             @can('update', $dataset)
                                                 <flux:menu.item icon="pencil-square" wire:navigate
-                                                                href="{{ route('datasets.edit', $dataset) }}">Edit
+                                                                :href="route('datasets.edit', $dataset)">Edit
                                                 </flux:menu.item>
                                                 <flux:menu.item icon="users"
                                                                 wire:click="showPermissions({{ $dataset->id }})">Manage

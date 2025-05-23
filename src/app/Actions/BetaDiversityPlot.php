@@ -59,12 +59,7 @@ final class BetaDiversityPlot implements BatchableActionInterface
 
     private function betaDiversityFile(): string
     {
-        $file = match ($this->metrics) {
-            BetaDiversityMetrics::BRAY_CURTIS => $this->dataset->files->betaDiversity->brayCurtis,
-            BetaDiversityMetrics::JACCARD => $this->dataset->files->betaDiversity->jaccard,
-            BetaDiversityMetrics::UNWEIGHTED_UNIFRAC => $this->dataset->files->betaDiversity->unweightedUnifrac,
-            BetaDiversityMetrics::WEIGHTED_UNIFRAC => $this->dataset->files->betaDiversity->weightedUnifrac,
-        };
+        $file = $this->dataset->getBetaDiversityFile($this->metrics);
         if (! $file) {
             throw new RuntimeException('This dataset does not have the requested beta diversity file.');
         }
