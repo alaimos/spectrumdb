@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 final class SampleMetadata extends Model
 {
@@ -27,5 +28,10 @@ final class SampleMetadata extends Model
     public function sample(): BelongsTo
     {
         return $this->belongsTo(Sample::class);
+    }
+
+    public function dataset(): HasManyThrough
+    {
+        return $this->hasManyThrough(Dataset::class, Sample::class);
     }
 }
