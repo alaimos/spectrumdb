@@ -72,6 +72,20 @@ final class AlphaDiversityPlot implements BatchableActionInterface
             ->execute();
     }
 
+    /**
+     * @param  array<string, string>  $queryParams
+     */
+    public function url(array $queryParams = []): ?string
+    {
+        return route(
+            'datasets.show.alpha_diversity',
+            [
+                ...$queryParams,
+                'dataset' => $this->dataset,
+            ]
+        );
+    }
+
     private function alphaDiversityFile(): string
     {
         $file = $this->dataset->getAlphaDiversityFile($this->metrics);

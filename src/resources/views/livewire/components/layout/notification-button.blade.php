@@ -13,12 +13,11 @@
 </div>
 
 @push('scripts')
-<script>
-    document.addEventListener('livewire:initialized', () => {
-        Echo.private(`App.Models.User.{{ auth()->id() }}`)
-            .notification((notification) => {
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Echo.private(`App.Models.User.{{ auth()->id() }}`).notification((notification) => {
                 Livewire.dispatch('notification-received', notification);
             });
-    });
-</script>
+        });
+    </script>
 @endpush

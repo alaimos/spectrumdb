@@ -8,10 +8,11 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-final class AnalysisProcessing implements ShouldBroadcast
+final class AnalysisProcessing implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -34,6 +35,6 @@ final class AnalysisProcessing implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'analysis.canceled';
+        return 'analysis.processing';
     }
 }

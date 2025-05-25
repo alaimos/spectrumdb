@@ -126,7 +126,7 @@ return [
     ],
 
     'bin_path' => resource_path('bin'),
-    'analysis_path' => 'app/private/analysis',
-    'cache_path' => 'app/private/cache',
+    'analysis_path' => 'analysis',
+    'cache_path' => 'cache',
 
 ];

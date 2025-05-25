@@ -54,7 +54,14 @@ Route::middleware(['auth'])->group(
             uri: '/datasets/{dataset}/beta_diversity',
             action: App\Livewire\Pages\Datasets\Explore\BetaDiversity::class
         )->name('datasets.show.beta_diversity');
-        Route::get('/datasets/{dataset}/edit', App\Livewire\Pages\Datasets\Edit::class)->name('datasets.edit');
+        Route::get(
+            uri: '/datasets/{dataset}/edit',
+            action: App\Livewire\Pages\Datasets\Edit::class
+        )->name('datasets.edit');
+        Route::get(
+            uri: '/datasets/{dataset}/analysis/{analysisId}/assets/{assetName}',
+            action: App\Http\Controllers\DatasetAnalysisAssetController::class
+        )->name('datasets.analysis.asset');
     }
 );
 

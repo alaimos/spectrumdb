@@ -1,3 +1,5 @@
+suppressWarnings(suppressPackageStartupMessages(library(qiime2R)))
+
 # Alpha Diversity Plot
 alpha_diversity <- function(diversity_file,
                             metadata_file,

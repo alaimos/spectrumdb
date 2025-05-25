@@ -60,7 +60,12 @@ final class PerformActionJob implements ShouldQueue
             $action->batchId = $this->batch()->id;
             $action->user = $this->user;
             $action->handle();
-            AnalysisCompleted::dispatch($this->batch()->id, $this->user->id);
+            $url = $action->url(
+                [
+                    'analysis_id' => $this->batch()->id,
+                ]
+            );
+            AnalysisCompleted::dispatch($this->batch()->id, $this->user->id, $url);
         } catch (Throwable $e) {
             Log::error($e->getMessage(), $e->getTrace());
             AnalysisError::dispatch($this->batch()->id, $e->getMessage(), $e->getTraceAsString(), $this->user->id);

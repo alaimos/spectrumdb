@@ -94,23 +94,45 @@ final class Dataset extends Model
         $this->users()->detach($user->id);
     }
 
+    public function hasAlphaDiversity(): bool
+    {
+        return $this->files->alphaDiversity !== null &&
+            (
+                $this->files->alphaDiversity->shannon !== null ||
+                $this->files->alphaDiversity->chao !== null ||
+                $this->files->alphaDiversity->evenness !== null ||
+                $this->files->alphaDiversity->faith !== null
+            );
+    }
+
     public function getAlphaDiversityFile(AlphaDiversityMetrics $metrics): ?string
     {
         return match ($metrics) {
-            AlphaDiversityMetrics::SHANNON => $this->dataset->files->alphaDiversity->shannon,
-            AlphaDiversityMetrics::CHAO => $this->dataset->files->alphaDiversity->chao,
-            AlphaDiversityMetrics::EVENNESS => $this->dataset->files->alphaDiversity->evenness,
-            AlphaDiversityMetrics::FAITH => $this->dataset->files->alphaDiversity->faith,
+            AlphaDiversityMetrics::SHANNON => $this->files->alphaDiversity->shannon,
+            AlphaDiversityMetrics::CHAO => $this->files->alphaDiversity->chao,
+            AlphaDiversityMetrics::EVENNESS => $this->files->alphaDiversity->evenness,
+            AlphaDiversityMetrics::FAITH => $this->files->alphaDiversity->faith,
         };
+    }
+
+    public function hasBetaDiversity(): bool
+    {
+        return $this->files->betaDiversity !== null &&
+            (
+                $this->files->betaDiversity->brayCurtis !== null ||
+                $this->files->betaDiversity->jaccard !== null ||
+                $this->files->betaDiversity->unweightedUnifrac !== null ||
+                $this->files->betaDiversity->weightedUnifrac !== null
+            );
     }
 
     public function getBetaDiversityFile(BetaDiversityMetrics $metrics): ?string
     {
         return match ($metrics) {
-            BetaDiversityMetrics::BRAY_CURTIS => $this->dataset->files->betaDiversity->brayCurtis,
-            BetaDiversityMetrics::JACCARD => $this->dataset->files->betaDiversity->jaccard,
-            BetaDiversityMetrics::UNWEIGHTED_UNIFRAC => $this->dataset->files->betaDiversity->unweightedUnifrac,
-            BetaDiversityMetrics::WEIGHTED_UNIFRAC => $this->dataset->files->betaDiversity->weightedUnifrac,
+            BetaDiversityMetrics::BRAY_CURTIS => $this->files->betaDiversity->brayCurtis,
+            BetaDiversityMetrics::JACCARD => $this->files->betaDiversity->jaccard,
+            BetaDiversityMetrics::UNWEIGHTED_UNIFRAC => $this->files->betaDiversity->unweightedUnifrac,
+            BetaDiversityMetrics::WEIGHTED_UNIFRAC => $this->files->betaDiversity->weightedUnifrac,
         };
     }
 

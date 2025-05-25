@@ -57,6 +57,20 @@ final class BetaDiversityPlot implements BatchableActionInterface
             ->execute();
     }
 
+    /**
+     * @param  array<string, string>  $queryParams
+     */
+    public function url(array $queryParams = []): ?string
+    {
+        return route(
+            'datasets.show.beta_diversity',
+            [
+                ...$queryParams,
+                'dataset' => $this->dataset,
+            ]
+        );
+    }
+
     private function betaDiversityFile(): string
     {
         $file = $this->dataset->getBetaDiversityFile($this->metrics);

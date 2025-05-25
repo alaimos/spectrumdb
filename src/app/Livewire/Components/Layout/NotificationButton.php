@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Components\Layout;
 
 use App\Enums\NotificationLevel;
-use Flux;
+use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -20,6 +20,8 @@ final class NotificationButton extends Component
 
         return [
             "echo-private:App.Models.User.{$userId},.Illuminate\Notifications\Events\BroadcastNotificationCreated" => 'receivedNotification',
+            "echo-private:analysis.{$userId},.analysis.error" => 'receivedAnalysisError',
+            "echo-private:analysis.{$userId},.analysis.completed" => 'receivedAnalysisCompleted',
         ];
     }
 
@@ -44,6 +46,47 @@ final class NotificationButton extends Component
             variant: $notificationLevel->variant(),
         );
         $this->updateUnreadCount();
+    }
+
+    public function receivedAnalysisProcessing(array $notification): void
+    {
+        $batchId = $notification['batchId'] ?? null;
+        if ($batchId === null) {
+            return;
+        }
+        Flux::toast(
+            text: 'One of your analyses is being processed. You will be notified when it is completed.',
+            heading: 'Analysis Processing',
+            variant: NotificationLevel::INFO->variant(),
+        );
+    }
+
+    public function receivedAnalysisError(array $notification): void
+    {
+        $batchId = $notification['batchId'] ?? null;
+        $error = $notification['error'] ?? null;
+        if ($batchId === null) {
+            return;
+        }
+        Flux::toast(
+            text: 'One of your analyses failed with an error: '.($error ?? 'No error message provided.').' (Batch ID: '.$batchId.')',
+            heading: 'Analysis Error',
+            variant: NotificationLevel::ERROR->variant(),
+        );
+    }
+
+    public function receivedAnalysisCompleted(array $notification): void
+    {
+        $batchId = $notification['batchId'] ?? null;
+        // $url = $notification['url'] ?? null;
+        if ($batchId === null) {
+            return;
+        }
+        Flux::toast(
+            text: 'Your analysis has been completed successfully.',
+            heading: 'Analysis Completed',
+            variant: NotificationLevel::SUCCESS->variant(),
+        );
     }
 
     public function updateUnreadCount(): void
