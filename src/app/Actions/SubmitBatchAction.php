@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Traits\Makeable;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
+use Throwable;
 
 final class SubmitBatchAction implements ActionInterface
 {
@@ -39,7 +40,7 @@ final class SubmitBatchAction implements ActionInterface
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function handle(): void
     {

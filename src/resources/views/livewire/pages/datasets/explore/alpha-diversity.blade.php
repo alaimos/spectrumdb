@@ -86,27 +86,11 @@
             </form>
         </flux:card>
 
-        @if(isset($analysisId) && $this->batchStatus)
-            <flux:separator class="my-4"/>
-            @if ($this->batchStatus === BatchStatus::PENDING)
-                <flux:callout icon="clock" variant="warning" inline>
-                    <flux:callout.heading>Your analysis is still pending. Please wait...</flux:callout.heading>
-                </flux:callout>
-            @elseif ($this->batchStatus === BatchStatus::FAILED)
-                <flux:callout icon="x-circle" variant="danger" inline>
-                    <flux:callout.heading>Your analysis has failed. Please check the logs for more details.
-                    </flux:callout.heading>
-                </flux:callout>
-            @elseif ($this->batchStatus === BatchStatus::CANCELLED)
-                <flux:callout icon="information-circle" color="blue" inline>
-                    <flux:callout.heading>Your analysis has been cancelled.</flux:callout.heading>
-                </flux:callout>
-            @elseif ($this->batchStatus === BatchStatus::FINISHED)
-                <div>
-                    <img src="{{ $this->alphaDiversityPlotUrl }}" alt="Alpha Diversity Plot"
-                         class="w-full max-w-3xl mx-auto rounded-lg shadow-lg">
-                </div>
-            @endif
-        @endif
+        <x-explore.analysis-viewer :analysisId="$analysisId" :batchStatus="$this->batchStatus">
+            <div>
+                <img src="{{ $this->alphaDiversityPlotUrl }}" alt="Alpha Diversity Plot"
+                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg">
+            </div>
+        </x-explore.analysis-viewer>
     </x-explore.layout>
 </section>

@@ -8,21 +8,21 @@ use App\Actions\AlphaDiversityPlot;
 use App\Actions\Batch;
 use App\Actions\SubmitBatchAction;
 use App\Enums\AlphaDiversityMetrics;
-use App\Enums\BatchStatus;
-use App\Exceptions\BatchNotFoundException;
 use App\Models\Dataset;
+use App\Traits\Livewire\RunsBatchableJobs;
 use Flux\Flux;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
-use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Throwable;
 
 final class AlphaDiversity extends Component
 {
+    use RunsBatchableJobs;
+
     #[Locked]
     public Dataset $dataset;
 
@@ -32,27 +32,13 @@ final class AlphaDiversity extends Component
     #[Validate]
     public ?string $classVariable;
 
-    #[Url('analysis_id')]
-    public ?string $analysisId;
-
     /**
      * @var array<int, array{string, string}>
      */
     #[Validate]
     public array $comparisons = [];
 
-    private Batch $batch;
-
-    public function mount(): void
-    {
-        $this->updateBatch();
-        if (isset($this->batch)) {
-            $params = $this->batch->actionParams();
-            $this->metrics = $params['metrics'];
-            $this->classVariable = $params['classVariable'];
-            $this->comparisons = $params['comparisons'] ?? [];
-        }
-    }
+    private $batchActionType = AlphaDiversityPlot::class;
 
     public function addComparison(): void
     {
@@ -91,14 +77,7 @@ final class AlphaDiversity extends Component
             heading: 'Analysis Submitted',
             variant: 'success',
         );
-        $this->redirectRoute(
-            'datasets.show.alpha_diversity',
-            [
-                'dataset' => $this->dataset,
-                'analysis_id' => $action->batchId,
-            ],
-            navigate: true
-        );
+        $this->refreshWithAnalysisId($action->batchId);
     }
 
     /**
@@ -135,16 +114,6 @@ final class AlphaDiversity extends Component
     }
 
     #[Computed]
-    public function batchStatus(): ?BatchStatus
-    {
-        if (! isset($this->batch)) {
-            return null;
-        }
-
-        return $this->batch->status();
-    }
-
-    #[Computed]
     public function alphaDiversityPlotUrl(): ?string
     {
         if (! isset($this->batch)) {
@@ -173,36 +142,7 @@ final class AlphaDiversity extends Component
 
     public function getListeners(): array
     {
-        if (! isset($this->analysisId)) {
-            return [];
-        }
-        $userId = auth()->id();
-
-        return [
-            "echo-private:analysis.{$userId},.analysis.error" => 'analysisStatusUpdated',
-            "echo-private:analysis.{$userId},.analysis.completed" => 'analysisStatusUpdated',
-            "echo-private:analysis.{$userId},.analysis.processing" => 'analysisStatusUpdated',
-        ];
-    }
-
-    public function analysisStatusUpdated(array $event): void
-    {
-        if (! isset($this->analysisId)) {
-            return;
-        }
-        $analysisId = $event['batchId'] ?? null;
-        if ($analysisId !== $this->analysisId) {
-            return;
-        }
-        $this->redirectRoute(
-            'datasets.show.alpha_diversity',
-            [
-                'dataset' => $this->dataset,
-                'analysis_id' => $this->analysisId,
-                'refresh' => now()->timestamp,
-            ],
-            navigate: true
-        );
+        return $this->getBatchListeners();
     }
 
     protected function rules(): array
@@ -234,17 +174,21 @@ final class AlphaDiversity extends Component
         return $rules;
     }
 
-    protected function updateBatch(): void
+    protected function updateParametersFromBatch(): void
     {
-        if (isset($this->analysisId)) {
-            try {
-                $this->batch = new Batch($this->analysisId);
-                if (! $this->batch->is(AlphaDiversityPlot::class)) {
-                    throw new BatchNotFoundException();
-                }
-            } catch (BatchNotFoundException) {
-                abort(404, 'Analysis not found');
-            }
-        }
+        $params = $this->batch->actionParams();
+        $this->metrics = $params['metrics'];
+        $this->classVariable = $params['classVariable'];
+        $this->comparisons = $params['comparisons'] ?? [];
+    }
+
+    protected function refreshRoute(): array
+    {
+        return [
+            'route' => 'datasets.show.alpha_diversity',
+            'params' => [
+                'dataset' => $this->dataset,
+            ],
+        ];
     }
 }

@@ -7,22 +7,22 @@ namespace App\Livewire\Pages\Datasets\Explore;
 use App\Actions\Batch;
 use App\Actions\BetaDiversityPlot;
 use App\Actions\SubmitBatchAction;
-use App\Enums\BatchStatus;
 use App\Enums\BetaDiversityMetrics;
-use App\Exceptions\BatchNotFoundException;
 use App\Models\Dataset;
+use App\Traits\Livewire\RunsBatchableJobs;
 use Flux\Flux;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
-use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Throwable;
 
 final class BetaDiversity extends Component
 {
+    use RunsBatchableJobs;
+
     #[Locked]
     public Dataset $dataset;
 
@@ -32,20 +32,7 @@ final class BetaDiversity extends Component
     #[Validate]
     public ?string $colorVariable;
 
-    #[Url('analysis_id')]
-    public ?string $analysisId;
-
-    private Batch $batch;
-
-    public function mount(): void
-    {
-        $this->updateBatch();
-        if (isset($this->batch)) {
-            $params = $this->batch->actionParams();
-            $this->metrics = $params['metrics'];
-            $this->colorVariable = $params['colorVariable'];
-        }
-    }
+    private $batchActionType = BetaDiversityPlot::class;
 
     /**
      * @throws \Illuminate\Contracts\Container\BindingResolutionException|Throwable
@@ -72,14 +59,7 @@ final class BetaDiversity extends Component
             heading: 'Analysis Submitted',
             variant: 'success',
         );
-        $this->redirectRoute(
-            'datasets.show.beta_diversity',
-            [
-                'dataset' => $this->dataset,
-                'analysis_id' => $action->batchId,
-            ],
-            navigate: true
-        );
+        $this->refreshWithAnalysisId($action->batchId);
     }
 
     /**
@@ -116,16 +96,6 @@ final class BetaDiversity extends Component
     }
 
     #[Computed]
-    public function batchStatus(): ?BatchStatus
-    {
-        if (! isset($this->batch)) {
-            return null;
-        }
-
-        return $this->batch->status();
-    }
-
-    #[Computed]
     public function betaDiversityPlotUrl(): ?string
     {
         if (! isset($this->batch)) {
@@ -149,36 +119,7 @@ final class BetaDiversity extends Component
 
     public function getListeners(): array
     {
-        if (! isset($this->analysisId)) {
-            return [];
-        }
-        $userId = auth()->id();
-
-        return [
-            "echo-private:analysis.{$userId},.analysis.error" => 'analysisStatusUpdated',
-            "echo-private:analysis.{$userId},.analysis.completed" => 'analysisStatusUpdated',
-            "echo-private:analysis.{$userId},.analysis.processing" => 'analysisStatusUpdated',
-        ];
-    }
-
-    public function analysisStatusUpdated(array $event): void
-    {
-        if (! isset($this->analysisId)) {
-            return;
-        }
-        $analysisId = $event['batchId'] ?? null;
-        if ($analysisId !== $this->analysisId) {
-            return;
-        }
-        $this->redirectRoute(
-            'datasets.show.beta_diversity',
-            [
-                'dataset' => $this->dataset,
-                'analysis_id' => $this->analysisId,
-                'refresh' => now()->timestamp,
-            ],
-            navigate: true
-        );
+        return $this->getBatchListeners();
     }
 
     protected function rules(): array
@@ -193,17 +134,20 @@ final class BetaDiversity extends Component
         ];
     }
 
-    protected function updateBatch(): void
+    protected function updateParametersFromBatch(): void
     {
-        if (isset($this->analysisId)) {
-            try {
-                $this->batch = new Batch($this->analysisId);
-                if (! $this->batch->is(BetaDiversityPlot::class)) {
-                    throw new BatchNotFoundException();
-                }
-            } catch (BatchNotFoundException) {
-                abort(404, 'Analysis not found');
-            }
-        }
+        $params = $this->batch->actionParams();
+        $this->metrics = $params['metrics'];
+        $this->colorVariable = $params['colorVariable'];
+    }
+
+    protected function refreshRoute(): array
+    {
+        return [
+            'route' => 'datasets.show.beta_diversity',
+            'params' => [
+                'dataset' => $this->dataset,
+            ],
+        ];
     }
 }
