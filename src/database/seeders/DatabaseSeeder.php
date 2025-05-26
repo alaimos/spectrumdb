@@ -16,7 +16,7 @@ final class DatabaseSeeder extends Seeder
         $this->call(
             [
                 UserSeeder::class,
-                DatasetSeeder::class,
+                // DatasetSeeder::class,
             ]
         );
     }

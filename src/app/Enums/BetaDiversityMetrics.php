@@ -4,25 +4,16 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-use Illuminate\Support\Arr;
+use App\Traits\WithGetValues;
 
 enum BetaDiversityMetrics: int
 {
+    use WithGetValues;
+
     case BRAY_CURTIS = 0;
     case JACCARD = 1;
     case UNWEIGHTED_UNIFRAC = 2;
     case WEIGHTED_UNIFRAC = 3;
-
-    /**
-     * @return array<int, string>
-     */
-    public static function getValues(): array
-    {
-        return Arr::mapWithKeys(
-            self::cases(),
-            static fn (self $metric) => [$metric->value => $metric->getName()]
-        );
-    }
 
     public function getName(): string
     {

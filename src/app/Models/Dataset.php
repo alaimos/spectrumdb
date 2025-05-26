@@ -8,6 +8,7 @@ use App\Casts\AsDatasetFilesDataObject;
 use App\Enums\AlphaDiversityMetrics;
 use App\Enums\BetaDiversityMetrics;
 use App\Enums\DatasetPermission;
+use App\Enums\PicrustTables;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -96,13 +97,10 @@ final class Dataset extends Model
 
     public function hasAlphaDiversity(): bool
     {
-        return $this->files->alphaDiversity !== null &&
-            (
-                $this->files->alphaDiversity->shannon !== null ||
-                $this->files->alphaDiversity->chao !== null ||
-                $this->files->alphaDiversity->evenness !== null ||
-                $this->files->alphaDiversity->faith !== null
-            );
+        return $this->files->alphaDiversity->shannon !== null ||
+            $this->files->alphaDiversity->chao !== null ||
+            $this->files->alphaDiversity->evenness !== null ||
+            $this->files->alphaDiversity->faith !== null;
     }
 
     public function getAlphaDiversityFile(AlphaDiversityMetrics $metrics): ?string
@@ -117,13 +115,10 @@ final class Dataset extends Model
 
     public function hasBetaDiversity(): bool
     {
-        return $this->files->betaDiversity !== null &&
-            (
-                $this->files->betaDiversity->brayCurtis !== null ||
-                $this->files->betaDiversity->jaccard !== null ||
-                $this->files->betaDiversity->unweightedUnifrac !== null ||
-                $this->files->betaDiversity->weightedUnifrac !== null
-            );
+        return $this->files->betaDiversity->brayCurtis !== null ||
+            $this->files->betaDiversity->jaccard !== null ||
+            $this->files->betaDiversity->unweightedUnifrac !== null ||
+            $this->files->betaDiversity->weightedUnifrac !== null;
     }
 
     public function getBetaDiversityFile(BetaDiversityMetrics $metrics): ?string
@@ -133,6 +128,22 @@ final class Dataset extends Model
             BetaDiversityMetrics::JACCARD => $this->files->betaDiversity->jaccard,
             BetaDiversityMetrics::UNWEIGHTED_UNIFRAC => $this->files->betaDiversity->unweightedUnifrac,
             BetaDiversityMetrics::WEIGHTED_UNIFRAC => $this->files->betaDiversity->weightedUnifrac,
+        };
+    }
+
+    public function hasPicrustTables(): bool
+    {
+        return $this->files->picrust->ec !== null ||
+            $this->files->picrust->ko !== null ||
+            $this->files->picrust->pathways !== null;
+    }
+
+    public function getPicrustTableFile(PicrustTables $table): ?string
+    {
+        return match ($table) {
+            PicrustTables::EC => $this->files->picrust->ec,
+            PicrustTables::KO => $this->files->picrust->ko,
+            PicrustTables::PATHWAYS => $this->files->picrust->pathways,
         };
     }
 

@@ -8,11 +8,15 @@ use App\Enums\NotificationLevel;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 final class NotificationButton extends Component
 {
     public $unreadCount = 0;
+
+    #[Url('analysis_id')]
+    public string $queryAnalysisId;
 
     public function getListeners(): array
     {
@@ -48,24 +52,11 @@ final class NotificationButton extends Component
         $this->updateUnreadCount();
     }
 
-    public function receivedAnalysisProcessing(array $notification): void
-    {
-        $batchId = $notification['batchId'] ?? null;
-        if ($batchId === null) {
-            return;
-        }
-        Flux::toast(
-            text: 'One of your analyses is being processed. You will be notified when it is completed.',
-            heading: 'Analysis Processing',
-            variant: NotificationLevel::INFO->variant(),
-        );
-    }
-
     public function receivedAnalysisError(array $notification): void
     {
         $batchId = $notification['batchId'] ?? null;
         $error = $notification['error'] ?? null;
-        if ($batchId === null) {
+        if ($batchId === null || $this->isInCurrentPage($batchId)) {
             return;
         }
         Flux::toast(
@@ -78,8 +69,7 @@ final class NotificationButton extends Component
     public function receivedAnalysisCompleted(array $notification): void
     {
         $batchId = $notification['batchId'] ?? null;
-        // $url = $notification['url'] ?? null;
-        if ($batchId === null) {
+        if ($batchId === null || $this->isInCurrentPage($batchId)) {
             return;
         }
         Flux::toast(
@@ -97,5 +87,12 @@ final class NotificationButton extends Component
     public function render(): View
     {
         return view('livewire.components.layout.notification-button');
+    }
+
+    private function isInCurrentPage(string $batchId): bool
+    {
+        $currentPageAnalysisId = $this->queryAnalysisId ?? null;
+
+        return $currentPageAnalysisId === $batchId;
     }
 }

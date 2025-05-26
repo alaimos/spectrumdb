@@ -44,8 +44,8 @@
   - [ ] Grafici:
     - [ ] Bar plot dei top-N elementi Picrust
     - [ ] Stacked bar chart / Pie chart per taxa
-    - [ ] Boxplot / Violin plot per alpha-diversity
-    - [ ] PCoA / NMDS plot per beta-diversity
+    - [X] Boxplot / Violin plot per alpha-diversity
+    - [X] PCoA / NMDS plot per beta-diversity
   - [ ] Analisi di differential abundance
     - [ ] Integrazione con DESeq2 (backend R o via API)
     - [ ] Interfaccia per selezione gruppi, log2FC, FDR, ecc.

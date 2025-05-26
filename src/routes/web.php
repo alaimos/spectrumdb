@@ -55,6 +55,10 @@ Route::middleware(['auth'])->group(
             action: App\Livewire\Pages\Datasets\Explore\BetaDiversity::class
         )->name('datasets.show.beta_diversity');
         Route::get(
+            uri: '/datasets/{dataset}/picrust_table',
+            action: App\Livewire\Pages\Datasets\Explore\PicrustTable::class
+        )->name('datasets.show.picrust_table');
+        Route::get(
             uri: '/datasets/{dataset}/edit',
             action: App\Livewire\Pages\Datasets\Edit::class
         )->name('datasets.edit');

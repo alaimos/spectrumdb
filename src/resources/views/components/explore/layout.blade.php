@@ -11,6 +11,11 @@
                                    wire:navigate>Beta Diversity
                 </flux:navlist.item>
             @endif
+            @if ($dataset->hasPicrustTables())
+                <flux:navlist.item :href="route('datasets.show.picrust_table', ['dataset' => $dataset])"
+                                   wire:navigate>PICRUSt Predictions
+                </flux:navlist.item>
+            @endif
         </flux:navlist>
     </div>
 

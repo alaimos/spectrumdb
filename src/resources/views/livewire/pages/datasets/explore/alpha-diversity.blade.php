@@ -59,7 +59,7 @@
                                         <flux:select wire:model="comparisons.{{ $index }}.1"
                                                      label="Control" class="grow-1"
                                                      variant="listbox">
-                                            @foreach($this->availableMetadata as $class)
+                                            @foreach($this->availableClasses as $class)
                                                 <flux:select.option
                                                     value="{{ $class }}">{{ $class }}</flux:select.option>
                                             @endforeach
