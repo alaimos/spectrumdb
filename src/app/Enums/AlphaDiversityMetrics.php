@@ -8,6 +8,7 @@ use App\Traits\WithGetValues;
 
 enum AlphaDiversityMetrics: int
 {
+    /** @use WithGetValues<int> */
     use WithGetValues;
 
     case FAITH = 0;

@@ -496,6 +496,7 @@ compute_relative_abundance <- function(asv_file,
                  names_to = "Taxa",
                  values_to = "value")
   rel_abund$Group <- as.character(rel_abund$Group)
+  rel_abund_orig <- rel_abund
   if (hide_small) {
     small_abund <- rel_abund[rel_abund$value <= 1, ]
     rel_abund <- rel_abund[rel_abund$value > 1, ]
@@ -504,7 +505,7 @@ compute_relative_abundance <- function(asv_file,
       summarise(Taxa = "Others", value = sum(value))
     rel_abund <- rbind(rel_abund, small_abund)
   }
-  rel_abund
+  list(rel_abund, rel_abund_orig)
 }
 
 compute_stacked_abundance_barplot <- function(asv_file,
@@ -518,7 +519,7 @@ compute_stacked_abundance_barplot <- function(asv_file,
   suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
   suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
   suppressWarnings(suppressPackageStartupMessages(library(ggstatsplot)))
-  rel_abund <- compute_relative_abundance(
+  rel_abunds <- compute_relative_abundance(
     asv_file,
     taxonomy_file,
     metadata_file,
@@ -526,10 +527,12 @@ compute_stacked_abundance_barplot <- function(asv_file,
     class_variable,
     hide_small
   )
+  rel_abund <- rel_abunds[[1]]
+  rel_abund_orig <- rel_abunds[[2]]
 
   if (!is.null(rel_abund_file)) {
     write.table(
-      rel_abund,
+      rel_abund_orig,
       file = rel_abund_file,
       sep = "\t",
       quote = FALSE,
@@ -574,7 +577,7 @@ compute_abundance_pie_plot <- function(asv_file,
                                        rel_abund_file = NULL) {
   suppressWarnings(suppressPackageStartupMessages(library(ggpubr)))
   suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
-  rel_abund <- compute_relative_abundance(
+  rel_abunds <- compute_relative_abundance(
     asv_file,
     taxonomy_file,
     metadata_file,
@@ -582,9 +585,12 @@ compute_abundance_pie_plot <- function(asv_file,
     class_variable,
     hide_small = TRUE
   )
+  rel_abund <- rel_abunds[[1]]
+  rel_abund_orig <- rel_abunds[[2]]
+
   if (!is.null(rel_abund_file)) {
     write.table(
-      rel_abund,
+      rel_abund_orig,
       file = rel_abund_file,
       sep = "\t",
       quote = FALSE,

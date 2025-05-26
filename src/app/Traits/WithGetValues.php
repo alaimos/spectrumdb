@@ -7,6 +7,8 @@ namespace App\Traits;
 use Illuminate\Support\Arr;
 
 /**
+ * @template T
+ *
  * @method static array cases()
  */
 trait WithGetValues
@@ -14,7 +16,7 @@ trait WithGetValues
     abstract public function getName(): string;
 
     /**
-     * @return array<int, string>
+     * @return array<T, string>
      */
     public static function getValues(): array
     {

@@ -1,6 +1,9 @@
 <div class="flex items-start max-md:flex-col">
     <div class="me-10 w-full pb-4 md:w-[220px]">
         <flux:navlist>
+            <flux:navlist.item :href="route('datasets.show.taxa_composition', ['dataset' => $dataset])"
+                               wire:navigate>Taxa Composition
+            </flux:navlist.item>
             @if ($dataset->hasAlphaDiversity())
                 <flux:navlist.item :href="route('datasets.show.alpha_diversity', ['dataset' => $dataset])"
                                    wire:navigate>Alpha Diversity

@@ -1,0 +1,195 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Livewire\Pages\Datasets\Explore;
+
+use App\Actions\AbundancePlot;
+use App\Actions\SubmitBatchAction;
+use App\Enums\TaxaAbundanceCharts;
+use App\Enums\TaxonomicLevels;
+use App\Models\Dataset;
+use App\Traits\Livewire\RunsBatchableJobs;
+use App\Utils;
+use Flux\Flux;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
+use Livewire\Attributes\Validate;
+use Livewire\Component;
+use Throwable;
+
+final class TaxaComposition extends Component
+{
+    use RunsBatchableJobs;
+
+    #[Locked]
+    public Dataset $dataset;
+
+    #[Validate]
+    public TaxaAbundanceCharts $chartType;
+
+    #[Validate]
+    public TaxonomicLevels $taxonomicLevel;
+
+    #[Validate]
+    public ?string $classVariable;
+
+    private $batchActionType = AbundancePlot::class;
+
+    /**
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     * @throws Throwable
+     */
+    public function runAnalysis(): void
+    {
+        $this->validate();
+
+        $action = app()->make(
+            SubmitBatchAction::class,
+            [
+                'actionClass' => AbundancePlot::class,
+                'actionParams' => [
+                    'dataset' => $this->dataset,
+                    'chartType' => $this->chartType,
+                    'taxonomicLevel' => $this->taxonomicLevel,
+                    'classVariable' => $this->classVariable,
+                ],
+            ]
+        );
+        $action->handle();
+
+        Flux::toast(
+            text: 'Analysis submitted successfully. It will start processing as soon as resources are available.',
+            heading: 'Analysis Submitted',
+            variant: 'success',
+        );
+        $this->refreshWithAnalysisId($action->batchId);
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    #[Computed(persist: true)]
+    public function availableMetadata(): Collection
+    {
+        return $this->dataset
+            ->through('samples')
+            ->has('metadata')
+            ->select('key')
+            ->distinct()
+            ->pluck('key');
+    }
+
+    #[Computed]
+    public function abundancePlotUrl(): ?string
+    {
+        if (! isset($this->batch)) {
+            return null;
+        }
+
+        return route(
+            'datasets.analysis.asset',
+            [
+                'dataset' => $this->dataset,
+                'analysisId' => $this->analysisId,
+                'assetName' => AbundancePlot::DEFAULT_PLOT_OUTPUT_FILE,
+            ]
+        );
+    }
+
+    #[Computed]
+    public function abundanceTableUrl(): ?string
+    {
+        if (! isset($this->batch)) {
+            return null;
+        }
+
+        return route(
+            'datasets.analysis.asset',
+            [
+                'dataset' => $this->dataset,
+                'analysisId' => $this->analysisId,
+                'assetName' => AbundancePlot::DEFAULT_TABLE_OUTPUT_FILE,
+            ]
+        );
+    }
+
+    #[Computed]
+    public function abundanceTable(): array|string|null
+    {
+        if (! isset($this->batch)) {
+            return null;
+        }
+
+        $abundanceTableFile = Utils::analysisPath(
+            auth()->id(),
+            $this->analysisId
+        ).'/'.AbundancePlot::DEFAULT_TABLE_OUTPUT_FILE;
+        if (Storage::missing($abundanceTableFile)) {
+            return 'No abundance table available.';
+        }
+        $stream = Storage::readStream($abundanceTableFile);
+        if (! is_resource($stream)) {
+            return 'Error reading abundance table.';
+        }
+        $groups = [];
+        $data = [];
+        $header = true;
+        while (($line = fgets($stream)) !== false) {
+            if ($header) {
+                $header = false; // Skip the first line (header)
+
+                continue;
+            }
+            $fields = str_getcsv($line, "\t");
+            if (count($fields) < 3) {
+                continue; // Skip lines that do not have enough fields
+            }
+            [$group, $taxa, $value] = $fields;
+            if (! isset($data[$taxa])) {
+                $data[$taxa] = [];
+            }
+            $data[$taxa][$group] = (float) $value; // Store the value as a float
+            $groups[$group] = true;               // Track unique groups
+        }
+        fclose($stream);
+        $groups = array_keys($groups);
+
+        return [$groups, collect($data)];
+    }
+
+    public function getListeners(): array
+    {
+        return $this->getBatchListeners();
+    }
+
+    protected function rules(): array
+    {
+        return [
+            'chartType' => ['required', Rule::enum(TaxaAbundanceCharts::class)],
+            'taxonomicLevel' => ['required', Rule::enum(TaxonomicLevels::class)],
+            'classVariable' => ['required', Rule::in($this->availableMetadata->toArray())],
+        ];
+    }
+
+    protected function updateParametersFromBatch(): void
+    {
+        $params = $this->batch->actionParams();
+        $this->chartType = $params['chartType'];
+        $this->taxonomicLevel = $params['taxonomicLevel'];
+        $this->classVariable = $params['classVariable'];
+    }
+
+    protected function refreshRoute(): array
+    {
+        return [
+            'route' => 'datasets.show.taxa_composition',
+            'params' => [
+                'dataset' => $this->dataset,
+            ],
+        ];
+    }
+}

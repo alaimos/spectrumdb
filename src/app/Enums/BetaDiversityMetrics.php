@@ -8,6 +8,7 @@ use App\Traits\WithGetValues;
 
 enum BetaDiversityMetrics: int
 {
+    /** @use WithGetValues<int> */
     use WithGetValues;
 
     case BRAY_CURTIS = 0;

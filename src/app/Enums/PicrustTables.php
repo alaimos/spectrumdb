@@ -8,6 +8,7 @@ use App\Traits\WithGetValues;
 
 enum PicrustTables: int
 {
+    /** @use WithGetValues<int> */
     use WithGetValues;
 
     case KO = 0;

@@ -112,11 +112,6 @@ final class BetaDiversity extends Component
         );
     }
 
-    public function updatedAnalysisId(): void
-    {
-        $this->batch = new Batch($this->analysisId);
-    }
-
     public function getListeners(): array
     {
         return $this->getBatchListeners();

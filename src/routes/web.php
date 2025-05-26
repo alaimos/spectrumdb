@@ -47,6 +47,10 @@ Route::middleware(['auth'])->group(
             action: App\Livewire\Pages\Datasets\Explore\Index::class
         )->name('datasets.show');
         Route::get(
+            uri: '/datasets/{dataset}/taxa_composition',
+            action: App\Livewire\Pages\Datasets\Explore\TaxaComposition::class
+        )->name('datasets.show.taxa_composition');
+        Route::get(
             uri: '/datasets/{dataset}/alpha_diversity',
             action: App\Livewire\Pages\Datasets\Explore\AlphaDiversity::class
         )->name('datasets.show.alpha_diversity');
