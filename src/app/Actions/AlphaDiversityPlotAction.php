@@ -5,31 +5,33 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\CommandExecutor;
+use App\Enums\AlphaDiversityMetrics;
+use App\Enums\Analysis;
 use App\Enums\DatasetPermission;
-use App\Enums\TaxaAbundanceCharts;
-use App\Enums\TaxonomicLevels;
 use App\Exceptions\UnauthorizedActionException;
 use App\Models\Dataset;
 use App\Models\User;
 use App\Utils;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Throwable;
 
-final class AbundancePlot implements BatchableActionInterface
+final class AlphaDiversityPlotAction implements BatchableActionInterface
 {
-    public const string DEFAULT_PLOT_OUTPUT_FILE = 'abundance_plot.svg';
-
-    public const string DEFAULT_TABLE_OUTPUT_FILE = 'abundance_table.tsv';
+    public const string DEFAULT_OUTPUT_FILE = 'alpha_diversity_plot.svg';
 
     public string $batchId;
 
     public User $user;
 
+    /**
+     * @param  array<int, array{string, string}>|null  $comparisons
+     */
     public function __construct(
         public Dataset $dataset,
-        public TaxaAbundanceCharts $chartType,
-        public TaxonomicLevels $taxonomicLevel,
+        public AlphaDiversityMetrics $metrics,
         public string $classVariable,
+        public ?array $comparisons,
     ) {}
 
     /**
@@ -44,27 +46,27 @@ final class AbundancePlot implements BatchableActionInterface
         );
         $outputPath = Utils::analysisPath($this->user->id, $this->batchId);
         $outputAbsolutePath = Storage::path($outputPath);
-        CommandExecutor::forAnalysis($this->chartType->analysisType())
+        CommandExecutor::forAnalysis(Analysis::ALPHA_DIVERSITY)
             ->withArguments(
-                '--asv_file',
-                Storage::path($this->dataset->files->asvTable),
-                '--taxonomy_file',
-                Storage::path($this->dataset->files->taxonomy),
+                '--alpha_diversity_file',
+                Storage::path($this->alphaDiversityFile()),
                 '--metadata_file',
                 Storage::path($this->dataset->files->metadata),
-                '--taxonomy_level',
-                $this->taxonomicLevel->value,
                 '--class_variable',
                 $this->classVariable,
                 '--output_file',
-                $outputAbsolutePath.'/'.self::DEFAULT_PLOT_OUTPUT_FILE,
-                '--rel_abund_file',
-                $outputAbsolutePath.'/'.self::DEFAULT_TABLE_OUTPUT_FILE,
+                $outputAbsolutePath.'/'.self::DEFAULT_OUTPUT_FILE,
             )
             ->withConditionalArguments(
-                $this->chartType === TaxaAbundanceCharts::STACKED,
-                '--hide_small',
-                'TRUE',
+                $this->comparisons !== null && count($this->comparisons) > 0,
+                '--comparisons',
+                implode(
+                    ';',
+                    array_map(
+                        static fn (array $comparison) => implode(',', $comparison),
+                        $this->comparisons
+                    )
+                ),
             )
             ->withCwd($outputAbsolutePath)
             ->execute();
@@ -76,11 +78,21 @@ final class AbundancePlot implements BatchableActionInterface
     public function url(array $queryParams = []): ?string
     {
         return route(
-            'datasets.show.taxa_composition',
+            'datasets.show.alpha_diversity',
             [
                 ...$queryParams,
                 'dataset' => $this->dataset,
             ]
         );
+    }
+
+    private function alphaDiversityFile(): string
+    {
+        $file = $this->dataset->getAlphaDiversityFile($this->metrics);
+        if (! $file) {
+            throw new RuntimeException('This dataset does not have the requested alpha diversity file.');
+        }
+
+        return $file;
     }
 }

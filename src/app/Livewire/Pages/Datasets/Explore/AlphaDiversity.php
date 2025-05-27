@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets\Explore;
 
-use App\Actions\AlphaDiversityPlot;
+use App\Actions\AlphaDiversityPlotAction;
 use App\Actions\Batch;
 use App\Actions\SubmitBatchAction;
 use App\Enums\AlphaDiversityMetrics;
@@ -38,7 +38,7 @@ final class AlphaDiversity extends Component
     #[Validate]
     public array $comparisons = [];
 
-    private $batchActionType = AlphaDiversityPlot::class;
+    private $batchActionType = AlphaDiversityPlotAction::class;
 
     public function addComparison(): void
     {
@@ -61,7 +61,7 @@ final class AlphaDiversity extends Component
         $action = app()->make(
             SubmitBatchAction::class,
             [
-                'actionClass' => AlphaDiversityPlot::class,
+                'actionClass' => AlphaDiversityPlotAction::class,
                 'actionParams' => [
                     'dataset' => $this->dataset,
                     'metrics' => $this->metrics,
@@ -125,7 +125,7 @@ final class AlphaDiversity extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => AlphaDiversityPlot::DEFAULT_OUTPUT_FILE,
+                'assetName' => AlphaDiversityPlotAction::DEFAULT_OUTPUT_FILE,
             ]
         );
     }

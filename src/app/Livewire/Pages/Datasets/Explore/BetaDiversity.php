@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Datasets\Explore;
 
 use App\Actions\Batch;
-use App\Actions\BetaDiversityPlot;
+use App\Actions\BetaDiversityPlotAction;
 use App\Actions\SubmitBatchAction;
 use App\Enums\BetaDiversityMetrics;
 use App\Models\Dataset;
@@ -32,7 +32,7 @@ final class BetaDiversity extends Component
     #[Validate]
     public ?string $colorVariable;
 
-    private $batchActionType = BetaDiversityPlot::class;
+    private $batchActionType = BetaDiversityPlotAction::class;
 
     /**
      * @throws \Illuminate\Contracts\Container\BindingResolutionException|Throwable
@@ -44,7 +44,7 @@ final class BetaDiversity extends Component
         $action = app()->make(
             SubmitBatchAction::class,
             [
-                'actionClass' => BetaDiversityPlot::class,
+                'actionClass' => BetaDiversityPlotAction::class,
                 'actionParams' => [
                     'dataset' => $this->dataset,
                     'metrics' => $this->metrics,
@@ -107,7 +107,7 @@ final class BetaDiversity extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => BetaDiversityPlot::DEFAULT_OUTPUT_FILE,
+                'assetName' => BetaDiversityPlotAction::DEFAULT_OUTPUT_FILE,
             ]
         );
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets\Explore;
 
-use App\Actions\AbundancePlot;
+use App\Actions\AbundancePlotAction;
 use App\Actions\SubmitBatchAction;
 use App\Enums\TaxaAbundanceCharts;
 use App\Enums\TaxonomicLevels;
@@ -44,7 +44,7 @@ final class TaxaComposition extends Component
     /** @var 'asc'|'desc' */
     public string $sortDirection = 'asc';
 
-    private $batchActionType = AbundancePlot::class; // @phpstan-ignore-line
+    private $batchActionType = AbundancePlotAction::class; // @phpstan-ignore-line
 
     /**
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
@@ -57,7 +57,7 @@ final class TaxaComposition extends Component
         $action = app()->make(
             SubmitBatchAction::class,
             [
-                'actionClass' => AbundancePlot::class,
+                'actionClass' => AbundancePlotAction::class,
                 'actionParams' => [
                     'dataset' => $this->dataset,
                     'chartType' => $this->chartType,
@@ -102,7 +102,7 @@ final class TaxaComposition extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => AbundancePlot::DEFAULT_PLOT_OUTPUT_FILE,
+                'assetName' => AbundancePlotAction::DEFAULT_PLOT_OUTPUT_FILE,
             ]
         );
     }
@@ -119,7 +119,7 @@ final class TaxaComposition extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => AbundancePlot::DEFAULT_TABLE_OUTPUT_FILE,
+                'assetName' => AbundancePlotAction::DEFAULT_TABLE_OUTPUT_FILE,
             ]
         );
     }
@@ -134,7 +134,7 @@ final class TaxaComposition extends Component
         $abundanceTableFile = Utils::analysisPath(
             auth()->id(),
             $this->analysisId
-        ).'/'.AbundancePlot::DEFAULT_TABLE_OUTPUT_FILE;
+        ).'/'.AbundancePlotAction::DEFAULT_TABLE_OUTPUT_FILE;
         if (Storage::missing($abundanceTableFile)) {
             return 'No abundance table available.';
         }

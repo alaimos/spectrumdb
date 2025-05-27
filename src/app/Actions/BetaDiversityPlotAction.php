@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
-final class BetaDiversityPlot implements BatchableActionInterface
+final class BetaDiversityPlotAction implements BatchableActionInterface
 {
     public const string DEFAULT_OUTPUT_FILE = 'beta_diversity_plot.svg';
 

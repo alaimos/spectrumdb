@@ -40,10 +40,10 @@
 - [ ] Costruire pagina “Explore” con:
   - [ ] Tabelle interattive
     - [ ] Output Picrust (KO / EC / Pathway)
-    - [ ] Dati tassonomici aggregati per livello (Phylum, Genus, ecc.)
+    - [X] Dati tassonomici aggregati per livello (Phylum, Genus, ecc.)
   - [ ] Grafici:
     - [ ] Bar plot dei top-N elementi Picrust
-    - [ ] Stacked bar chart / Pie chart per taxa
+    - [X] Stacked bar chart / Pie chart per taxa
     - [X] Boxplot / Violin plot per alpha-diversity
     - [X] PCoA / NMDS plot per beta-diversity
   - [ ] Analisi di differential abundance
