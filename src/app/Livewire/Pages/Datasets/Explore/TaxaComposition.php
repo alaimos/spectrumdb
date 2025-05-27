@@ -151,7 +151,9 @@ final class TaxaComposition extends Component
 
                 continue;
             }
-            $fields = str_getcsv($line, "\t");
+            /** @noinspection PhpRedundantOptionalArgumentInspection */
+            /** @noinspection PhpDeprecatedPassingNonEmptyEscapeToCsvFunctionInspection */
+            $fields = str_getcsv($line, "\t", escape: '\\');
             if (count($fields) < 3) {
                 continue; // Skip lines that do not have enough fields
             }
