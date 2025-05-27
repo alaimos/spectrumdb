@@ -45,7 +45,7 @@
         <x-explore.analysis-viewer :analysisId="$analysisId" :batchStatus="$this->batchStatus">
             <div>
                 <img src="{{ $this->betaDiversityPlotUrl }}" alt="Beta Diversity Plot"
-                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg">
+                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
             </div>
         </x-explore.analysis-viewer>
     </x-explore.layout>

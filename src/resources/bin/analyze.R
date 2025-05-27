@@ -43,21 +43,16 @@ alpha_diversity <- function(diversity_file,
     ylab = "Alpha Diversity",
     xlab = class_variable,
     add = "jitter"
-  )
-  if (!is.null(comparisons)) {
+  ) + theme_minimal()
+  if (!is.null(comparisons) && !all(is.na(max(metadata$alpha_diversity)))) {
     p <- p +
       stat_compare_means(comparisons = comparisons,
-                         size = 13,
                          method = "t.test") +
       stat_compare_means(
-        label.y = max(metadata$alpha_diversity) + 3,
-        size = 13,
+        label.y = max(metadata$alpha_diversity) * 1.20,
         method = "anova"
       )
   }
-  p <- p +
-    theme(text = element_text(size = 35), axis.title = element_text(size = 50)) +
-    coord_cartesian(ylim = c(0, 8))
 
   ggsave(
     output_file,
@@ -103,24 +98,12 @@ beta_diversity <- function(diversity_file,
     select(SampleID, PC1, PC2) %>%
     left_join(metadata) %>%
     na.omit() %>%
-    ggplot(aes(x = PC1, y = PC2, colour = {{ color_var }})) +
-    geom_point(alpha = 0.5, size = 5) +
+    ggplot(aes(x = PC1, y = PC2)) +
+    geom_point(alpha = 0.5, size = 5, aes(colour = .data[[color_var]])) +
     xlab(paste("PC1: ", pc1_explain, "%")) +
     ylab(paste("PC2: ", pc2_explain, "%")) +
-    theme_q2r() +
-    stat_ellipse() +
-    theme(
-      axis.title = element_text(size = 20),
-      axis.text = element_text(size = 18),
-      legend.text = element_text(size = 18),
-      legend.title = element_text(size = 20)
-    )
-
-  if (discrete) {
-    p <- p + scale_colour_discrete() + scale_fill_discrete()
-  } else {
-    p <- p + scale_colour_gradient() + scale_fill_gradient()
-  }
+    theme_minimal() +
+    stat_ellipse(aes(colour = .data[[color_var]]), level = 0.95)
 
   ggsave(
     output_file,
