@@ -40,6 +40,7 @@ trait RunsBatchableJobs
     #[Computed]
     public function batchStatus(): ?BatchStatus
     {
+        $this->updateBatch();
         if (! isset($this->batch)) {
             return null;
         }
@@ -59,9 +60,18 @@ trait RunsBatchableJobs
         $this->refresh(withTimestamp: true);
     }
 
+    public function updatedAnalysisId(): void
+    {
+        $this->updateBatch();
+        if (isset($this->batch)) {
+            $this->updateParametersFromBatch();
+        }
+    }
+
     protected function updateBatch(): void
     {
-        if (isset($this->analysisId)) {
+        $refreshBatch = ! isset($this->batch) || ($this->analysisId !== $this->batch->id);
+        if (isset($this->analysisId) && $refreshBatch) {
             try {
                 $this->batch = new Batch($this->analysisId);
                 if (! $this->batch->is($this->batchActionType)) {

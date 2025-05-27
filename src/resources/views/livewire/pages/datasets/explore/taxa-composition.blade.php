@@ -52,7 +52,7 @@
                     <div class="flex items-center justify-between mb-2">
                         <flux:heading size="md">Abundance Table</flux:heading>
                         <flux:button variant="ghost" size="sm" href="{{ $this->abundanceTableUrl }}">
-                            Download Table
+                            Download
                         </flux:button>
                     </div>
                     @if (is_string($this->abundanceTable))
@@ -63,23 +63,34 @@
                         </flux:callout>
                     @else
                         @php
-                            [ $groups, $data ] = $this->abundanceTable;
+                            [ $groups, $rows ] = $this->abundanceTable;
                         @endphp
-                        <flux:card>
-                            <flux:table>
+                        <flux:card class="w-full">
+                            <flux:table :paginate="$rows">
                                 <flux:table.columns>
-                                    <flux:table.column>Taxa</flux:table.column>
+                                    <flux:table.column sortable
+                                                       :sorted="$sortBy === 'taxa'"
+                                                       :direction="$sortDirection"
+                                                       wire:click="sort('taxa')">Taxa
+                                    </flux:table.column>
                                     @foreach($groups as $group)
-                                        <flux:table.column>{{ $group }}</flux:table.column>
+                                        <flux:table.column sortable
+                                                           :sorted="$sortBy === $group"
+                                                           :direction="$sortDirection"
+                                                           wire:click="sort('{{ $group }}')">
+                                            {{ $group }}
+                                        </flux:table.column>
                                     @endforeach
                                 </flux:table.columns>
 
                                 <flux:table.rows>
-                                    @foreach($data as $taxon => $values)
-                                        <flux:table.row wire:key="{{ $taxon }}">
-                                            <flux:table.cell>{{ $taxon }}</flux:table.cell>
-                                            @foreach($values as $value)
-                                                <flux:table.cell>{{ number_format($value, 2) }}%</flux:table.cell>
+                                    @foreach($rows as $row)
+                                        <flux:table.row wire:key="{{ $row['taxa'] }}">
+                                            <flux:table.cell class="break-all">{{ $row['taxa'] }}</flux:table.cell>
+                                            @foreach($groups as $group)
+                                                <flux:table.cell>
+                                                    {{ number_format($row[$group] ?? 0, 2) }}%
+                                                </flux:table.cell>
                                             @endforeach
                                         </flux:table.row>
                                     @endforeach

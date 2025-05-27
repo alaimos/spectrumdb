@@ -19,11 +19,13 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Throwable;
 
 final class TaxaComposition extends Component
 {
     use RunsBatchableJobs;
+    use WithPagination;
 
     #[Locked]
     public Dataset $dataset;
@@ -37,7 +39,12 @@ final class TaxaComposition extends Component
     #[Validate]
     public ?string $classVariable;
 
-    private $batchActionType = AbundancePlot::class;
+    public string $sortBy = 'taxa';
+
+    /** @var 'asc'|'desc' */
+    public string $sortDirection = 'asc';
+
+    private $batchActionType = AbundancePlot::class; // @phpstan-ignore-line
 
     /**
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
@@ -150,20 +157,34 @@ final class TaxaComposition extends Component
             }
             [$group, $taxa, $value] = $fields;
             if (! isset($data[$taxa])) {
-                $data[$taxa] = [];
+                $data[$taxa] = [
+                    'taxa' => $taxa,
+                ];
             }
-            $data[$taxa][$group] = (float) $value; // Store the value as a float
-            $groups[$group] = true;               // Track unique groups
+            $data[$taxa][$group] = (float) $value;
+            $groups[$group] = true;
         }
         fclose($stream);
+        $data = collect(array_values($data))
+            ->sortBy($this->sortBy, descending: $this->sortDirection === 'desc');
         $groups = array_keys($groups);
 
-        return [$groups, collect($data)];
+        return [$groups, $data->paginate()];
     }
 
     public function getListeners(): array
     {
         return $this->getBatchListeners();
+    }
+
+    public function sort(string $column): void
+    {
+        if ($this->sortBy === $column) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $column;
+            $this->sortDirection = 'asc';
+        }
     }
 
     protected function rules(): array

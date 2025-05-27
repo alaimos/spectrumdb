@@ -16,9 +16,9 @@ final readonly class Batch implements JsonSerializable, Stringable
 {
     private BusBatch $batch;
 
-    public function __construct(string $batchId)
+    public function __construct(public private(set) string $id)
     {
-        $batch = Bus::findBatch($batchId);
+        $batch = Bus::findBatch($id);
         if ($batch === null) {
             throw new BatchNotFoundException();
         }

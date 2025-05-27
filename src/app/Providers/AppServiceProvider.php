@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -31,8 +33,24 @@ final class AppServiceProvider extends ServiceProvider
         Model::automaticallyEagerLoadRelationships();
         Sleep::fake();
         Date::use(CarbonImmutable::class);
-        Password::defaults(fn (): ?Password => app()->isProduction() ? Password::min(12)->max(255)->uncompromised() : null);
+        Password::defaults(
+            static fn (): ?Password => app()->isProduction() ? Password::min(12)->max(255)->uncompromised() : null
+        );
         Model::shouldBeStrict();
         Model::unguard();
+        Collection::macro(
+            'paginate',
+            function (int $perPage = 10, string $pageName = 'page') {
+                $page = LengthAwarePaginator::resolveCurrentPage($pageName);
+
+                return new LengthAwarePaginator(
+                    $this->forPage($page, $perPage), $this->count(), $perPage, $page, [
+                        'path' => LengthAwarePaginator::resolveCurrentPath(),
+                        'query' => request()->query(),
+                        'pageName' => $pageName,
+                    ]
+                );
+            }
+        );
     }
 }
