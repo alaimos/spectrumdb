@@ -133,7 +133,7 @@ final class DifferentialAbundanceAction implements BatchableActionInterface
                 $this->group2,
                 '--n',
                 $this->topN,
-                '--output_prefix',
+                '--output_file',
                 $outputAbsolutePath.'/'.$outputFile,
             )
             ->withCwd($outputAbsolutePath)

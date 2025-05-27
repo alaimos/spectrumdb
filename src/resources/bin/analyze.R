@@ -239,6 +239,10 @@ extract_from_result <- function(results, phylo_data, filter_expr) {
   }
   res_table <- results[filtered, ]
   res_table <- cbind(as(res_table, "data.frame"), as(tax_table(phylo_data)[rownames(res_table), ], "matrix"))
+  res_table$log2FoldChange[is.na(res_table$log2FoldChange)] <- 0
+  res_table$pvalue[is.na(res_table$pvalue)] <- 1
+  res_table$padj[is.na(res_table$padj)] <- 1
+  res_table <- na.omit(res_table)
   res_table
 }
 
@@ -279,7 +283,7 @@ run_deseq2 <- function(asv_file,
     all_degs_output,
     sep = "\t",
     quote = FALSE,
-    row.names = TRUE,
+    row.names = FALSE,
     col.names = TRUE,
     na = "NA"
   )
@@ -289,7 +293,7 @@ run_deseq2 <- function(asv_file,
       pv_filtered_output,
       sep = "\t",
       quote = FALSE,
-      row.names = TRUE,
+      row.names = FALSE,
       col.names = TRUE,
       na = "NA"
     )
@@ -347,8 +351,9 @@ compute_top_freq_plot <- function(deseq2_results,
   res$OTU.NAME <- res$OTU.ID
   res$OTU.ID <- rownames(res)
   combined_data <- merge(freq_data, res, all.x = TRUE)
-  n <- min(n, nrow(combined_data))
+  combined_data <- combined_data[combined_data$Sum != 0, ]
   combined_data <- combined_data[order(combined_data$Sum, decreasing = TRUE), ]
+  n <- min(n, nrow(combined_data))
   combined_data <- combined_data[seq_len(n), ]
   combined_data$pvalue_sign <- gtools::stars.pval(combined_data$pvalue)
   combined_data <- combined_data[order(combined_data$log2FoldChange, decreasing = TRUE), ]
@@ -429,8 +434,9 @@ compute_top_fc_plot <- function(deseq2_results,
   res <- deseq2_results$all
   res$OTU.NAME <- res$OTU.ID
   res$OTU.ID <- rownames(res)
-  n <- min(n, nrow(res))
+  res <- res[res$log2FoldChange != 0, ]
   res <- res[order(abs(res$log2FoldChange), decreasing = FALSE), ]
+  n <- min(n, nrow(res))
   res <- res[seq_len(n), ]
   res$pvalue_sign <- gtools::stars.pval(res$pvalue)
   p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
@@ -754,6 +760,7 @@ if (method == "alpha_diversity") {
 } else if (method == "top_freq_plot") {
   suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
   suppressWarnings(suppressPackageStartupMessages(library(gtools)))
+  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
   if (is.null(args$deseq2_results_file) || is.null(args$n) ||
       is.null(args$class_variable) || is.null(args$group1) ||
       is.null(args$group2) || is.null(args$output_file)) {
@@ -774,6 +781,7 @@ if (method == "alpha_diversity") {
 } else if (method == "top_sign_plot") {
   suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
   suppressWarnings(suppressPackageStartupMessages(library(gtools)))
+  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
   if (is.null(args$deseq2_results_file) || is.null(args$n) ||
       is.null(args$class_variable) || is.null(args$group1) ||
       is.null(args$group2) || is.null(args$output_file)) {
@@ -794,6 +802,7 @@ if (method == "alpha_diversity") {
 } else if (method == "top_fc_plot") {
   suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
   suppressWarnings(suppressPackageStartupMessages(library(gtools)))
+  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
   if (is.null(args$deseq2_results_file) || is.null(args$n) ||
       is.null(args$class_variable) || is.null(args$group1) ||
       is.null(args$group2) || is.null(args$output_file)) {

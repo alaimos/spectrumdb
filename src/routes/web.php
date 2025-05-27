@@ -63,6 +63,10 @@ Route::middleware(['auth'])->group(
             action: App\Livewire\Pages\Datasets\Explore\PicrustTable::class
         )->name('datasets.show.picrust_table');
         Route::get(
+            uri: '/datasets/{dataset}/differential_abundance',
+            action: App\Livewire\Pages\Datasets\Explore\DifferentialAbundance::class
+        )->name('datasets.show.differential_abundance');
+        Route::get(
             uri: '/datasets/{dataset}/edit',
             action: App\Livewire\Pages\Datasets\Edit::class
         )->name('datasets.edit');
