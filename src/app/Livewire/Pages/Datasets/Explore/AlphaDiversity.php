@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Datasets\Explore;
 
 use App\Actions\AlphaDiversityPlotAction;
-use App\Actions\Batch;
 use App\Actions\SubmitBatchAction;
 use App\Enums\AlphaDiversityMetrics;
 use App\Models\Dataset;
@@ -38,7 +37,12 @@ final class AlphaDiversity extends Component
     #[Validate]
     public array $comparisons = [];
 
-    private $batchActionType = AlphaDiversityPlotAction::class;
+    protected $validationAttributes = [
+        'comparisons.*.0' => 'case',
+        'comparisons.*.1' => 'control',
+    ];
+
+    private string $batchActionType = AlphaDiversityPlotAction::class; // @phpstan-ignore-line
 
     public function addComparison(): void
     {
@@ -147,7 +151,7 @@ final class AlphaDiversity extends Component
             'classVariable' => [
                 'required',
                 'string',
-                Rule::in($this->availableMetadata->toArray()),
+                Rule::in($this->availableMetadata->toArray()), // @phpstan-ignore-line
             ],
         ];
         if (isset($this->classVariable) && $this->classVariable) {
@@ -155,12 +159,12 @@ final class AlphaDiversity extends Component
             $rules['comparisons.*.0'] = [
                 'required',
                 'string',
-                Rule::in($this->availableClasses->toArray()),
+                Rule::in($this->availableClasses->toArray()), // @phpstan-ignore-line
             ];
             $rules['comparisons.*.1'] = [
                 'required',
                 'string',
-                Rule::in($this->availableClasses->toArray()),
+                Rule::in($this->availableClasses->toArray()), // @phpstan-ignore-line
             ];
         } else {
             $rules['comparisons'] = ['array', 'max:0'];

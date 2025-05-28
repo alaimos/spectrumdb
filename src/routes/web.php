@@ -67,6 +67,10 @@ Route::middleware(['auth'])->group(
             action: App\Livewire\Pages\Datasets\Explore\DifferentialAbundance::class
         )->name('datasets.show.differential_abundance');
         Route::get(
+            uri: '/datasets/{dataset}/functional_analysis',
+            action: App\Livewire\Pages\Datasets\Explore\FunctionalAnalysis::class
+        )->name('datasets.show.functional_analysis');
+        Route::get(
             uri: '/datasets/{dataset}/edit',
             action: App\Livewire\Pages\Datasets\Edit::class
         )->name('datasets.edit');

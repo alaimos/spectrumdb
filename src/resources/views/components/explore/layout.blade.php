@@ -22,6 +22,11 @@
             <flux:navlist.item :href="route('datasets.show.differential_abundance', ['dataset' => $dataset])"
                                wire:navigate>Differential Abundance
             </flux:navlist.item>
+            @if ($dataset->hasPicrustTables())
+                <flux:navlist.item :href="route('datasets.show.functional_analysis', ['dataset' => $dataset])"
+                                   wire:navigate>Functional Analysis
+                </flux:navlist.item>
+            @endif
         </flux:navlist>
     </div>
 

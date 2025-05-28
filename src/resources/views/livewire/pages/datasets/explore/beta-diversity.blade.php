@@ -11,11 +11,7 @@
         <flux:card>
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
-                    <flux:text class="mb-4 text-justify">
-
-                    </flux:text>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         <flux:select wire:model="metrics" label="Select diversity metrics" variant="listbox">
                             @foreach(BetaDiversityMetrics::getValues() as $value => $label)
                                 @if ($dataset->getBetaDiversityFile(BetaDiversityMetrics::from($value)) !== null)

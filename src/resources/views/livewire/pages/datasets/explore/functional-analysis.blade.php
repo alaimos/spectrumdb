@@ -1,21 +1,23 @@
-@use(App\Enums\TaxonomicLevels)
+@use(App\Enums\PicrustTables)
 @use(App\Enums\BatchStatus)
 <section class="w-full">
     <x-page-heading title="Explore dataset {{ $dataset->name }}"
                     subtitle="Explore the dataset {{ $dataset->name }} in detail."/>
 
     <x-explore.layout
-        heading="Differential Abundance Analysis"
-        subheading="Here you can find taxa that show significant differences in abundance between different classes of samples."
+        heading="Functional Analysis"
+        subheading="Here you can run a functional analysis to explore the results obtained by Picrust."
         :dataset="$dataset">
 
         <flux:card>
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        <flux:select wire:model="taxonomicLevel" label="Select taxonomic level" variant="listbox">
-                            @foreach(TaxonomicLevels::getValues() as $value => $label)
-                                <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                        <flux:select wire:model="picrustTable" label="Select PICRUSt table" variant="listbox">
+                            @foreach(PicrustTables::getValues() as $value => $label)
+                                @if ($dataset->getPicrustTableFile(PicrustTables::from($value)) !== null)
+                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                @endif
                             @endforeach
                         </flux:select>
 
@@ -102,14 +104,14 @@
                 <div class="w-full max-w-3xl mx-auto">
                     <flux:select wire:model.live="graph" label="Change plot type" variant="listbox">
                         <flux:select.option :value="0">Top Significant Features</flux:select.option>
-                        <flux:select.option :value="1">Top Fold Change Features</flux:select.option>
-                        <flux:select.option :value="2">Top Frequency Features</flux:select.option>
+                        <flux:select.option :value="1">Top Changed Features</flux:select.option>
+                        <flux:select.option :value="2">Top Frequent Features</flux:select.option>
                     </flux:select>
                 </div>
-                <img src="{{ $this->differentialAbundancePlotUrl }}" alt="{{ $this->differentialAbundancePlotTitle }}"
+                <img src="{{ $this->functionalPlotUrl }}" alt="{{ $this->functionalPlotTitle }}"
                      class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
             </div>
-            @if ($this->differentialAbundanceTable)
+            @if ($this->functionalTable)
                 <div class="mt-4">
                     <div class="flex items-center justify-between mb-2">
                         <flux:heading size="md">Differential Abundance Table</flux:heading>
@@ -118,32 +120,32 @@
                                 <flux:button icon:trailing="chevron-down">Download</flux:button>
 
                                 <flux:menu>
-                                    <flux:menu.item href="{{ $this->differentialAbundanceTableUrl }}">Download all
+                                    <flux:menu.item href="{{ $this->functionalTableUrl }}">Download all
                                     </flux:menu.item>
-                                    <flux:menu.item href="{{ $this->differentialAbundanceTablePVUrl }}">Download p-Value
+                                    <flux:menu.item href="{{ $this->functionalTablePVUrl }}">Download p-Value
                                         filtered
                                     </flux:menu.item>
-                                    <flux:menu.item href="{{ $this->differentialAbundanceTableFDRUrl }}">Download FDR
+                                    <flux:menu.item href="{{ $this->functionalTableFDRUrl }}">Download FDR
                                         filtered
                                     </flux:menu.item>
                                 </flux:menu>
                             </flux:dropdown>
                         </div>
                     </div>
-                    @if (is_string($this->differentialAbundanceTable))
+                    @if (is_string($this->functionalTable))
                         <flux:callout icon="x-circle" variant="danger" inline>
                             <flux:callout.heading>
-                                {{ $this->differentialAbundanceTable }}
+                                {{ $this->functionalTable }}
                             </flux:callout.heading>
                         </flux:callout>
                     @else
                         <flux:card class="w-full">
-                            <flux:table :paginate="$this->differentialAbundanceTable">
+                            <flux:table :paginate="$this->functionalTable">
                                 <flux:table.columns>
                                     <flux:table.column sortable
-                                                       :sorted="$sortBy === 'taxa'"
+                                                       :sorted="$sortBy === 'feature'"
                                                        :direction="$sortDirection"
-                                                       wire:click="sort('taxa')">Taxa
+                                                       wire:click="sort('taxa')">Feature
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'logFoldChange'"
@@ -168,9 +170,9 @@
                                 </flux:table.columns>
 
                                 <flux:table.rows>
-                                    @foreach($this->differentialAbundanceTable as $row)
-                                        <flux:table.row wire:key="{{ $row['taxa'] }}">
-                                            <flux:table.cell class="break-all">{{ $row['taxa'] }}</flux:table.cell>
+                                    @foreach($this->functionalTable as $row)
+                                        <flux:table.row wire:key="{{ $row['feature'] }}">
+                                            <flux:table.cell class="break-all">{{ $row['feature'] }}</flux:table.cell>
                                             <flux:table.cell>
                                                 {{ number_format($row['logFoldChange'], 4) }}
                                             </flux:table.cell>

@@ -7,7 +7,8 @@ namespace App\Actions;
 use App\CommandExecutor;
 use App\Enums\Analysis;
 use App\Enums\DatasetPermission;
-use App\Enums\TaxonomicLevels;
+use App\Enums\PicrustTables;
+use App\Exceptions\ProcessingJobException;
 use App\Exceptions\UnauthorizedActionException;
 use App\Models\Dataset;
 use App\Models\User;
@@ -15,9 +16,9 @@ use App\Utils;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
-final class DifferentialAbundanceAction implements BatchableActionInterface
+final class FunctionalAnalysisAction implements BatchableActionInterface
 {
-    public const string DEFAULT_OUTPUT_PREFIX = 'diff_abundance';
+    public const string DEFAULT_OUTPUT_PREFIX = 'picrust_functional';
 
     public const string DEFAULT_TABLE_OUTPUT_FILE = self::DEFAULT_OUTPUT_PREFIX.'_all.tsv';
 
@@ -39,7 +40,7 @@ final class DifferentialAbundanceAction implements BatchableActionInterface
 
     public function __construct(
         public Dataset $dataset,
-        public TaxonomicLevels $taxonomicLevel,
+        public PicrustTables $picrustTable,
         public string $classVariable,
         public string $group1,
         public string $group2,
@@ -60,10 +61,10 @@ final class DifferentialAbundanceAction implements BatchableActionInterface
         );
         $outputPath = Utils::analysisPath($this->user->id, $this->batchId);
         $outputAbsolutePath = Storage::path($outputPath);
-        $this->handleDifferentialAbundance($outputAbsolutePath);
-        $this->handleDifferentialAbundancePlot($outputAbsolutePath, Analysis::TOP_FC_PLOT, self::DEFAULT_TOP_FOLD_CHANGE_PLOT_OUTPUT_FILE);
-        $this->handleDifferentialAbundancePlot($outputAbsolutePath, Analysis::TOP_SIGN_PLOT, self::DEFAULT_TOP_SIGNIFICANT_PLOT_OUTPUT_FILE);
-        $this->handleDifferentialAbundancePlot($outputAbsolutePath, Analysis::TOP_FREQ_PLOT, self::DEFAULT_TOP_FREQ_PLOT_FILE);
+        $this->handleFunctionalAnalysis($outputAbsolutePath);
+        $this->handleFunctionalPlot($outputAbsolutePath, Analysis::TOP_FC_PLOT, self::DEFAULT_TOP_FOLD_CHANGE_PLOT_OUTPUT_FILE);
+        $this->handleFunctionalPlot($outputAbsolutePath, Analysis::TOP_SIGN_PLOT, self::DEFAULT_TOP_SIGNIFICANT_PLOT_OUTPUT_FILE);
+        $this->handleFunctionalPlot($outputAbsolutePath, Analysis::TOP_FREQ_PLOT, self::DEFAULT_TOP_FREQ_PLOT_FILE);
 
     }
 
@@ -82,20 +83,23 @@ final class DifferentialAbundanceAction implements BatchableActionInterface
     }
 
     /**
-     * @throws \App\Exceptions\ProcessingJobException
+     * @throws ProcessingJobException
+     * @throws Throwable
      */
-    private function handleDifferentialAbundance(string $outputAbsolutePath): void
+    private function handleFunctionalAnalysis(string $outputAbsolutePath): void
     {
-        CommandExecutor::forAnalysis(Analysis::DIFFERENTIAL_ABUNDANCE)
+        $tableFile = $this->dataset->getPicrustTableFile($this->picrustTable);
+        throw_unless(
+            $tableFile,
+            ProcessingJobException::class,
+            'The selected Picrust table does not exist.'
+        );
+        CommandExecutor::forAnalysis(Analysis::FUNCTIONAL_ANALYSIS)
             ->withArguments(
                 '--asv_file',
-                Storage::path($this->dataset->files->asvTable),
-                '--taxonomy_file',
-                Storage::path($this->dataset->files->taxonomy),
+                Storage::path($tableFile),
                 '--metadata_file',
                 Storage::path($this->dataset->files->metadata),
-                '--taxonomy_level',
-                $this->taxonomicLevel->value,
                 '--class_variable',
                 $this->classVariable,
                 '--group1',
@@ -114,9 +118,9 @@ final class DifferentialAbundanceAction implements BatchableActionInterface
     }
 
     /**
-     * @throws \App\Exceptions\ProcessingJobException
+     * @throws ProcessingJobException
      */
-    private function handleDifferentialAbundancePlot(
+    private function handleFunctionalPlot(
         string $outputAbsolutePath,
         Analysis $analysis,
         string $outputFile

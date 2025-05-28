@@ -12,7 +12,7 @@
         <flux:card>
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         <flux:select wire:model="taxonomicLevel" label="Select taxonomic level" variant="listbox">
                             @foreach(TaxonomicLevels::getValues() as $value => $label)
                                 <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>

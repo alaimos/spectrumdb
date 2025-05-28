@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets\Explore;
 
-use App\Actions\DifferentialAbundanceAction;
+use App\Actions\FunctionalAnalysisAction;
 use App\Actions\SubmitBatchAction;
-use App\Enums\TaxonomicLevels;
+use App\Enums\PicrustTables;
 use App\Models\Dataset;
 use App\Traits\Livewire\RunsBatchableJobs;
 use App\Utils;
@@ -22,7 +22,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
 
-final class DifferentialAbundance extends Component
+final class FunctionalAnalysis extends Component
 {
     use RunsBatchableJobs;
     use WithPagination;
@@ -36,7 +36,7 @@ final class DifferentialAbundance extends Component
     public Dataset $dataset;
 
     #[Validate]
-    public TaxonomicLevels $taxonomicLevel;
+    public PicrustTables $picrustTable;
 
     #[Validate]
     public ?string $classVariable;
@@ -58,7 +58,7 @@ final class DifferentialAbundance extends Component
 
     public int $graph = 0;
 
-    private $batchActionType = DifferentialAbundanceAction::class;
+    private string $batchActionType = FunctionalAnalysisAction::class;
 
     public function sort(string $column): void
     {
@@ -81,10 +81,10 @@ final class DifferentialAbundance extends Component
         $action = app()->make(
             SubmitBatchAction::class,
             [
-                'actionClass' => DifferentialAbundanceAction::class,
+                'actionClass' => $this->batchActionType,
                 'actionParams' => [
                     'dataset' => $this->dataset,
-                    'taxonomicLevel' => $this->taxonomicLevel,
+                    'picrustTable' => $this->picrustTable,
                     'classVariable' => $this->classVariable,
                     'group1' => $this->group1,
                     'group2' => $this->group2,
@@ -138,7 +138,7 @@ final class DifferentialAbundance extends Component
     }
 
     #[Computed]
-    public function differentialAbundancePlotTitle(): ?string
+    public function functionalPlotTitle(): ?string
     {
         if (! isset($this->batch)) {
             return null;
@@ -150,14 +150,14 @@ final class DifferentialAbundance extends Component
 
         return match ($this->graph) {
             0 => 'Top Significant Features',
-            1 => 'Top Fold Change Features',
-            2 => 'Top Frequency Features', // @phpstan-ignore-line
+            1 => 'Top Altered Features',
+            2 => 'Top Frequent Features', // @phpstan-ignore-line
             default => null,
         };
     }
 
     #[Computed]
-    public function differentialAbundancePlotUrl(): ?string
+    public function functionalPlotUrl(): ?string
     {
         if (! isset($this->batch)) {
             return null;
@@ -173,16 +173,16 @@ final class DifferentialAbundance extends Component
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
                 'assetName' => match ($this->graph) {
-                    0 => DifferentialAbundanceAction::DEFAULT_TOP_SIGNIFICANT_PLOT_OUTPUT_FILE,
-                    1 => DifferentialAbundanceAction::DEFAULT_TOP_FOLD_CHANGE_PLOT_OUTPUT_FILE,
-                    2 => DifferentialAbundanceAction::DEFAULT_TOP_FREQ_PLOT_FILE,
+                    0 => FunctionalAnalysisAction::DEFAULT_TOP_SIGNIFICANT_PLOT_OUTPUT_FILE,
+                    1 => FunctionalAnalysisAction::DEFAULT_TOP_FOLD_CHANGE_PLOT_OUTPUT_FILE,
+                    2 => FunctionalAnalysisAction::DEFAULT_TOP_FREQ_PLOT_FILE,
                 },
             ]
         );
     }
 
     #[Computed]
-    public function differentialAbundanceTable(): LengthAwarePaginator|string|null
+    public function functionalTable(): LengthAwarePaginator|string|null
     {
         if (! isset($this->batch)) {
             return null;
@@ -191,7 +191,7 @@ final class DifferentialAbundance extends Component
         $tableFile = Utils::analysisPath(
             auth()->id(),
             $this->analysisId
-        ).'/'.DifferentialAbundanceAction::DEFAULT_TABLE_OUTPUT_FILE;
+        ).'/'.FunctionalAnalysisAction::DEFAULT_TABLE_OUTPUT_FILE;
         if (Storage::missing($tableFile)) {
             return 'No differential abundance table available.';
         }
@@ -213,9 +213,9 @@ final class DifferentialAbundance extends Component
             if (count($fields) < 7) {
                 continue; // Skip lines that do not have enough fields
             }
-            [, $logFoldChange, $lfcSE, , $pValue, $padj, $taxa] = $fields;
+            [, $logFoldChange, $lfcSE, , $pValue, $padj, $feature] = $fields;
             $data[] = [
-                'taxa' => $taxa,
+                'feature' => $feature,
                 'logFoldChange' => (float) $logFoldChange,
                 'lfcSE' => (float) $lfcSE,
                 'pValue' => (float) $pValue,
@@ -229,7 +229,7 @@ final class DifferentialAbundance extends Component
     }
 
     #[Computed]
-    public function differentialAbundanceTableUrl(): ?string
+    public function functionalTableUrl(): ?string
     {
         if (! isset($this->batch)) {
             return null;
@@ -240,13 +240,13 @@ final class DifferentialAbundance extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => DifferentialAbundanceAction::DEFAULT_TABLE_OUTPUT_FILE,
+                'assetName' => FunctionalAnalysisAction::DEFAULT_TABLE_OUTPUT_FILE,
             ]
         );
     }
 
     #[Computed]
-    public function differentialAbundanceTablePVUrl(): ?string
+    public function functionalTablePVUrl(): ?string
     {
         if (! isset($this->batch)) {
             return null;
@@ -257,13 +257,13 @@ final class DifferentialAbundance extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => DifferentialAbundanceAction::DEFAULT_TABLE_OUTPUT_FILE_PV_FILTERED,
+                'assetName' => FunctionalAnalysisAction::DEFAULT_TABLE_OUTPUT_FILE_PV_FILTERED,
             ]
         );
     }
 
     #[Computed]
-    public function differentialAbundanceTableFDRUrl(): ?string
+    public function functionalTableFDRUrl(): ?string
     {
         if (! isset($this->batch)) {
             return null;
@@ -274,7 +274,7 @@ final class DifferentialAbundance extends Component
             [
                 'dataset' => $this->dataset,
                 'analysisId' => $this->analysisId,
-                'assetName' => DifferentialAbundanceAction::DEFAULT_TABLE_OUTPUT_FILE_FDR_FILTERED,
+                'assetName' => FunctionalAnalysisAction::DEFAULT_TABLE_OUTPUT_FILE_FDR_FILTERED,
             ]
         );
     }
@@ -293,7 +293,7 @@ final class DifferentialAbundance extends Component
     protected function rules(): array
     {
         return [
-            'taxonomicLevel' => ['required', Rule::enum(TaxonomicLevels::class)],
+            'picrustTable' => ['required', Rule::enum(PicrustTables::class)],
             'classVariable' => ['required', Rule::in($this->availableMetadata->toArray())], // @phpstan-ignore-line
             'group1' => ['required', 'string', Rule::in($this->availableClasses->toArray())], // @phpstan-ignore-line
             'group2' => ['required', 'string', Rule::in($this->availableClasses->toArray())], // @phpstan-ignore-line
@@ -306,7 +306,7 @@ final class DifferentialAbundance extends Component
     protected function updateParametersFromBatch(): void
     {
         $params = $this->batch->actionParams();
-        $this->taxonomicLevel = $params['taxonomicLevel'];
+        $this->picrustTable = $params['picrustTable'];
         $this->classVariable = $params['classVariable'];
         $this->group1 = $params['group1'] ?? null;
         $this->group2 = $params['group2'] ?? null;
@@ -318,7 +318,7 @@ final class DifferentialAbundance extends Component
     protected function refreshRoute(): array
     {
         return [
-            'route' => 'datasets.show.differential_abundance',
+            'route' => 'datasets.show.functional_analysis',
             'params' => [
                 'dataset' => $this->dataset,
             ],

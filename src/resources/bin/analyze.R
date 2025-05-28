@@ -303,6 +303,121 @@ run_deseq2 <- function(asv_file,
 }
 
 #------------------------------------------------------------------------------#
+# Picrust Functional Analysis
+
+prepare_picrust_data <- function(asv_file,
+                                 metadata_file,
+                                 class_variable,
+                                 group1,
+                                 group2) {
+  suppressWarnings(suppressPackageStartupMessages(library(readr)))
+  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
+  picrust_data <- read_tsv(asv_file, col_names = TRUE)
+  class(picrust_data) <- "data.frame"
+  colnames(picrust_data)[1] <- "ID"
+  colnames(picrust_data)[2] <- "OTU.ID"
+  taxa_leaves <- picrust_data[, c(1, 2)]
+  rownames(picrust_data) <- picrust_data$ID
+  picrust_data$ID <- ordered(picrust_data$ID)
+  picrust_data$OTU.ID <- NULL
+  picrust_data$ID <- NULL
+  # taxonomy
+  rownames(taxa_leaves) <- taxa_leaves$ID
+  taxa_leaves$ID <- ordered(taxa_leaves$ID)
+  taxa_leaves$ID <- NULL
+  taxa_leaves <- as.matrix(taxa_leaves)
+  taxa <- tax_table(taxa_leaves)
+  # metadata
+  metadata <- read.table(metadata_file, sep = "\t", header = TRUE)
+  colnames(metadata)[1] <- "sample.id"
+  metadata$sample.id <- trimws(metadata$sample.id)
+  rownames(metadata) <- metadata$sample.id
+  metadata$sample.id <- NULL
+  map <- sample_data(metadata)
+  map <- map[map[, class_variable] == group1 |
+               map[, class_variable] == group2]
+  pv <- which(colnames(picrust_data) %in% rownames(map))
+  picrust_data <- picrust_data[pv]
+  pv <- which(rownames(map) %in% colnames(picrust_data))
+  map <- map[pv]
+  otu <- otu_table(picrust_data, taxa_are_rows = TRUE)
+  data_picrust <- merge_phyloseq(otu, taxa, map)
+  data_picrust <- prune_samples(sample_sums(data_picrust) > 1, data_picrust)
+  data_picrust <- prune_taxa(taxa_sums(data_picrust) > 1, data_picrust)
+  data_picrust
+}
+
+run_deseq2_picrust <- function(asv_file,
+                               metadata_file,
+                               class_variable,
+                               group1,
+                               group2,
+                               pv_threshold,
+                               fdr_threshold,
+                               output_prefix) {
+  suppressWarnings(suppressPackageStartupMessages(library(DESeq2)))
+  data_shotgun <- prepare_picrust_data(
+    asv_file,
+    metadata_file,
+    class_variable,
+    group1,
+    group2
+  )
+  diagdds <- phyloseq_to_deseq2(data_shotgun, as.formula(paste("~", class_variable)))
+  diagdds <- DESeq(diagdds, test = "Wald", fitType = "parametric")
+  results <- results(diagdds, contrast = c(class_variable, group1, group2))
+  
+  all_degs_output <- paste0(output_prefix, "_all.tsv")
+  pv_filtered_output <- paste0(output_prefix, "_pvalue.tsv")
+  fdr_filtered_output <- paste0(output_prefix, "_fdr.tsv")
+  
+  res_all <- extract_from_result(results, data_shotgun, results$pvalue <= 1)
+  res_pv <- extract_from_result(results, data_shotgun, results$pvalue < pv_threshold)
+  res_fdr <- extract_from_result(results, data_shotgun, results$padj < fdr_threshold)
+  
+  write.table(
+    res_all,
+    all_degs_output,
+    sep = "\t",
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = TRUE,
+    na = "NA"
+  )
+  if (!is.null(res_pv)) {
+    write.table(
+      res_pv,
+      pv_filtered_output,
+      sep = "\t",
+      quote = FALSE,
+      row.names = FALSE,
+      col.names = TRUE,
+      na = "NA"
+    )
+  }
+  if (!is.null(res_fdr)) {
+    write.table(
+      res_fdr,
+      fdr_filtered_output,
+      sep = "\t",
+      quote = FALSE,
+      row.names = TRUE,
+      col.names = TRUE,
+      na = "NA"
+    )
+  }
+  res <- list(
+    all = res_all,
+    pv_filtered = res_pv,
+    fdr_filtered = res_fdr,
+    data_shotgun = data_shotgun
+  )
+  saveRDS(res, paste0(output_prefix, "_raw.rds"))
+  res
+}
+
+
+#------------------------------------------------------------------------------#
 # Differential Abundance Analysis Plots
 
 compute_top_freq_plot <- function(deseq2_results,
@@ -610,7 +725,7 @@ compute_abundance_pie_plot <- function(asv_file,
 suppressWarnings(suppressPackageStartupMessages(library(optparse)))
 
 option_list <- list(
-  make_option(c("--method"), type = "character", help = "Method to run: alpha_diversity, beta_diversity, differential_abundance, top_freq_plot, top_sign_plot, top_fc_plot, stacked_abundance_barplot, abundance_pie_plot"),
+  make_option(c("--method"), type = "character", help = "Method to run: alpha_diversity, beta_diversity, differential_abundance, top_freq_plot, top_sign_plot, top_fc_plot, stacked_abundance_barplot, abundance_pie_plot, picrust_functional"),
   # alpha_diversity
   make_option(
     c("--alpha_diversity_file"),
@@ -733,6 +848,33 @@ if (method == "alpha_diversity") {
     taxonomy_file = args$taxonomy_file,
     metadata_file = args$metadata_file,
     taxonomy_level = args$taxonomy_level,
+    class_variable = args$class_variable,
+    group1 = args$group1,
+    group2 = args$group2,
+    pv_threshold = args$pv_threshold,
+    fdr_threshold = args$fdr_threshold,
+    output_prefix = args$output_prefix
+  )
+} else if (method == "picrust_functional") {
+  suppressWarnings(suppressPackageStartupMessages(library(DESeq2)))
+  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
+  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
+  if (is.null(args$asv_file) || is.null(args$metadata_file) || 
+      is.null(args$class_variable) || is.null(args$group1) ||
+      is.null(args$group2) || is.null(args$pv_threshold) ||
+      is.null(args$fdr_threshold) || is.null(args$output_prefix)) {
+    stop("Missing required arguments for picrust_functional")
+  }
+  if (!file.exists(args$asv_file)) {
+    stop("Picrust input file does not exist.")
+  }
+  if (!file.exists(args$metadata_file)) {
+    stop("Metadata file does not exist.")
+  }
+  run_deseq2_picrust(
+    asv_file = args$asv_file,
+    metadata_file = args$metadata_file,
     class_variable = args$class_variable,
     group1 = args$group1,
     group2 = args$group2,
