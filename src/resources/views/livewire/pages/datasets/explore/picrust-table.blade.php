@@ -5,11 +5,8 @@
 
     <x-explore.layout
         heading="PICRUSt Tables"
+        subheading="Here you can download the PICRUSt tables for the dataset {{ $dataset->name }}."
         :dataset="$dataset">
-
-        <flux:text class="mb-4 text-justify">
-            Here you can download the PICRUSt tables for the dataset {{ $dataset->name }}.
-        </flux:text>
 
         <flux:card>
             <form wire:submit="downloadTable">
