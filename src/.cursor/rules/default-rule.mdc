@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+I'm working on a Laravel 12 project that uses the Laravel 12 directory structure.
+I'm working on a PHP 8.4 codebase with some R scripts.
+Use all Laravel and, specifically Laravel 12, best practises.
+Use Livewire components without Volt.
+Use Flux version 2 components for the UI.
+use context7
