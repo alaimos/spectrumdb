@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(
     function () {
         Route::get('/datasets', App\Livewire\Pages\Datasets\Index::class)->name('datasets.index');
         Route::get('/datasets/create', App\Livewire\Pages\Datasets\Create::class)->name('datasets.create');
+        Route::get('/datasets/combine', App\Livewire\Pages\Datasets\Combine::class)->name('datasets.combine');
         Route::get(
             uri: '/datasets/{dataset}',
             action: App\Livewire\Pages\Datasets\Explore\Index::class

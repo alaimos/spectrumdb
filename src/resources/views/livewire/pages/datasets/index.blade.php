@@ -9,9 +9,12 @@
                     <flux:button icon="adjustments-horizontal" x-on:click="$flux.modal('advanced-search').show()"/>
                 </flux:tooltip>
             </flux:input.group>
-            {{-- Create button --}}
+            {{-- Action buttons --}}
             <flux:button variant="primary" icon="plus" wire:navigate href="{{ route('datasets.create') }}">
                 New Dataset
+            </flux:button>
+            <flux:button variant="primary" icon="arrow-path" wire:navigate href="{{ route('datasets.combine') }}">
+                Combine Datasets
             </flux:button>
         </div>
     </x-page-heading-split>
