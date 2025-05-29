@@ -15,7 +15,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                         <flux:select wire:model="taxonomicLevel" label="Select taxonomic level" variant="listbox">
                             @foreach(TaxonomicLevels::getValues() as $value => $label)
-                                <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                @if ($value > 1)
+                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                @endif
                             @endforeach
                         </flux:select>
 

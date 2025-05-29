@@ -1,41 +1,121 @@
-suppressWarnings(suppressPackageStartupMessages(library(qiime2R)))
+#!/usr/bin/env Rscript
 
-# Alpha Diversity Plot
-alpha_diversity <- function(diversity_file,
-                            metadata_file,
-                            class_variable,
-                            comparisons,
-                            output_file) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggpubr)))
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
+#' Microbiome Analysis Script
+#'
+#' This script provides various microbiome analysis functions including
+#' alpha/beta diversity analysis, differential abundance analysis, and
+#' visualization functions.
+#'
+#'
+# =============================================================================
+# CONSTANTS AND CONFIGURATION
+# =============================================================================
+
+TAXONOMY_LEVEL_LABELS <- c("d", "p", "c", "o", "f", "g", "s")
+TAXONOMY_LEVELS <- c(
+  "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"
+)
+DEFAULT_PLOT_WIDTH <- 15
+DEFAULT_PLOT_HEIGHT <- 11
+DEFAULT_DPI <- 300
+DEFAULT_DEVICE <- "svg"
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+#' Load required packages with error handling
+#' @param packages Character vector of package names
+load_packages <- function(packages) {
+  for (pkg in packages) {
+    suppressWarnings(suppressPackageStartupMessages(
+      library(pkg, character.only = TRUE)
+    ))
+  }
+}
+
+#' Validate file existence
+#' @param filepath Path to file
+#' @param name Descriptive name for error message
+validate_file <- function(filepath, name = "File") {
+  if (is.null(filepath) || !file.exists(filepath)) {
+    stop(paste(name, "does not exist:", filepath))
+  }
+}
+
+#' Validate taxonomy level
+#' @param level Integer taxonomy level (1-7)
+validate_taxonomy_level <- function(level) {
+  if (is.null(level) || level < 1 || level > 7) {
+    stop("Taxonomy level must be between 1 and 7")
+  }
+}
+
+#' Safe file reading with trimmed whitespace
+#' @param filepath Path to metadata file
+#' @return Data frame with trimmed sample IDs
+read_metadata_safe <- function(filepath) {
+  validate_file(filepath, "Metadata file")
+  metadata <- read.table(
+    filepath,
+    sep = "\t", header = TRUE, stringsAsFactors = FALSE
+  )
+  colnames(metadata)[1] <- "sample_id"
+  metadata$sample_id <- trimws(metadata$sample_id)
+  metadata
+}
+
+# =============================================================================
+# DIVERSITY ANALYSIS FUNCTIONS
+# =============================================================================
+
+#' Create alpha diversity boxplot with statistical comparisons
+#' @param diversity_file Path to QIIME2 alpha diversity artifact
+#' @param metadata_file Path to metadata file
+#' @param class_variable Column name for grouping variable
+#' @param comparisons List of pairwise comparisons (optional)
+#' @param output_file Path for output plot
+alpha_diversity_plot <- function(diversity_file, metadata_file, class_variable,
+                                 comparisons = NULL, output_file) {
+  # Load required packages
+  load_packages(c("qiime2R", "ggpubr", "dplyr", "tibble", "ggplot2"))
+
+  # Validate inputs
+  validate_file(diversity_file, "Alpha diversity file")
+
+  # Validate comparisons format
   if (!is.null(comparisons)) {
     if (!is.list(comparisons)) {
       stop("Comparisons must be a list")
     }
-    if (any(sapply(comparisons, length) > 2)) {
+    if (any(sapply(comparisons, length) != 2)) {
       stop("Each comparison must have exactly 2 groups")
     }
   }
-  diversity <- read_qza(diversity_file)
-  metadata <- read.table(metadata_file, sep = "\t", header = TRUE)
-  colnames(metadata)[1] <- "sample_id"
-  metadata$sample_id <- trimws(metadata$sample_id)
-  diversity <- diversity$data
+
+  # Read and process data
+  diversity <- read_qza(diversity_file)$data
+  metadata <- read_metadata_safe(metadata_file)
+
+  # Prepare diversity data
   colnames(diversity)[1] <- "alpha_diversity"
-  diversity <- diversity %>% rownames_to_column("sample_id")
-  diversity$sample_id <- trimws(diversity$sample_id)
-  metadata <- metadata %>%
+  diversity <- diversity %>%
+    rownames_to_column("sample_id") %>%
+    mutate(sample_id = trimws(sample_id))
+
+  # Merge data
+  plot_data <- metadata %>%
     left_join(diversity, by = "sample_id") %>%
     na.omit()
-  if (!class_variable %in% colnames(metadata)) {
+
+  # Validate class variable
+  if (!class_variable %in% colnames(plot_data)) {
     stop(paste("Variable", class_variable, "not found in metadata"))
   }
 
+  # Create plot
   p <- ggboxplot(
-    metadata,
+    plot_data,
     x = class_variable,
     y = "alpha_diversity",
     color = class_variable,
@@ -44,962 +124,1021 @@ alpha_diversity <- function(diversity_file,
     xlab = class_variable,
     add = "jitter"
   ) + theme_minimal()
-  if (!is.null(comparisons) && !all(is.na(max(metadata$alpha_diversity)))) {
+
+  # Add statistical comparisons if provided
+  if (!is.null(comparisons) && !all(is.na(max(plot_data$alpha_diversity)))) {
     p <- p +
-      stat_compare_means(comparisons = comparisons,
-                         method = "t.test") +
+      stat_compare_means(comparisons = comparisons, method = "t.test") +
       stat_compare_means(
-        label.y = max(metadata$alpha_diversity) * 1.20,
+        label.y = max(plot_data$alpha_diversity) * 1.20,
         method = "anova"
       )
   }
 
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 11,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
+  # Save plot
+  save_plot(p, output_file)
 }
 
+#' Create beta diversity PCoA plot
+#' @param diversity_file Path to QIIME2 beta diversity artifact
+#' @param metadata_file Path to metadata file
+#' @param color_var Column name for coloring points
+#' @param output_file Path for output plot
+beta_diversity_plot <- function(diversity_file, metadata_file, color_var, output_file) {
+  # Load required packages
+  load_packages(c("qiime2R", "ggplot2", "dplyr", "ggforce"))
 
-#------------------------------------------------------------------------------#
-# Beta Diversity Plot
+  # Validate inputs
+  validate_file(diversity_file, "Beta diversity file")
 
-beta_diversity <- function(diversity_file,
-                           metadata_file,
-                           color_var,
-                           output_file) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(ggforce)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  metadata <- read.table(metadata_file, sep = "\t", header = TRUE)
+  # Read data
+  metadata <- read_metadata_safe(metadata_file)
   colnames(metadata)[1] <- "SampleID"
-  metadata$SampleID <- trimws(metadata$SampleID)
+
+  # Validate color variable
   if (!color_var %in% colnames(metadata)) {
-    stop(paste("Variable", x_var, "not found in metadata"))
+    stop(paste("Variable", color_var, "not found in metadata"))
   }
-  discrete <- FALSE
-  if (class(metadata[[color_var]]) == "character") {
+
+  # Process color variable
+  if (is.character(metadata[[color_var]])) {
     metadata[[color_var]] <- factor(metadata[[color_var]])
-    discrete <- TRUE
   }
+
+  # Read diversity data
   diversity <- read_qza(diversity_file)
   pc1_explain <- round(100 * diversity$data$ProportionExplained[1], 2)
   pc2_explain <- round(100 * diversity$data$ProportionExplained[2], 2)
+
+  # Create plot
   p <- diversity$data$Vectors %>%
     select(SampleID, PC1, PC2) %>%
-    left_join(metadata) %>%
+    left_join(metadata, by = "SampleID") %>%
     na.omit() %>%
     ggplot(aes(x = PC1, y = PC2)) +
     geom_point(alpha = 0.5, size = 5, aes(colour = .data[[color_var]])) +
-    xlab(paste("PC1: ", pc1_explain, "%")) +
-    ylab(paste("PC2: ", pc2_explain, "%")) +
+    xlab(paste("PC1:", pc1_explain, "%")) +
+    ylab(paste("PC2:", pc2_explain, "%")) +
     theme_minimal() +
     stat_ellipse(aes(colour = .data[[color_var]]), level = 0.95)
 
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 10,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
+  # Save plot
+  save_plot(p, output_file, width = 15, height = 10)
 }
 
-#------------------------------------------------------------------------------#
-# Differential Abundance Analysis
+# =============================================================================
+# ABUNDANCE ANALYSIS FUNCTIONS
+# =============================================================================
 
+#' Convert ASV table to OTU table at specified taxonomic level
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param taxonomy_level Taxonomic level (1-7)
+#' @return Data frame with aggregated OTU counts
 convert_asv_to_otu_table <- function(asv_file, taxonomy_file, taxonomy_level) {
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  if (taxonomy_level < 1 || taxonomy_level > 7) {
-    stop("Invalid taxonomy level")
-  }
+  load_packages(c("dplyr", "tibble"))
+
+  # Validate inputs
+  validate_file(asv_file, "ASV file")
+  validate_file(taxonomy_file, "Taxonomy file")
+  validate_taxonomy_level(taxonomy_level)
+
+  # Read files
   asv_table <- read.table(
     asv_file,
-    sep = "\t",
-    header = TRUE,
-    stringsAsFactors = FALSE,
-    row.names = 1,
-    check.names = FALSE
-  )
-  taxonomy <- read.table(
-    taxonomy_file,
-    sep = "\t",
-    header = TRUE,
-    stringsAsFactors = FALSE
+    sep = "\t", header = TRUE, stringsAsFactors = FALSE,
+    row.names = 1, check.names = FALSE
   )
 
-  tmp <- lapply(strsplit(taxonomy$Taxon, ";\\s*"), function(x)
-    (strsplit(x, "__")))
-  tmp <- lapply(tmp, function(x) {
-    x <- setNames(sapply(x, function(x)
-      (x[2])), sapply(x, function(x)
-        (x[1])))
-    x <- data.frame(t(x[c("d", "p", "c", "o", "f", "g", "s")]), row.names = NULL, stringsAsFactors = FALSE)
-    colnames(x) <- c("d", "p", "c", "o", "f", "g", "s")
-    x
-  })
-  tmp <- do.call(rbind, tmp)
-  for (c in ncol(tmp)) {
-    tmp[[c]] <- trimws(tmp[[c]])
-    tmp[[c]][tmp[[c]] == ""] <- NA
-  }
-  tmp[is.na(tmp)] <- ""
-  tmp <- tmp[, seq_len(taxonomy_level), drop = FALSE]
-  taxonomy$TaxonAtLevel <- apply(tmp, 1, function(x)
-    (paste(
-      colnames(tmp), x, sep = "__", collapse = ";"
-    )))
+  taxonomy <- read.table(
+    taxonomy_file,
+    sep = "\t", header = TRUE, stringsAsFactors = FALSE
+  )
+
+  # Process taxonomy
+  taxonomy_parsed <- parse_taxonomy_string(taxonomy$Taxon, taxonomy_level)
+  taxonomy$TaxonAtLevel <- taxonomy_parsed
+
+  # Aggregate at taxonomic level
   otu_table <- asv_table %>%
     rownames_to_column("Feature.ID") %>%
     left_join(taxonomy, by = "Feature.ID") %>%
     select(-Feature.ID, -Taxon, -Confidence) %>%
     group_by(TaxonAtLevel) %>%
-    summarise(across(everything(), sum)) %>%
-    dplyr::relocate(TaxonAtLevel, .before = 1)
+    summarise(across(everything(), sum), .groups = "drop") %>%
+    relocate(TaxonAtLevel, .before = 1)
+
   colnames(otu_table)[1] <- "OTU.ID"
-  class(otu_table) <- "data.frame"
-  otu_table
+  as.data.frame(otu_table)
 }
 
-prepare_deseq_data <- function(asv_file,
-                               taxonomy_file,
-                               metadata_file,
-                               taxonomy_level,
-                               class_variable,
-                               group1,
-                               group2) {
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
+#' Parse taxonomy strings to specified level
+#' @param taxonomy_strings Vector of taxonomy strings
+#' @param level Taxonomic level to extract
+#' @return Character vector of parsed taxonomy
+parse_taxonomy_string <- function(taxonomy_strings, level) {
+  taxonomy_parsed <- lapply(strsplit(taxonomy_strings, ";\\s*"), function(x) {
+    x <- strsplit(x, "__")
+    x <- setNames(sapply(x, function(y) y[2]), sapply(x, function(y) y[1]))
+    x <- x[TAXONOMY_LEVEL_LABELS][seq_len(level)]
+    if (length(which(!is.na(x) & x != "")) == 0) {
+      return("Unknown")
+    }
+    x[is.na(x) | x == ""] <- "Unknown"
+    names(x) <- TAXONOMY_LEVEL_LABELS[seq_len(level)]
+    paste(names(x), x, sep = "__", collapse = ";")
+  })
+  unlist(taxonomy_parsed)
+}
+
+# =============================================================================
+# DIFFERENTIAL ABUNDANCE ANALYSIS
+# =============================================================================
+
+#' Prepare phyloseq object for DESeq2 analysis
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param metadata_file Path to metadata file
+#' @param taxonomy_level Taxonomic level
+#' @param class_variable Grouping variable
+#' @param group1 First group for comparison
+#' @param group2 Second group for comparison
+#' @return phyloseq object
+prepare_deseq_data <- function(asv_file, taxonomy_file, metadata_file,
+                               taxonomy_level, class_variable, group1, group2) {
+  load_packages(c("phyloseq"))
+
+  # Convert ASV to OTU table
   otu_data <- convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
+
+  # Prepare taxonomy table
   otu_data$ID <- paste0("Taxa", seq_len(nrow(otu_data)))
-  taxa_leaves <- otu_data[, c(1, ncol(otu_data))]
+  taxa_table <- otu_data[, c("OTU.ID", "ID")]
   rownames(otu_data) <- otu_data$ID
-  otu_data$ID <- ordered(otu_data$ID)
-  otu_data$OTU.ID <- NULL
-  otu_data$ID <- NULL
-  # taxonomy
-  rownames(taxa_leaves) <- taxa_leaves$ID
-  taxa_leaves$ID <- ordered(taxa_leaves$ID)
-  taxa_leaves$ID <- NULL
-  taxa_leaves <- as.matrix(taxa_leaves)
-  taxa <- tax_table(taxa_leaves)
-  # metadata
-  metadata <- read.table(metadata_file, sep = "\t", header = TRUE)
-  colnames(metadata)[1] <- "sample.id"
-  metadata$sample.id <- trimws(metadata$sample.id)
-  rownames(metadata) <- metadata$sample.id
-  metadata$sample.id <- NULL
-  map <- sample_data(metadata)
-  map <- map[map[, class_variable] == group1 |
-               map[, class_variable] == group2]
-  pv <- which(colnames(otu_data) %in% rownames(map))
-  otu_data <- otu_data[pv]
-  pv <- which(rownames(map) %in% colnames(otu_data))
-  map <- map[pv]
-  otu <- otu_table(otu_data, taxa_are_rows = TRUE)
-  data_shotgun <- merge_phyloseq(otu, taxa, map)
-  data_shotgun <- prune_samples(sample_sums(data_shotgun) > 1, data_shotgun)
-  data_shotgun <- prune_taxa(taxa_sums(data_shotgun) > 1, data_shotgun)
-  data_shotgun
+  otu_data <- otu_data[, !colnames(otu_data) %in% c("OTU.ID", "ID")]
+
+  # Prepare metadata
+  metadata <- read_metadata_safe(metadata_file)
+  rownames(metadata) <- metadata$sample_id
+  metadata <- metadata[, !colnames(metadata) %in% "sample_id", drop = FALSE]
+
+  # Filter for comparison groups
+  sample_data_obj <- sample_data(metadata)
+  sample_data_obj <- sample_data_obj[
+    sample_data_obj[[class_variable]] %in% c(group1, group2)
+  ]
+
+  # Match samples between OTU table and metadata
+  common_samples <- intersect(colnames(otu_data), rownames(sample_data_obj))
+  otu_data <- otu_data[, common_samples]
+  sample_data_obj <- sample_data_obj[common_samples, ]
+
+  # Create phyloseq object
+  rownames(taxa_table) <- taxa_table$ID
+  taxa_table <- as.matrix(taxa_table[, "OTU.ID", drop = FALSE])
+
+  otu_table_obj <- otu_table(otu_data, taxa_are_rows = TRUE)
+  tax_table_obj <- tax_table(taxa_table)
+
+  phyloseq_obj <- merge_phyloseq(otu_table_obj, tax_table_obj, sample_data_obj)
+
+  # Filter low abundance features
+  phyloseq_obj <- prune_samples(sample_sums(phyloseq_obj) > 1, phyloseq_obj)
+  phyloseq_obj <- prune_taxa(taxa_sums(phyloseq_obj) > 1, phyloseq_obj)
+
+  phyloseq_obj
 }
 
-extract_from_result <- function(results, phylo_data, filter_expr) {
-  filtered <- which(filter_expr)
-  if (length(filtered) == 0) {
-    return(NULL)
-  }
-  res_table <- results[filtered, ]
-  res_table <- cbind(as(res_table, "data.frame"), as(tax_table(phylo_data)[rownames(res_table), ], "matrix"))
-  res_table$log2FoldChange[is.na(res_table$log2FoldChange)] <- 0
-  res_table$pvalue[is.na(res_table$pvalue)] <- 1
-  res_table$padj[is.na(res_table$padj)] <- 1
-  res_table <- na.omit(res_table)
-  res_table
-}
+#' Run DESeq2 differential abundance analysis
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param metadata_file Path to metadata file
+#' @param taxonomy_level Taxonomic level
+#' @param class_variable Grouping variable
+#' @param group1 First group
+#' @param group2 Second group
+#' @param pv_threshold P-value threshold
+#' @param fdr_threshold FDR threshold
+#' @param output_prefix Output file prefix
+#' @return List with results
+run_deseq2_analysis <- function(asv_file, taxonomy_file, metadata_file,
+                                taxonomy_level, class_variable, group1, group2,
+                                pv_threshold, fdr_threshold, output_prefix) {
+  load_packages(c("DESeq2", "phyloseq"))
 
-run_deseq2 <- function(asv_file,
-                       taxonomy_file,
-                       metadata_file,
-                       taxonomy_level,
-                       class_variable,
-                       group1,
-                       group2,
-                       pv_threshold,
-                       fdr_threshold,
-                       output_prefix) {
-  suppressWarnings(suppressPackageStartupMessages(library(DESeq2)))
-  data_shotgun <- prepare_deseq_data(
-    asv_file,
-    taxonomy_file,
-    metadata_file,
-    taxonomy_level,
-    class_variable,
-    group1,
-    group2
+  # Prepare data
+  phyloseq_data <- prepare_deseq_data(
+    asv_file, taxonomy_file, metadata_file,
+    taxonomy_level, class_variable, group1, group2
   )
-  diagdds <- phyloseq_to_deseq2(data_shotgun, as.formula(paste("~", class_variable)))
-  diagdds <- DESeq(diagdds, test = "Wald", fitType = "parametric")
-  results <- results(diagdds, contrast = c(class_variable, group1, group2))
 
-  all_degs_output <- paste0(output_prefix, "_all.tsv")
-  pv_filtered_output <- paste0(output_prefix, "_pvalue.tsv")
-  fdr_filtered_output <- paste0(output_prefix, "_fdr.tsv")
+  # Run DESeq2
+  formula_str <- as.formula(paste("~", class_variable))
+  dds <- phyloseq_to_deseq2(phyloseq_data, formula_str)
+  dds <- DESeq(dds, test = "Wald", fitType = "parametric")
+  results_obj <- results(dds, contrast = c(class_variable, group1, group2))
 
-  res_all <- extract_from_result(results, data_shotgun, results$pvalue <= 1)
-  res_pv <- extract_from_result(results, data_shotgun, results$pvalue < pv_threshold)
-  res_fdr <- extract_from_result(results, data_shotgun, results$padj < fdr_threshold)
+  # Extract and save results
+  results_list <- extract_deseq_results(
+    results_obj, phyloseq_data,
+    pv_threshold, fdr_threshold, output_prefix
+  )
 
+  results_list$phyloseq_data <- phyloseq_data
+  saveRDS(results_list, paste0(output_prefix, "_raw.rds"))
+
+  results_list
+}
+
+#' Extract DESeq2 results with filtering
+#' @param results DESeq2 results object
+#' @param phyloseq_data phyloseq object
+#' @param pv_threshold P-value threshold
+#' @param fdr_threshold FDR threshold
+#' @param output_prefix Output file prefix
+#' @return List with filtered results
+extract_deseq_results <- function(results, phyloseq_data, pv_threshold,
+                                  fdr_threshold, output_prefix) {
+  # Helper function to extract results
+  extract_filtered <- function(filter_condition) {
+    filtered_indices <- which(filter_condition)
+    if (length(filtered_indices) == 0) {
+      return(NULL)
+    }
+
+    res_table <- results[filtered_indices, ]
+    res_table <- cbind(
+      as(res_table, "data.frame"),
+      as(tax_table(phyloseq_data)[rownames(res_table), ], "matrix")
+    )
+
+    # Handle missing values
+    res_table$log2FoldChange[is.na(res_table$log2FoldChange)] <- 0
+    res_table$pvalue[is.na(res_table$pvalue)] <- 1
+    res_table$padj[is.na(res_table$padj)] <- 1
+
+    na.omit(res_table)
+  }
+
+  # Extract results with different filters
+  results_all <- extract_filtered(results$pvalue <= 1)
+  results_pv <- extract_filtered(results$pvalue < pv_threshold)
+  results_fdr <- extract_filtered(results$padj < fdr_threshold)
+
+  # Save results to files
+  output_files <- list(
+    all = paste0(output_prefix, "_all.tsv"),
+    pvalue = paste0(output_prefix, "_pvalue.tsv"),
+    fdr = paste0(output_prefix, "_fdr.tsv")
+  )
+
+  save_results_table(results_all, output_files$all)
+  if (!is.null(results_pv)) save_results_table(results_pv, output_files$pvalue)
+  if (!is.null(results_fdr)) save_results_table(results_fdr, output_files$fdr)
+
+  list(
+    all = results_all,
+    pv_filtered = results_pv,
+    fdr_filtered = results_fdr
+  )
+}
+
+# =============================================================================
+# VISUALIZATION FUNCTIONS
+# =============================================================================
+
+#' Save ggplot with standard settings
+#' @param plot ggplot object
+#' @param filename Output filename
+#' @param width Plot width in inches
+#' @param height Plot height in inches
+#' @param dpi Resolution
+#' @param device Output device
+save_plot <- function(plot, filename, width = DEFAULT_PLOT_WIDTH,
+                      height = DEFAULT_PLOT_HEIGHT, dpi = DEFAULT_DPI,
+                      device = DEFAULT_DEVICE) {
+  ggsave(
+    filename = filename,
+    plot = plot,
+    bg = "transparent",
+    width = width,
+    height = height,
+    dpi = dpi,
+    units = "in",
+    device = device
+  )
+}
+
+#' Save results table to file
+#' @param results_table Data frame to save
+#' @param filename Output filename
+save_results_table <- function(results_table, filename) {
   write.table(
-    res_all,
-    all_degs_output,
+    results_table,
+    file = filename,
     sep = "\t",
     quote = FALSE,
     row.names = FALSE,
     col.names = TRUE,
     na = "NA"
   )
-  if (!is.null(res_pv)) {
-    write.table(
-      res_pv,
-      pv_filtered_output,
-      sep = "\t",
-      quote = FALSE,
-      row.names = FALSE,
-      col.names = TRUE,
-      na = "NA"
-    )
-  }
-  if (!is.null(res_fdr)) {
-    write.table(
-      res_fdr,
-      fdr_filtered_output,
-      sep = "\t",
-      quote = FALSE,
-      row.names = TRUE,
-      col.names = TRUE,
-      na = "NA"
-    )
-  }
-  res <- list(
-    all = res_all,
-    pv_filtered = res_pv,
-    fdr_filtered = res_fdr,
-    data_shotgun = data_shotgun
-  )
-  saveRDS(res, paste0(output_prefix, "_raw.rds"))
-  res
 }
 
-#------------------------------------------------------------------------------#
-# Picrust Functional Analysis
+# =============================================================================
+# PICRUST FUNCTIONAL ANALYSIS
+# =============================================================================
 
-prepare_picrust_data <- function(asv_file,
-                                 metadata_file,
-                                 class_variable,
-                                 group1,
-                                 group2) {
-  suppressWarnings(suppressPackageStartupMessages(library(readr)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
+#' Prepare phyloseq object for PICRUSt data
+#' @param asv_file Path to PICRUSt output file
+#' @param metadata_file Path to metadata file
+#' @param class_variable Grouping variable
+#' @param group1 First group for comparison
+#' @param group2 Second group for comparison
+#' @return phyloseq object
+prepare_picrust_data <- function(asv_file, metadata_file, class_variable,
+                                 group1, group2) {
+  load_packages(c("readr", "phyloseq"))
+
+  # Read PICRUSt data
   picrust_data <- read_tsv(asv_file, col_names = TRUE)
-  class(picrust_data) <- "data.frame"
+  picrust_data <- as.data.frame(picrust_data)
   colnames(picrust_data)[1] <- "ID"
   colnames(picrust_data)[2] <- "OTU.ID"
-  taxa_leaves <- picrust_data[, c(1, 2)]
+
+  # Prepare taxonomy table
+  taxa_table <- picrust_data[, c("ID", "OTU.ID")]
   rownames(picrust_data) <- picrust_data$ID
-  picrust_data$ID <- ordered(picrust_data$ID)
-  picrust_data$OTU.ID <- NULL
-  picrust_data$ID <- NULL
-  # taxonomy
-  rownames(taxa_leaves) <- taxa_leaves$ID
-  taxa_leaves$ID <- ordered(taxa_leaves$ID)
-  taxa_leaves$ID <- NULL
-  taxa_leaves <- as.matrix(taxa_leaves)
-  taxa <- tax_table(taxa_leaves)
-  # metadata
-  metadata <- read.table(metadata_file, sep = "\t", header = TRUE)
-  colnames(metadata)[1] <- "sample.id"
-  metadata$sample.id <- trimws(metadata$sample.id)
-  rownames(metadata) <- metadata$sample.id
-  metadata$sample.id <- NULL
-  map <- sample_data(metadata)
-  map <- map[map[, class_variable] == group1 |
-               map[, class_variable] == group2]
-  pv <- which(colnames(picrust_data) %in% rownames(map))
-  picrust_data <- picrust_data[pv]
-  pv <- which(rownames(map) %in% colnames(picrust_data))
-  map <- map[pv]
-  otu <- otu_table(picrust_data, taxa_are_rows = TRUE)
-  data_picrust <- merge_phyloseq(otu, taxa, map)
-  data_picrust <- prune_samples(sample_sums(data_picrust) > 1, data_picrust)
-  data_picrust <- prune_taxa(taxa_sums(data_picrust) > 1, data_picrust)
-  data_picrust
+  picrust_data <- picrust_data[, !colnames(picrust_data) %in% c("ID", "OTU.ID")]
+
+  # Prepare metadata
+  metadata <- read_metadata_safe(metadata_file)
+  rownames(metadata) <- metadata$sample_id
+  metadata <- metadata[, !colnames(metadata) %in% "sample_id", drop = FALSE]
+
+  # Filter for comparison groups
+  sample_data_obj <- sample_data(metadata)
+  sample_data_obj <- sample_data_obj[
+    sample_data_obj[[class_variable]] %in% c(group1, group2)
+  ]
+
+  # Match samples
+  common_samples <- intersect(colnames(picrust_data), rownames(sample_data_obj))
+  picrust_data <- picrust_data[, common_samples]
+  sample_data_obj <- sample_data_obj[common_samples, ]
+
+  # Create phyloseq object
+  rownames(taxa_table) <- taxa_table$ID
+  taxa_table <- as.matrix(taxa_table[, "OTU.ID", drop = FALSE])
+
+  otu_table_obj <- otu_table(picrust_data, taxa_are_rows = TRUE)
+  tax_table_obj <- tax_table(taxa_table)
+
+  phyloseq_obj <- merge_phyloseq(otu_table_obj, tax_table_obj, sample_data_obj)
+
+  # Filter low abundance features
+  phyloseq_obj <- prune_samples(sample_sums(phyloseq_obj) > 1, phyloseq_obj)
+  phyloseq_obj <- prune_taxa(taxa_sums(phyloseq_obj) > 1, phyloseq_obj)
+
+  phyloseq_obj
 }
 
-run_deseq2_picrust <- function(asv_file,
-                               metadata_file,
-                               class_variable,
-                               group1,
-                               group2,
-                               pv_threshold,
-                               fdr_threshold,
-                               output_prefix) {
-  suppressWarnings(suppressPackageStartupMessages(library(DESeq2)))
-  data_shotgun <- prepare_picrust_data(
-    asv_file,
-    metadata_file,
-    class_variable,
-    group1,
-    group2
+#' Run DESeq2 analysis on PICRUSt data
+#' @param asv_file Path to PICRUSt output file
+#' @param metadata_file Path to metadata file
+#' @param class_variable Grouping variable
+#' @param group1 First group
+#' @param group2 Second group
+#' @param pv_threshold P-value threshold
+#' @param fdr_threshold FDR threshold
+#' @param output_prefix Output file prefix
+#' @return List with results
+run_picrust_analysis <- function(asv_file, metadata_file, class_variable,
+                                 group1, group2, pv_threshold, fdr_threshold,
+                                 output_prefix) {
+  load_packages(c("DESeq2", "phyloseq"))
+
+  # Prepare data
+  phyloseq_data <- prepare_picrust_data(
+    asv_file, metadata_file, class_variable, group1, group2
   )
-  diagdds <- phyloseq_to_deseq2(data_shotgun, as.formula(paste("~", class_variable)))
-  diagdds <- DESeq(diagdds, test = "Wald", fitType = "parametric")
-  results <- results(diagdds, contrast = c(class_variable, group1, group2))
-  
-  all_degs_output <- paste0(output_prefix, "_all.tsv")
-  pv_filtered_output <- paste0(output_prefix, "_pvalue.tsv")
-  fdr_filtered_output <- paste0(output_prefix, "_fdr.tsv")
-  
-  res_all <- extract_from_result(results, data_shotgun, results$pvalue <= 1)
-  res_pv <- extract_from_result(results, data_shotgun, results$pvalue < pv_threshold)
-  res_fdr <- extract_from_result(results, data_shotgun, results$padj < fdr_threshold)
-  
-  write.table(
-    res_all,
-    all_degs_output,
-    sep = "\t",
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = TRUE,
-    na = "NA"
+
+  # Run DESeq2
+  formula_str <- as.formula(paste("~", class_variable))
+  dds <- phyloseq_to_deseq2(phyloseq_data, formula_str)
+  dds <- DESeq(dds, test = "Wald", fitType = "parametric")
+  results_obj <- results(dds, contrast = c(class_variable, group1, group2))
+
+  # Extract and save results
+  results_list <- extract_deseq_results(
+    results_obj, phyloseq_data,
+    pv_threshold, fdr_threshold, output_prefix
   )
-  if (!is.null(res_pv)) {
-    write.table(
-      res_pv,
-      pv_filtered_output,
-      sep = "\t",
-      quote = FALSE,
-      row.names = FALSE,
-      col.names = TRUE,
-      na = "NA"
-    )
-  }
-  if (!is.null(res_fdr)) {
-    write.table(
-      res_fdr,
-      fdr_filtered_output,
-      sep = "\t",
-      quote = FALSE,
-      row.names = TRUE,
-      col.names = TRUE,
-      na = "NA"
-    )
-  }
-  res <- list(
-    all = res_all,
-    pv_filtered = res_pv,
-    fdr_filtered = res_fdr,
-    data_shotgun = data_shotgun
-  )
-  saveRDS(res, paste0(output_prefix, "_raw.rds"))
-  res
+
+  results_list$phyloseq_data <- phyloseq_data
+  saveRDS(results_list, paste0(output_prefix, "_raw.rds"))
+
+  results_list
 }
 
+# =============================================================================
+# ABUNDANCE VISUALIZATION FUNCTIONS
+# =============================================================================
 
-#------------------------------------------------------------------------------#
-# Differential Abundance Analysis Plots
-
-compute_top_freq_plot <- function(deseq2_results,
-                                  n,
-                                  class_variable,
-                                  group1,
-                                  group2,
-                                  output_file) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(gtools)))
-  res <- deseq2_results$all
-  data <- deseq2_results$data_shotgun
-  otu_table <- as(otu_table(data), "matrix")
-  sample_data <- as(sample_data(data), "data.frame")
-  g1_samples <- rownames(sample_data)[sample_data[[class_variable]] == group1]
-  g2_samples <- rownames(sample_data)[sample_data[[class_variable]] == group2]
-  g1_otu <- otu_table[, g1_samples]
-  g2_otu <- otu_table[, g2_samples]
-  g1_sum <- rowSums(g1_otu)
-  g2_sum <- rowSums(g2_otu)
-  g1_freqs <- g1_sum / sum(g1_sum)
-  g2_freqs <- g2_sum / sum(g2_sum)
-  freq_data <- data.frame(
-    OTU.ID = rownames(otu_table),
-    g1_freqs = g1_freqs,
-    g2_freqs = g2_freqs
-  )
-  freq_data$Sum <- rowSums(freq_data[, 2:3])
-  res$OTU.NAME <- res$OTU.ID
-  res$OTU.ID <- rownames(res)
-  combined_data <- merge(freq_data, res, all.x = TRUE)
-  combined_data <- combined_data[combined_data$Sum != 0, ]
-  combined_data <- combined_data[order(combined_data$Sum, decreasing = TRUE), ]
-  n <- min(n, nrow(combined_data))
-  combined_data <- combined_data[seq_len(n), ]
-  combined_data$pvalue_sign <- gtools::stars.pval(combined_data$pvalue)
-  combined_data <- combined_data[order(combined_data$log2FoldChange, decreasing = TRUE), ]
-
-  p <- ggplot(combined_data, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
-    geom_bar(
-      aes(fill = Sum),
-      position = "dodge",
-      stat = "identity",
-      color = "black"
-    ) +
-    geom_label(aes(label = pvalue_sign), size = 5) +
-    theme_minimal() +
-    theme(legend.position = "bottom") +
-    xlab("LogFC") +
-    ylab("") +
-    guides(fill = guide_legend("Total Frequency"))
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 10,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
-}
-
-compute_top_sign_plot <- function(deseq2_results,
-                                  n,
-                                  class_variable,
-                                  group1,
-                                  group2,
-                                  output_file) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(gtools)))
-  res <- deseq2_results$all
-  res$OTU.NAME <- res$OTU.ID
-  res$OTU.ID <- rownames(res)
-  n <- min(n, nrow(res))
-  res <- res[order(res$pvalue, decreasing = FALSE), ]
-  res <- res[seq_len(n), ]
-  res$pvalue_sign <- gtools::stars.pval(res$pvalue)
-  p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
-    geom_bar(
-      aes(fill = pvalue),
-      position = "dodge",
-      stat = "identity",
-      color = "black"
-    ) +
-    geom_label(aes(label = pvalue_sign), size = 5) +
-    theme_minimal() +
-    theme(legend.position = "bottom") +
-    xlab("LogFC") +
-    ylab("") +
-    guides(fill = guide_legend("p"))
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 10,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
-}
-
-compute_top_fc_plot <- function(deseq2_results,
-                                n,
-                                class_variable,
-                                group1,
-                                group2,
-                                output_file) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(gtools)))
-  res <- deseq2_results$all
-  res$OTU.NAME <- res$OTU.ID
-  res$OTU.ID <- rownames(res)
-  res <- res[res$log2FoldChange != 0, ]
-  res <- res[order(abs(res$log2FoldChange), decreasing = FALSE), ]
-  n <- min(n, nrow(res))
-  res <- res[seq_len(n), ]
-  res$pvalue_sign <- gtools::stars.pval(res$pvalue)
-  p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
-    geom_bar(
-      aes(fill = pvalue),
-      position = "dodge",
-      stat = "identity",
-      color = "black"
-    ) +
-    geom_text(aes(label = pvalue_sign), size = 5) +
-    theme_minimal() +
-    theme(legend.position = "bottom") +
-    xlab("LogFC") +
-    ylab("") +
-    guides(fill = guide_legend("p"))
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 10,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
-}
-
-#------------------------------------------------------------------------------#
-# Relative Abundance stacked barplot
-
-compute_relative_abundance <- function(asv_file,
-                                       taxonomy_file,
-                                       metadata_file,
-                                       taxonomy_level,
-                                       class_variable,
+#' Compute relative abundance data
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param metadata_file Path to metadata file
+#' @param taxonomy_level Taxonomic level
+#' @param class_variable Grouping variable
+#' @param hide_small Whether to group small abundances as "Others"
+#' @return List with relative abundance data
+compute_relative_abundance <- function(asv_file, taxonomy_file, metadata_file,
+                                       taxonomy_level, class_variable,
                                        hide_small = FALSE) {
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
+  load_packages(c("dplyr", "tidyr"))
+
+  # Get OTU table
   otu_table <- convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
   taxa <- otu_table$OTU.ID
   otu_table$OTU.ID <- NULL
+
+  # Transpose for sample-wise analysis
   abund_df <- as.data.frame(t(otu_table))
   colnames(abund_df) <- taxa
 
-  metadata <- read.table(metadata_file, sep = "\t", header = TRUE)
-  colnames(metadata)[1] <- "sample.id"
-  metadata$sample.id <- trimws(metadata$sample.id)
-  rownames(metadata) <- metadata$sample.id
+  # Read metadata
+  metadata <- read_metadata_safe(metadata_file)
+  rownames(metadata) <- metadata$sample_id
 
-  samples <- intersect(metadata$sample.id, rownames(abund_df))
-  abund_df <- abund_df[samples, ]
-  metadata <- metadata[samples, ]
+  # Match samples
+  common_samples <- intersect(metadata$sample_id, rownames(abund_df))
+  abund_df <- abund_df[common_samples, ]
+  metadata <- metadata[common_samples, ]
+
+  # Add grouping variable
   abund_df$Group <- metadata[[class_variable]]
   abund_df <- na.omit(abund_df)
 
+  # Calculate relative abundances
   rel_abund <- abund_df %>%
     group_by(Group) %>%
-    summarise(across(everything(), sum))
-  rel_abund[, -1] <- round(rel_abund[, -1] / rowSums(rel_abund[, -1]) * 100, digits = 2)
+    summarise(across(everything(), sum), .groups = "drop")
+
+  rel_abund[, -1] <- round(rel_abund[, -1] / rowSums(rel_abund[, -1]) * 100,
+    digits = 2
+  )
+
   rel_abund <- rel_abund %>%
-    pivot_longer(cols = -Group,
-                 names_to = "Taxa",
-                 values_to = "value")
+    pivot_longer(cols = -Group, names_to = "Taxa", values_to = "value")
+
   rel_abund$Group <- as.character(rel_abund$Group)
   rel_abund_orig <- rel_abund
+
+  # Group small abundances if requested
   if (hide_small) {
     small_abund <- rel_abund[rel_abund$value <= 1, ]
     rel_abund <- rel_abund[rel_abund$value > 1, ]
-    small_abund <- small_abund %>%
-      group_by(Group) %>%
-      summarise(Taxa = "Others", value = sum(value))
-    rel_abund <- rbind(rel_abund, small_abund)
+
+    if (nrow(small_abund) > 0) {
+      small_abund <- small_abund %>%
+        group_by(Group) %>%
+        summarise(Taxa = "Others", value = sum(value), .groups = "drop")
+      rel_abund <- rbind(rel_abund, small_abund)
+    }
   }
-  list(rel_abund, rel_abund_orig)
+
+  list(rel_abund = rel_abund, rel_abund_orig = rel_abund_orig)
 }
 
-compute_stacked_abundance_barplot <- function(asv_file,
-                                              taxonomy_file,
-                                              metadata_file,
-                                              taxonomy_level,
-                                              class_variable,
-                                              output_file,
-                                              hide_small = FALSE,
-                                              rel_abund_file = NULL) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
-  suppressWarnings(suppressPackageStartupMessages(library(ggstatsplot)))
-  rel_abunds <- compute_relative_abundance(
-    asv_file,
-    taxonomy_file,
-    metadata_file,
-    taxonomy_level,
-    class_variable,
-    hide_small
-  )
-  rel_abund <- rel_abunds[[1]]
-  rel_abund_orig <- rel_abunds[[2]]
+#' Create stacked bar plot of relative abundances
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param metadata_file Path to metadata file
+#' @param taxonomy_level Taxonomic level
+#' @param class_variable Grouping variable
+#' @param output_file Output plot file
+#' @param hide_small Whether to group small abundances
+#' @param rel_abund_file Optional output file for abundance table
+create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file,
+                                          taxonomy_level, class_variable,
+                                          output_file, hide_small = FALSE,
+                                          rel_abund_file = NULL) {
+  load_packages(c("ggplot2", "RColorBrewer"))
 
+  # Compute relative abundances
+  rel_abunds <- compute_relative_abundance(
+    asv_file, taxonomy_file, metadata_file,
+    taxonomy_level, class_variable, hide_small
+  )
+
+  rel_abund <- rel_abunds$rel_abund
+  rel_abund_orig <- rel_abunds$rel_abund_orig
+
+  # Save abundance table if requested
   if (!is.null(rel_abund_file)) {
-    write.table(
-      rel_abund_orig,
-      file = rel_abund_file,
-      sep = "\t",
-      quote = FALSE,
-      row.names = FALSE,
-      col.names = TRUE
-    )
+    save_results_table(rel_abund_orig, rel_abund_file)
   }
 
+  # Create color palette
   n_colors <- length(unique(rel_abund$Taxa))
-  palette_fun <- colorRampPalette(brewer.pal(12, "Paired"))
+  palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
   my_colors <- palette_fun(n_colors)
 
-  p <- ggplot(data = rel_abund, aes(x = Group, y = value, fill = Taxa)) +
+  # Create plot
+  p <- ggplot(rel_abund, aes(x = Group, y = value, fill = Taxa)) +
     geom_bar(stat = "identity", width = 0.6) +
-    theme_ggstatsplot() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), ) +
-    ylab("Relative abundance (%)") +
-    xlab("") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "bottom"
+    ) +
+    labs(
+      y = "Relative Abundance (%)",
+      x = "",
+      fill = "Taxa"
+    ) +
     scale_fill_manual(values = my_colors)
 
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 10,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
+  # Save plot
+  save_plot(p, output_file)
 }
 
-#-----------------------------------------------------------------------------#
-# Relative Abundance pie plot
+#' Create pie chart of relative abundances
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param metadata_file Path to metadata file
+#' @param taxonomy_level Taxonomic level
+#' @param class_variable Grouping variable
+#' @param output_file Output plot file
+#' @param rel_abund_file Optional output file for abundance table
+create_abundance_pie_plot <- function(asv_file, taxonomy_file, metadata_file,
+                                      taxonomy_level, class_variable,
+                                      output_file, rel_abund_file = NULL) {
+  load_packages(c("ggpubr", "RColorBrewer"))
 
-compute_abundance_pie_plot <- function(asv_file,
-                                       taxonomy_file,
-                                       metadata_file,
-                                       taxonomy_level,
-                                       class_variable,
-                                       output_file,
-                                       rel_abund_file = NULL) {
-  suppressWarnings(suppressPackageStartupMessages(library(ggpubr)))
-  suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
+  # Compute relative abundances (with small groups hidden)
   rel_abunds <- compute_relative_abundance(
-    asv_file,
-    taxonomy_file,
-    metadata_file,
-    taxonomy_level,
-    class_variable,
+    asv_file, taxonomy_file, metadata_file,
+    taxonomy_level, class_variable,
     hide_small = TRUE
   )
-  rel_abund <- rel_abunds[[1]]
-  rel_abund_orig <- rel_abunds[[2]]
 
+  rel_abund <- rel_abunds$rel_abund
+  rel_abund_orig <- rel_abunds$rel_abund_orig
+
+  # Save abundance table if requested
   if (!is.null(rel_abund_file)) {
-    write.table(
-      rel_abund_orig,
-      file = rel_abund_file,
-      sep = "\t",
-      quote = FALSE,
-      row.names = FALSE,
-      col.names = TRUE
-    )
+    save_results_table(rel_abund_orig, rel_abund_file)
   }
+
+  # Create color palette
   n_colors <- length(unique(rel_abund$Taxa))
-  palette_fun <- colorRampPalette(brewer.pal(12, "Paired"))
+  palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
   my_colors <- palette_fun(n_colors)
 
+  # Create plot
   p <- ggdonutchart(rel_abund, "value", fill = "Taxa", palette = my_colors) +
     theme_void() +
-    facet_wrap(~ Group)
+    facet_wrap(~Group)
 
-  ggsave(
-    output_file,
-    plot = p,
-    bg = "transparent",
-    width = 15,
-    height = 10,
-    dpi = 300,
-    units = "in",
-    device = "svg"
-  )
+  # Save plot
+  save_plot(p, output_file)
 }
 
-suppressWarnings(suppressPackageStartupMessages(library(optparse)))
+# =============================================================================
+# DIFFERENTIAL ABUNDANCE PLOTTING FUNCTIONS
+# =============================================================================
 
-option_list <- list(
-  make_option(c("--method"), type = "character", help = "Method to run: alpha_diversity, beta_diversity, differential_abundance, top_freq_plot, top_sign_plot, top_fc_plot, stacked_abundance_barplot, abundance_pie_plot, picrust_functional"),
-  # alpha_diversity
-  make_option(
-    c("--alpha_diversity_file"),
-    type = "character",
-    help = "Alpha diversity file"
-  ),
-  make_option(c("--metadata_file"), type = "character", help = "Metadata file"),
-  make_option(c("--class_variable"), type = "character", help = "Class variable for grouping"),
-  make_option(c("--comparisons"), type = "character", help = "Comparisons for alpha_diversity, e.g. 'A,B;C,D'"),
-  make_option(c("--output_file"), type = "character", help = "Output file"),
-  # beta_diversity
-  make_option(c("--beta_diversity_file"), type = "character", help = "Beta diversity file"),
-  make_option(c("--color_var"), type = "character", help = "Color variable for beta_diversity"),
-  # differential_abundance
-  make_option(c("--asv_file"), type = "character", help = "ASV file"),
-  make_option(c("--taxonomy_file"), type = "character", help = "Taxonomy file"),
-  make_option(c("--taxonomy_level"), type = "integer", help = "Taxonomy level (1-7)"),
-  make_option(c("--group1"), type = "character", help = "Group 1"),
-  make_option(c("--group2"), type = "character", help = "Group 2"),
-  make_option(c("--pv_threshold"), type = "double", help = "P-value threshold"),
-  make_option(c("--fdr_threshold"), type = "double", help = "FDR threshold"),
-  make_option(c("--output_prefix"), type = "character", help = "Output prefix for differential_abundance"),
-  # top plots
-  make_option(c("--deseq2_results_file"), type = "character", help = "RDS file from run_deseq2"),
-  make_option(c("--n"), type = "integer", help = "Number of top features"),
-  # stacked_abundance_barplot
-  make_option(
-    c("--hide_small"),
-    type = "logical",
-    default = FALSE,
-    help = "Hide small abundances (default: FALSE)"
-  ),
-  make_option(c("--rel_abund_file"), type = "character", help = "Output file for relative abundance table")
-)
+#' Create plot of top abundant features
+#' @param deseq2_results DESeq2 results object
+#' @param n Number of top features to show
+#' @param class_variable Grouping variable
+#' @param group1 First group
+#' @param group2 Second group
+#' @param output_file Output plot file
+create_top_frequency_plot <- function(deseq2_results, n, class_variable,
+                                      group1, group2, output_file) {
+  load_packages(c("ggplot2", "gtools", "phyloseq"))
 
-parser <- OptionParser(option_list = option_list)
-args <- parse_args(parser)
+  res <- deseq2_results$all
+  phyloseq_data <- deseq2_results$phyloseq_data
 
-method <- args$method
-if (is.null(method)) {
-  stop("--method is required. Use --help for options.")
+  # Calculate frequencies
+  otu_table <- as(otu_table(phyloseq_data), "matrix")
+  sample_data <- as(sample_data(phyloseq_data), "data.frame")
+
+  g1_samples <- rownames(sample_data)[sample_data[[class_variable]] == group1]
+  g2_samples <- rownames(sample_data)[sample_data[[class_variable]] == group2]
+
+  g1_freqs <- rowSums(otu_table[, g1_samples, drop = FALSE]) /
+    sum(otu_table[, g1_samples, drop = FALSE])
+  g2_freqs <- rowSums(otu_table[, g2_samples, drop = FALSE]) /
+    sum(otu_table[, g2_samples, drop = FALSE])
+
+  # Prepare data
+  freq_data <- data.frame(
+    OTU.ID = rownames(otu_table),
+    g1_freqs = g1_freqs,
+    g2_freqs = g2_freqs,
+    Sum = g1_freqs + g2_freqs
+  )
+
+  res$OTU.NAME <- res$OTU.ID
+  res$OTU.ID <- rownames(res)
+
+  # Merge and filter
+  combined_data <- merge(freq_data, res, by = "OTU.ID", all.x = TRUE)
+  combined_data <- combined_data[combined_data$Sum != 0, ]
+  combined_data <- combined_data[order(combined_data$Sum, decreasing = TRUE), ]
+
+  n <- min(n, nrow(combined_data))
+  combined_data <- combined_data[seq_len(n), ]
+  combined_data$pvalue_sign <- gtools::stars.pval(combined_data$pvalue)
+
+  # Create plot
+  p <- ggplot(
+    combined_data,
+    aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))
+  ) +
+    geom_col(aes(fill = Sum), color = "black") +
+    geom_text(aes(label = pvalue_sign), size = 3) +
+    theme_minimal() +
+    labs(
+      x = "Log2 Fold Change",
+      y = "",
+      fill = "Total Frequency"
+    ) +
+    theme(legend.position = "bottom")
+
+  save_plot(p, output_file)
 }
 
-if (method == "alpha_diversity") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggpubr)))
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  if (is.null(args$alpha_diversity_file) || is.null(args$metadata_file) ||
-      is.null(args$class_variable) || is.null(args$output_file)) {
-    stop("Missing required arguments for alpha_diversity.")
-  }
-  if (!file.exists(args$alpha_diversity_file)) {
-    stop("Alpha diversity file does not exist.")
-  }
-  if (!file.exists(args$metadata_file)) {
-    stop("Metadata file does not exist.")
-  }
-  comparisons <- NULL
-  if (!is.null(args$comparisons) && nchar(args$comparisons) > 0) {
-    # Parse 'A,B;C,D' into list(c('A','B'), c('C','D'))
-    comparisons <- strsplit(args$comparisons, ";")[[1]]
-    comparisons <- lapply(comparisons, function(x)
-      unlist(strsplit(x, ",")))
-  }
-  alpha_diversity(
-    diversity_file = args$alpha_diversity_file,
-    metadata_file = args$metadata_file,
-    class_variable = args$class_variable,
-    comparisons = comparisons,
-    output_file = args$output_file
-  )
-} else if (method == "beta_diversity") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  suppressWarnings(suppressPackageStartupMessages(library(tidyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(ggforce)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  if (is.null(args$beta_diversity_file) || is.null(args$metadata_file) ||
-      is.null(args$color_var) || is.null(args$output_file)) {
-    stop("Missing required arguments for beta_diversity.")
-  }
-  if (!file.exists(args$beta_diversity_file)) {
-    stop("Beta diversity file does not exist.")
-  }
-  if (!file.exists(args$metadata_file)) {
-    stop("Metadata file does not exist.")
-  }
-  beta_diversity(
-    diversity_file = args$beta_diversity_file,
-    metadata_file = args$metadata_file,
-    color_var = args$color_var,
-    output_file = args$output_file
-  )
-} else if (method == "differential_abundance") {
-  suppressWarnings(suppressPackageStartupMessages(library(DESeq2)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  if (is.null(args$asv_file) || is.null(args$taxonomy_file) ||
-      is.null(args$metadata_file) || is.null(args$taxonomy_level) ||
-      is.null(args$class_variable) || is.null(args$group1) ||
-      is.null(args$group2) || is.null(args$pv_threshold) ||
-      is.null(args$fdr_threshold) || is.null(args$output_prefix)) {
-    stop("Missing required arguments for differential_abundance.")
-  }
-  if (!file.exists(args$asv_file)) {
-    stop("ASV file does not exist.")
-  }
-  if (!file.exists(args$taxonomy_file)) {
-    stop("Taxonomy file does not exist.")
-  }
-  if (!file.exists(args$metadata_file)) {
-    stop("Metadata file does not exist.")
-  }
-  run_deseq2(
-    asv_file = args$asv_file,
-    taxonomy_file = args$taxonomy_file,
-    metadata_file = args$metadata_file,
-    taxonomy_level = args$taxonomy_level,
-    class_variable = args$class_variable,
-    group1 = args$group1,
-    group2 = args$group2,
-    pv_threshold = args$pv_threshold,
-    fdr_threshold = args$fdr_threshold,
-    output_prefix = args$output_prefix
-  )
-} else if (method == "picrust_functional") {
-  suppressWarnings(suppressPackageStartupMessages(library(DESeq2)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
-  suppressWarnings(suppressPackageStartupMessages(library(tibble)))
-  if (is.null(args$asv_file) || is.null(args$metadata_file) || 
-      is.null(args$class_variable) || is.null(args$group1) ||
-      is.null(args$group2) || is.null(args$pv_threshold) ||
-      is.null(args$fdr_threshold) || is.null(args$output_prefix)) {
-    stop("Missing required arguments for picrust_functional")
-  }
-  if (!file.exists(args$asv_file)) {
-    stop("Picrust input file does not exist.")
-  }
-  if (!file.exists(args$metadata_file)) {
-    stop("Metadata file does not exist.")
-  }
-  run_deseq2_picrust(
-    asv_file = args$asv_file,
-    metadata_file = args$metadata_file,
-    class_variable = args$class_variable,
-    group1 = args$group1,
-    group2 = args$group2,
-    pv_threshold = args$pv_threshold,
-    fdr_threshold = args$fdr_threshold,
-    output_prefix = args$output_prefix
-  )
-} else if (method == "top_freq_plot") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(gtools)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  if (is.null(args$deseq2_results_file) || is.null(args$n) ||
-      is.null(args$class_variable) || is.null(args$group1) ||
-      is.null(args$group2) || is.null(args$output_file)) {
-    stop("Missing required arguments for top_freq_plot.")
-  }
-  if (!file.exists(args$deseq2_results_file)) {
-    stop("DESeq2 results file does not exist.")
-  }
-  deseq2_results <- readRDS(args$deseq2_results_file)
-  compute_top_freq_plot(
-    deseq2_results = deseq2_results,
-    n = args$n,
-    class_variable = args$class_variable,
-    group1 = args$group1,
-    group2 = args$group2,
-    output_file = args$output_file
-  )
-} else if (method == "top_sign_plot") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(gtools)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  if (is.null(args$deseq2_results_file) || is.null(args$n) ||
-      is.null(args$class_variable) || is.null(args$group1) ||
-      is.null(args$group2) || is.null(args$output_file)) {
-    stop("Missing required arguments for top_sign_plot.")
-  }
-  if (!file.exists(args$deseq2_results_file)) {
-    stop("DESeq2 results file does not exist.")
-  }
-  deseq2_results <- readRDS(args$deseq2_results_file)
-  compute_top_sign_plot(
-    deseq2_results = deseq2_results,
-    n = args$n,
-    class_variable = args$class_variable,
-    group1 = args$group1,
-    group2 = args$group2,
-    output_file = args$output_file
-  )
-} else if (method == "top_fc_plot") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(gtools)))
-  suppressWarnings(suppressPackageStartupMessages(library(phyloseq)))
-  if (is.null(args$deseq2_results_file) || is.null(args$n) ||
-      is.null(args$class_variable) || is.null(args$group1) ||
-      is.null(args$group2) || is.null(args$output_file)) {
-    stop("Missing required arguments for top_fc_plot.")
-  }
-  if (!file.exists(args$deseq2_results_file)) {
-    stop("DESeq2 results file does not exist.")
-  }
-  deseq2_results <- readRDS(args$deseq2_results_file)
-  compute_top_fc_plot(
-    deseq2_results = deseq2_results,
-    n = args$n,
-    class_variable = args$class_variable,
-    group1 = args$group1,
-    group2 = args$group2,
-    output_file = args$output_file
-  )
-} else if (method == "stacked_abundance_barplot") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggplot2)))
-  suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
-  suppressWarnings(suppressPackageStartupMessages(library(ggstatsplot)))
-  if (is.null(args$asv_file) || is.null(args$taxonomy_file) ||
-      is.null(args$metadata_file) || is.null(args$taxonomy_level) ||
-      is.null(args$class_variable) || is.null(args$output_file)) {
-    stop("Missing required arguments for stacked_abundance_barplot.")
-  }
-  if (!file.exists(args$asv_file)) {
-    stop("ASV file does not exist.")
-  }
-  if (!file.exists(args$taxonomy_file)) {
-    stop("Taxonomy file does not exist.")
-  }
-  if (!file.exists(args$metadata_file)) {
-    stop("Metadata file does not exist.")
-  }
-  compute_stacked_abundance_barplot(
-    asv_file = args$asv_file,
-    taxonomy_file = args$taxonomy_file,
-    metadata_file = args$metadata_file,
-    taxonomy_level = args$taxonomy_level,
-    class_variable = args$class_variable,
-    output_file = args$output_file,
-    hide_small = ifelse(is.null(args$hide_small), FALSE, args$hide_small),
-    rel_abund_file = args$rel_abund_file
-  )
-} else if (method == "abundance_pie_plot") {
-  suppressWarnings(suppressPackageStartupMessages(library(ggpubr)))
-  suppressWarnings(suppressPackageStartupMessages(library(RColorBrewer)))
-  if (is.null(args$asv_file) || is.null(args$taxonomy_file) ||
-      is.null(args$metadata_file) || is.null(args$taxonomy_level) ||
-      is.null(args$class_variable) || is.null(args$output_file)) {
-    stop("Missing required arguments for abundance_pie_plot.")
-  }
-  if (!file.exists(args$asv_file)) {
-    stop("ASV file does not exist.")
-  }
-  if (!file.exists(args$taxonomy_file)) {
-    stop("Taxonomy file does not exist.")
-  }
-  if (!file.exists(args$metadata_file)) {
-    stop("Metadata file does not exist.")
-  }
-  compute_abundance_pie_plot(
-    asv_file = args$asv_file,
-    taxonomy_file = args$taxonomy_file,
-    metadata_file = args$metadata_file,
-    taxonomy_level = args$taxonomy_level,
-    class_variable = args$class_variable,
-    output_file = args$output_file,
-    rel_abund_file = args$rel_abund_file
-  )
-} else {
-  stop(paste("Unknown method:", method))
+#' Create plot of most significant features
+#' @param deseq2_results DESeq2 results object
+#' @param n Number of top features to show
+#' @param class_variable Grouping variable
+#' @param group1 First group
+#' @param group2 Second group
+#' @param output_file Output plot file
+create_top_significance_plot <- function(deseq2_results, n, class_variable,
+                                         group1, group2, output_file) {
+  load_packages(c("ggplot2", "gtools"))
+
+  res <- deseq2_results$all
+  res$OTU.NAME <- res$OTU.ID
+  res$OTU.ID <- rownames(res)
+
+  # Sort by p-value and take top n
+  res <- res[order(res$pvalue, decreasing = FALSE), ]
+  n <- min(n, nrow(res))
+  res <- res[seq_len(n), ]
+  res$pvalue_sign <- gtools::stars.pval(res$pvalue)
+
+  # Create plot
+  p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
+    geom_col(aes(fill = pvalue), color = "black") +
+    geom_text(aes(label = pvalue_sign), size = 3) +
+    theme_minimal() +
+    labs(
+      x = "Log2 Fold Change",
+      y = "",
+      fill = "P-value"
+    ) +
+    theme(legend.position = "bottom")
+
+  save_plot(p, output_file)
 }
-quit(save = "no")
+
+#' Create plot of features with highest fold changes
+#' @param deseq2_results DESeq2 results object
+#' @param n Number of top features to show
+#' @param class_variable Grouping variable
+#' @param group1 First group
+#' @param group2 Second group
+#' @param output_file Output plot file
+create_top_foldchange_plot <- function(deseq2_results, n, class_variable,
+                                       group1, group2, output_file) {
+  load_packages(c("ggplot2", "gtools"))
+
+  res <- deseq2_results$all
+  res$OTU.NAME <- res$OTU.ID
+  res$OTU.ID <- rownames(res)
+
+  # Filter non-zero fold changes and sort by absolute value
+  res <- res[res$log2FoldChange != 0, ]
+  res <- res[order(abs(res$log2FoldChange), decreasing = TRUE), ]
+
+  n <- min(n, nrow(res))
+  res <- res[seq_len(n), ]
+  res$pvalue_sign <- gtools::stars.pval(res$pvalue)
+
+  # Create plot
+  p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
+    geom_col(aes(fill = pvalue), color = "black") +
+    geom_text(aes(label = pvalue_sign), size = 3) +
+    theme_minimal() +
+    labs(
+      x = "Log2 Fold Change",
+      y = "",
+      fill = "P-value"
+    ) +
+    theme(legend.position = "bottom")
+
+  save_plot(p, output_file)
+}
+
+# =============================================================================
+# MAIN SCRIPT EXECUTION
+# =============================================================================
+
+# Parse command line arguments
+if (!interactive()) {
+  load_packages("optparse")
+
+  option_list <- list(
+    make_option("--method",
+      type = "character",
+      help = "Analysis method to run"
+    ),
+    make_option("--alpha_diversity_file",
+      type = "character",
+      help = "Alpha diversity file"
+    ),
+    make_option("--beta_diversity_file",
+      type = "character",
+      help = "Beta diversity file"
+    ),
+    make_option("--metadata_file",
+      type = "character",
+      help = "Metadata file"
+    ),
+    make_option("--class_variable",
+      type = "character",
+      help = "Class variable for grouping"
+    ),
+    make_option("--color_var",
+      type = "character",
+      help = "Color variable for beta diversity"
+    ),
+    make_option("--comparisons",
+      type = "character",
+      help = "Comparisons for alpha diversity (format: 'A,B;C,D')"
+    ),
+    make_option("--output_file",
+      type = "character",
+      help = "Output file path"
+    ),
+    make_option("--asv_file",
+      type = "character",
+      help = "ASV table file"
+    ),
+    make_option("--taxonomy_file",
+      type = "character",
+      help = "Taxonomy file"
+    ),
+    make_option("--taxonomy_level",
+      type = "integer",
+      help = "Taxonomy level (1-7)"
+    ),
+    make_option("--group1",
+      type = "character",
+      help = "First group for comparison"
+    ),
+    make_option("--group2",
+      type = "character",
+      help = "Second group for comparison"
+    ),
+    make_option("--pv_threshold",
+      type = "double",
+      help = "P-value threshold"
+    ),
+    make_option("--fdr_threshold",
+      type = "double",
+      help = "FDR threshold"
+    ),
+    make_option("--output_prefix",
+      type = "character",
+      help = "Output prefix for differential abundance"
+    ),
+    make_option("--deseq2_results_file",
+      type = "character",
+      help = "RDS file from DESeq2 analysis"
+    ),
+    make_option("--n",
+      type = "integer",
+      help = "Number of top features to plot"
+    ),
+    make_option("--hide_small",
+      type = "logical",
+      default = FALSE,
+      help = "Hide small abundances (default: FALSE)"
+    ),
+    make_option("--rel_abund_file",
+      type = "character",
+      help = "Output file for relative abundance table"
+    )
+  )
+
+  parser <- OptionParser(option_list = option_list)
+  args <- parse_args(parser)
+
+  # Execute based on method
+  method <- args$method
+  if (is.null(method)) {
+    stop("--method is required. Use --help for available options.")
+  }
+
+  switch(method,
+    "alpha_diversity" = {
+      required_args <- c(
+        "alpha_diversity_file", "metadata_file",
+        "class_variable", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for alpha_diversity method")
+      }
+
+      comparisons <- NULL
+      if (!is.null(args$comparisons) && nchar(args$comparisons) > 0) {
+        comparisons <- strsplit(args$comparisons, ";")[[1]]
+        comparisons <- lapply(comparisons, function(x) unlist(strsplit(x, ",")))
+      }
+
+      alpha_diversity_plot(
+        diversity_file = args$alpha_diversity_file,
+        metadata_file = args$metadata_file,
+        class_variable = args$class_variable,
+        comparisons = comparisons,
+        output_file = args$output_file
+      )
+    },
+    "beta_diversity" = {
+      required_args <- c(
+        "beta_diversity_file", "metadata_file",
+        "color_var", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for beta_diversity method")
+      }
+
+      beta_diversity_plot(
+        diversity_file = args$beta_diversity_file,
+        metadata_file = args$metadata_file,
+        color_var = args$color_var,
+        output_file = args$output_file
+      )
+    },
+    "differential_abundance" = {
+      required_args <- c(
+        "asv_file", "taxonomy_file", "metadata_file",
+        "taxonomy_level", "class_variable", "group1",
+        "group2", "pv_threshold", "fdr_threshold",
+        "output_prefix"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for differential_abundance method")
+      }
+
+      run_deseq2_analysis(
+        asv_file = args$asv_file,
+        taxonomy_file = args$taxonomy_file,
+        metadata_file = args$metadata_file,
+        taxonomy_level = args$taxonomy_level,
+        class_variable = args$class_variable,
+        group1 = args$group1,
+        group2 = args$group2,
+        pv_threshold = args$pv_threshold,
+        fdr_threshold = args$fdr_threshold,
+        output_prefix = args$output_prefix
+      )
+    },
+    "picrust_functional" = {
+      required_args <- c(
+        "asv_file", "metadata_file", "class_variable",
+        "group1", "group2", "pv_threshold", "fdr_threshold",
+        "output_prefix"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for picrust_functional method")
+      }
+
+      run_picrust_analysis(
+        asv_file = args$asv_file,
+        metadata_file = args$metadata_file,
+        class_variable = args$class_variable,
+        group1 = args$group1,
+        group2 = args$group2,
+        pv_threshold = args$pv_threshold,
+        fdr_threshold = args$fdr_threshold,
+        output_prefix = args$output_prefix
+      )
+    },
+    "top_freq_plot" = {
+      required_args <- c(
+        "deseq2_results_file", "n", "class_variable",
+        "group1", "group2", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for top_freq_plot method")
+      }
+
+      validate_file(args$deseq2_results_file, "DESeq2 results file")
+      deseq2_results <- readRDS(args$deseq2_results_file)
+
+      create_top_frequency_plot(
+        deseq2_results = deseq2_results,
+        n = args$n,
+        class_variable = args$class_variable,
+        group1 = args$group1,
+        group2 = args$group2,
+        output_file = args$output_file
+      )
+    },
+    "top_sign_plot" = {
+      required_args <- c(
+        "deseq2_results_file", "n", "class_variable",
+        "group1", "group2", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for top_sign_plot method")
+      }
+
+      validate_file(args$deseq2_results_file, "DESeq2 results file")
+      deseq2_results <- readRDS(args$deseq2_results_file)
+
+      create_top_significance_plot(
+        deseq2_results = deseq2_results,
+        n = args$n,
+        class_variable = args$class_variable,
+        group1 = args$group1,
+        group2 = args$group2,
+        output_file = args$output_file
+      )
+    },
+    "top_fc_plot" = {
+      required_args <- c(
+        "deseq2_results_file", "n", "class_variable",
+        "group1", "group2", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for top_fc_plot method")
+      }
+
+      validate_file(args$deseq2_results_file, "DESeq2 results file")
+      deseq2_results <- readRDS(args$deseq2_results_file)
+
+      create_top_foldchange_plot(
+        deseq2_results = deseq2_results,
+        n = args$n,
+        class_variable = args$class_variable,
+        group1 = args$group1,
+        group2 = args$group2,
+        output_file = args$output_file
+      )
+    },
+    "stacked_abundance_barplot" = {
+      required_args <- c(
+        "asv_file", "taxonomy_file", "metadata_file",
+        "taxonomy_level", "class_variable", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for stacked_abundance_barplot method")
+      }
+
+      create_stacked_abundance_plot(
+        asv_file = args$asv_file,
+        taxonomy_file = args$taxonomy_file,
+        metadata_file = args$metadata_file,
+        taxonomy_level = args$taxonomy_level,
+        class_variable = args$class_variable,
+        output_file = args$output_file,
+        hide_small = ifelse(is.null(args$hide_small), FALSE, args$hide_small),
+        rel_abund_file = args$rel_abund_file
+      )
+    },
+    "abundance_pie_plot" = {
+      required_args <- c(
+        "asv_file", "taxonomy_file", "metadata_file",
+        "taxonomy_level", "class_variable", "output_file"
+      )
+      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+        stop("Missing required arguments for abundance_pie_plot method")
+      }
+
+      create_abundance_pie_plot(
+        asv_file = args$asv_file,
+        taxonomy_file = args$taxonomy_file,
+        metadata_file = args$metadata_file,
+        taxonomy_level = args$taxonomy_level,
+        class_variable = args$class_variable,
+        output_file = args$output_file,
+        rel_abund_file = args$rel_abund_file
+      )
+    },
+    {
+      stop(paste("Unknown method:", method))
+    }
+  )
+
+  quit(save = "no")
+}
