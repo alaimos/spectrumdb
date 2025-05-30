@@ -4,30 +4,13 @@ declare(strict_types=1);
 
 namespace App\Builders;
 
+use App\Enums\SearchOperator;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 final class DatasetAdvancedSearchBuilder
 {
-    public const array STRING_OPERATORS = [
-        'equals_string' => 'Equals',
-        'not_equals_string' => 'Not Equals',
-        'contains' => 'Contains',
-        'not_contains' => 'Not Contains',
-        'starts_with' => 'Starts With',
-        'ends_with' => 'Ends With',
-    ];
-
-    public const array NUMERIC_OPERATORS = [
-        'equals' => 'Equals',
-        'not_equals' => 'Not Equals',
-        'less_than' => 'Less Than',
-        'greater_than' => 'Greater Than',
-        'less_than_equal' => 'Less Than or Equal',
-        'greater_than_equal' => 'Greater Than or Equal',
-    ];
-
     public const array SAMPLE_FIXED_FIELDS = [
         'variety' => 'Variety',
         'plant_stage' => 'Plant Stage',
@@ -56,6 +39,16 @@ final class DatasetAdvancedSearchBuilder
     {
         $this->query = $query;
         $this->applyAdvancedSearchConditions();
+    }
+
+    public static function getStringOperators(): array
+    {
+        return SearchOperator::getStringOperatorsForSelect();
+    }
+
+    public static function getNumericOperators(): array
+    {
+        return SearchOperator::getNumericOperatorsForSelect();
     }
 
     private function applyAdvancedSearchConditions(): void
@@ -88,7 +81,7 @@ final class DatasetAdvancedSearchBuilder
                 fn (Builder $query): Builder => $this->applyOperatorCondition(
                     query: $query,
                     field: $condition['key'],
-                    operator: $condition['operator'],
+                    operator: SearchOperator::from($condition['operator']),
                     value: $condition['value']
                 )
             );
@@ -96,7 +89,7 @@ final class DatasetAdvancedSearchBuilder
             $query->whereHas(
                 $condition['type'] === 'dataset' ? 'metadata' : 'samples.metadata',
                 fn (Builder $query) => $this
-                    ->applyOperatorCondition($query, 'value', $condition['operator'], $condition['value'])
+                    ->applyOperatorCondition($query, 'value', SearchOperator::from($condition['operator']), $condition['value'])
                     ->where('key', $condition['key'])
             );
         }
@@ -113,25 +106,25 @@ final class DatasetAdvancedSearchBuilder
      * @param  Builder<\App\Models\DatasetMetadata|\App\Models\SampleMetadata>  $query
      * @return Builder<\App\Models\DatasetMetadata|\App\Models\SampleMetadata>
      */
-    private function applyOperatorCondition(Builder $query, string $field, string $operator, $value): Builder
+    private function applyOperatorCondition(Builder $query, string $field, SearchOperator $operator, $value): Builder
     {
-        if (array_key_exists($operator, self::NUMERIC_OPERATORS)) {
+        if ($operator->isNumericOperator()) {
             $preparedField = $this->prepareFieldForNumericComparison($field);
         } else {
             $preparedField = $field;
         }
+
         match ($operator) {
-            'equals', 'equals_string' => $query->where($preparedField, $value),
-            'not_equals', 'not_equals_string' => $query->where($preparedField, '!=', $value),
-            'contains' => $query->where($preparedField, 'like', "%{$value}%"),
-            'not_contains' => $query->where($preparedField, 'not like', "%{$value}%"),
-            'starts_with' => $query->where($preparedField, 'like', "{$value}%"),
-            'ends_with' => $query->where($preparedField, 'like', "%{$value}"),
-            'less_than' => $query->where($preparedField, '<', $value),
-            'greater_than' => $query->where($preparedField, '>', $value),
-            'less_than_equal' => $query->where($preparedField, '<=', $value),
-            'greater_than_equal' => $query->where($preparedField, '>=', $value),
-            default => $query,
+            SearchOperator::EQUALS, SearchOperator::EQUALS_STRING => $query->where($preparedField, $value),
+            SearchOperator::NOT_EQUALS, SearchOperator::NOT_EQUALS_STRING => $query->where($preparedField, '!=', $value),
+            SearchOperator::CONTAINS => $query->where($preparedField, 'like', "%{$value}%"),
+            SearchOperator::NOT_CONTAINS => $query->where($preparedField, 'not like', "%{$value}%"),
+            SearchOperator::STARTS_WITH => $query->where($preparedField, 'like', "{$value}%"),
+            SearchOperator::ENDS_WITH => $query->where($preparedField, 'like', "%{$value}"),
+            SearchOperator::LESS_THAN => $query->where($preparedField, '<', $value),
+            SearchOperator::GREATER_THAN => $query->where($preparedField, '>', $value),
+            SearchOperator::LESS_THAN_EQUAL => $query->where($preparedField, '<=', $value),
+            SearchOperator::GREATER_THAN_EQUAL => $query->where($preparedField, '>=', $value),
         };
 
         return $query;

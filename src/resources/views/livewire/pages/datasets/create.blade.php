@@ -364,8 +364,10 @@
 
                         {{-- Metadata Preview --}}
                         @if (count($metadataPreview))
-                            <flux:fieldset>
-                                <flux:legend>Data Preview</flux:legend>
+                            <div class="flex flex-col w-full overflow-hidden">
+                                <flux:text variant="strong" class="mb-2">
+                                    Metadata Preview
+                                </flux:text>
                                 <flux:table>
                                     <flux:table.columns>
                                         @foreach ($metadataColumns as $column)
@@ -395,7 +397,7 @@
                                         @endforeach
                                     </flux:table.rows>
                                 </flux:table>
-                            </flux:fieldset>
+                            </div>
                         @endif
                     </div>
                 @endif

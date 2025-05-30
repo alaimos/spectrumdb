@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property \App\DataObjects\DatasetFilesDataObject $files
@@ -145,6 +146,11 @@ final class Dataset extends Model
             PicrustTables::KO => $this->files->picrust->ko,
             PicrustTables::PATHWAYS => $this->files->picrust->pathways,
         };
+    }
+
+    public function deleteDatasetDirectory(): bool
+    {
+        return Storage::deleteDirectory("datasets/{$this->id}");
     }
 
     /**

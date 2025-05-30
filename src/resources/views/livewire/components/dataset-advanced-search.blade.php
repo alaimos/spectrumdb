@@ -1,3 +1,4 @@
+@use(\App\Enums\SearchOperator)
 <div class="space-y-6">
     <div>
         <flux:heading size="lg">Advanced Search</flux:heading>
@@ -59,12 +60,12 @@
                                 label-sr-only="Operator"
                             >
                                 <optgroup label="String">
-                                    @foreach(\App\Builders\DatasetAdvancedSearchBuilder::STRING_OPERATORS as $value => $label)
+                                    @foreach(SearchOperator::getStringOperatorsForSelect() as $value => $label)
                                         <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                     @endforeach
                                 </optgroup>
                                 <optgroup label="Numeric">
-                                    @foreach(\App\Builders\DatasetAdvancedSearchBuilder::NUMERIC_OPERATORS as $value => $label)
+                                    @foreach(SearchOperator::getNumericOperatorsForSelect() as $value => $label)
                                         <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                     @endforeach
                                 </optgroup>

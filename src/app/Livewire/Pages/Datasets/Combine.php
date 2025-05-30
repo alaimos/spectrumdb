@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Livewire\Pages\Datasets;
 
 use App\Builders\DatasetAdvancedSearchBuilder;
+use App\Enums\SearchOperator;
 use App\Models\Dataset;
 use App\Models\SampleMetadata;
 use Flux\Flux;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -21,25 +23,20 @@ final class Combine extends Component
     /** @var array<int, array{selectAll: bool, conditions: array, connectors: array}> */
     public array $datasetSampleCriteria = [];
 
-    #[Validate('required|min:3|max:255')]
+    #[Validate()]
     public string $name = '';
 
-    #[Validate('required|min:3|max:1000')]
+    #[Validate()]
     public string $description = '';
 
     /** @var array<int, array{key: string, value: string}> */
-    #[Validate('array')]
+    #[Validate()]
     public array $combinedDatasetMetadata = [];
 
     /** @var array<int, array{dataset_id: int, key: string, value: string}> */
     public array $metadataToCopy = [];
 
     public bool $showMetadataSection = false;
-
-    public function mount(): void
-    {
-        // Initialize with empty state
-    }
 
     public function addDataset(): void
     {
@@ -211,11 +208,55 @@ final class Combine extends Component
     protected function rules(): array
     {
         return [
-            'name' => 'required|min:3|max:255',
-            'description' => 'required|min:3|max:1000',
-            'selectedDatasetIds.*' => 'required|integer|exists:datasets,id',
-            'combinedDatasetMetadata.*.key' => 'nullable|string|max:255',
-            'combinedDatasetMetadata.*.value' => 'nullable',
+            // Basic dataset information
+            'name' => ['required', 'string', 'min:3', 'max:255'],
+            'description' => ['required', 'string', 'min:3', 'max:1000'],
+
+            // Selected datasets validation
+            'selectedDatasetIds' => ['required', 'array', 'min:2'],
+            'selectedDatasetIds.*' => ['required', 'integer', 'exists:datasets,id'],
+
+            // Dataset sample criteria validation
+            'datasetSampleCriteria' => ['array'],
+            'datasetSampleCriteria.*.selectAll' => ['required', 'boolean'],
+            'datasetSampleCriteria.*.conditions' => ['array'],
+            'datasetSampleCriteria.*.conditions.*.key' => ['required_if:datasetSampleCriteria.*.selectAll,false', 'string', 'max:255'],
+            'datasetSampleCriteria.*.conditions.*.operator' => [
+                'required_if:datasetSampleCriteria.*.selectAll,false',
+                'string',
+                Rule::enum(SearchOperator::class),
+            ],
+            'datasetSampleCriteria.*.conditions.*.value' => ['required_if:datasetSampleCriteria.*.selectAll,false', 'string', 'max:1000'],
+            'datasetSampleCriteria.*.connectors' => ['array'],
+            'datasetSampleCriteria.*.connectors.*' => ['string', 'in:AND,OR,NOT'],
+
+            // Combined dataset metadata validation
+            'combinedDatasetMetadata' => ['array'],
+            'combinedDatasetMetadata.*.key' => ['required_with:combinedDatasetMetadata.*.value', 'string', 'max:255', 'not_regex:/^original_.+_filename$/'],
+            'combinedDatasetMetadata.*.value' => ['required_with:combinedDatasetMetadata.*.key', 'string', 'max:2000'],
+
+            // Metadata to copy validation
+            'metadataToCopy' => ['array'],
+            'metadataToCopy.*.dataset_id' => ['required', 'integer', 'exists:datasets,id'],
+            'metadataToCopy.*.key' => ['required', 'string', 'max:255'],
+            'metadataToCopy.*.value' => ['required', 'string', 'max:2000'],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'selectedDatasetIds.min' => 'Please select at least 2 datasets to combine.',
+            'selectedDatasetIds.*.exists' => 'The selected dataset does not exist or you do not have access to it.',
+            'datasetSampleCriteria.*.conditions.*.key.required_if' => 'Please select a field for the sample condition.',
+            'datasetSampleCriteria.*.conditions.*.operator.required_if' => 'Please select an operator for the sample condition.',
+            'datasetSampleCriteria.*.conditions.*.operator.in' => 'The selected operator is not valid.',
+            'datasetSampleCriteria.*.conditions.*.value.required_if' => 'Please enter a value for the sample condition.',
+            'datasetSampleCriteria.*.connectors.*.in' => 'The connector must be AND, OR, or NOT.',
+            'combinedDatasetMetadata.*.key.required_with' => 'Please enter a metadata key.',
+            'combinedDatasetMetadata.*.key.not_regex' => 'This metadata key is reserved and cannot be used.',
+            'combinedDatasetMetadata.*.value.required_with' => 'Please enter a metadata value.',
+            'metadataToCopy.*.dataset_id.exists' => 'The selected dataset for metadata copy does not exist.',
         ];
     }
 

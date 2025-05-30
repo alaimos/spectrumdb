@@ -6,7 +6,7 @@ namespace App\Livewire\Pages\Datasets;
 
 use App\Builders\DatasetAdvancedSearchBuilder;
 use App\Models\Dataset;
-use Flux;
+use Flux\Flux;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,12 +85,18 @@ final class Index extends Component
         $this->authorize('delete', $dataset);
         $dataset->load('samples');
         $dataset->samples->each->delete();
-        $dataset->delete();
-
-        Flux::toast(
-            text: 'Dataset deleted successfully',
-            variant: 'success'
-        );
+        if ($dataset->deleteDatasetDirectory()) {
+            $dataset->delete();
+            Flux::toast(
+                text: 'Dataset deleted successfully',
+                variant: 'success'
+            );
+        } else {
+            Flux::toast(
+                text: 'Failed to delete dataset directory (please contact the administrator)',
+                variant: 'error'
+            );
+        }
     }
 
     public function showPermissions(Dataset $dataset): void
@@ -102,5 +108,25 @@ final class Index extends Component
     public function render(): View
     {
         return view('livewire.pages.datasets.index');
+    }
+
+    public function getListeners(): array
+    {
+        $userId = auth()->id();
+
+        return [
+            "echo-private:refresh.{$userId},.refresh.datasets" => 'refresh',
+        ];
+    }
+
+    public function refresh(): void
+    {
+        $this->redirectRoute(
+            'datasets.index',
+            [
+                'refresh' => now()->timestamp,
+            ],
+            navigate: true
+        );
     }
 }

@@ -1,3 +1,4 @@
+@use(\App\Enums\SearchOperator)
 <div>
     <x-page-heading-split title="Combine Datasets"
                           subtitle="You can use this tool to combine multiple dataset into a new dataset. You can also filter samples from each dataset based on specific criteria.">
@@ -30,7 +31,7 @@
                                     <flux:select wire:model.live="selectedDatasetIds.{{ $index }}"
                                                  label="Select a Dataset"
                                                  placeholder="Select a dataset..."
-                                                 size="sm">
+                                                 variant="listbox" size="sm">
                                         @foreach ($this->availableDatasets as $dataset)
                                             <flux:select.option value="{{ $dataset->id }}">
                                                 {{ $dataset->name }}
@@ -105,19 +106,16 @@
 
                                                                     {{-- Operator --}}
                                                                     <div class="col-span-3">
-                                                                        <flux:select
-                                                                            wire:model="datasetSampleCriteria.{{ $index }}.conditions.{{ $conditionIndex }}.operator"
-                                                                            size="sm">
+                                                                        <flux:select wire:model="datasetSampleCriteria.{{ $index }}.conditions.{{ $conditionIndex }}.operator"
+                                                                                   size="sm">
                                                                             <optgroup label="String">
-                                                                                @foreach(\App\Builders\DatasetAdvancedSearchBuilder::STRING_OPERATORS as $value => $label)
-                                                                                    <flux:select.option
-                                                                                        value="{{ $value }}">{{ $label }}</flux:select.option>
+                                                                                @foreach(SearchOperator::getStringOperatorsForSelect() as $value => $label)
+                                                                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                                                                 @endforeach
                                                                             </optgroup>
                                                                             <optgroup label="Numeric">
-                                                                                @foreach(\App\Builders\DatasetAdvancedSearchBuilder::NUMERIC_OPERATORS as $value => $label)
-                                                                                    <flux:select.option
-                                                                                        value="{{ $value }}">{{ $label }}</flux:select.option>
+                                                                                @foreach(SearchOperator::getNumericOperatorsForSelect() as $value => $label)
+                                                                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                                                                 @endforeach
                                                                             </optgroup>
                                                                         </flux:select>
