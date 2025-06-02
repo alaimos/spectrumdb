@@ -16,13 +16,6 @@ return new class extends Migration
                 $table->id();
                 $table->foreignId('dataset_id')->constrained()->cascadeOnDelete();
                 $table->string('sample_code');
-                $table->string('variety');
-                $table->string('plant_stage');
-                $table->integer('biological_replica');
-                $table->text('sample_conditions');
-                $table->string('plant_section');
-                $table->date('sampling_date');
-                $table->text('location');
                 $table->timestamps();
             }
         );

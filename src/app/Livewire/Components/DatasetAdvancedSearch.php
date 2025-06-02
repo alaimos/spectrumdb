@@ -58,11 +58,7 @@ final class DatasetAdvancedSearch extends Component
     #[Computed]
     public function sampleMetadataKeys(): Collection
     {
-        // Combine fixed fields with dynamic metadata
-        return collect(DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS)
-            ->keys()
-            ->concat(SampleMetadata::distinct()->pluck('key'))
-            ->unique();
+        return SampleMetadata::distinct()->pluck('key')->unique();
     }
 
     public function getMetadataKeysForType(string $type): Collection
@@ -76,10 +72,6 @@ final class DatasetAdvancedSearch extends Component
 
     public function getFieldLabel(string $type, string $key): Stringable
     {
-        if ($type === 'sample' && array_key_exists($key, DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS)) {
-            return DatasetAdvancedSearchBuilder::SAMPLE_FIXED_FIELDS[$key];
-        }
-
         return str($key)->replace('_', ' ')->title();
     }
 

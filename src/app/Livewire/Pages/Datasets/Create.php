@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets;
 
-use App\Jobs\ProcessDatasetJob;
+use App\Jobs\CombineDatasetsJob;
 use Exception;
 use Flux;
 use Illuminate\Contracts\View\View;
@@ -105,15 +105,7 @@ final class Create extends Component
 
     // Available sample fields for mapping
     /** @var array<int, string> */
-    public array $availableSampleFields = [
-        'variety',
-        'plant_stage',
-        'biological_replica',
-        'sample_conditions',
-        'plant_section',
-        'sampling_date',
-        'location',
-    ];
+    public array $availableSampleFields = [];
 
     public function mount(): void {}
 
@@ -230,7 +222,7 @@ final class Create extends Component
             }
 
             // Dispatch job to handle all database operations
-            ProcessDatasetJob::dispatch(
+            CombineDatasetsJob::dispatch(
                 userId: auth()->id(),
                 name: $this->name,
                 description: $this->description,

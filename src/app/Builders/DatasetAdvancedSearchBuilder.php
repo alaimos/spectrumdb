@@ -11,15 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 final class DatasetAdvancedSearchBuilder
 {
-    public const array SAMPLE_FIXED_FIELDS = [
-        'variety' => 'Variety',
-        'plant_stage' => 'Plant Stage',
-        'biological_replica' => 'Biological Replica',
-        'sample_conditions' => 'Sample Conditions',
-        'plant_section' => 'Plant Section',
-        'sampling_date' => 'Sampling Date',
-        'location' => 'Location',
-    ];
+    public const array SAMPLE_FIXED_FIELDS = [];
 
     /**
      * @var Builder<\App\Models\Dataset>
@@ -75,24 +67,12 @@ final class DatasetAdvancedSearchBuilder
      */
     private function applyMetadataCondition(Builder $query, array $condition): void
     {
-        if ($condition['type'] === 'sample' && array_key_exists($condition['key'], self::SAMPLE_FIXED_FIELDS)) {
-            $query->whereHas(
-                'samples',
-                fn (Builder $query): Builder => $this->applyOperatorCondition(
-                    query: $query,
-                    field: $condition['key'],
-                    operator: SearchOperator::from($condition['operator']),
-                    value: $condition['value']
-                )
-            );
-        } else {
-            $query->whereHas(
-                $condition['type'] === 'dataset' ? 'metadata' : 'samples.metadata',
-                fn (Builder $query) => $this
-                    ->applyOperatorCondition($query, 'value', SearchOperator::from($condition['operator']), $condition['value'])
-                    ->where('key', $condition['key'])
-            );
-        }
+        $query->whereHas(
+            $condition['type'] === 'dataset' ? 'metadata' : 'samples.metadata',
+            fn (Builder $query) => $this
+                ->applyOperatorCondition($query, 'value', SearchOperator::from($condition['operator']), $condition['value'])
+                ->where('key', $condition['key'])
+        );
     }
 
     private function prepareFieldForNumericComparison(string $field): Expression

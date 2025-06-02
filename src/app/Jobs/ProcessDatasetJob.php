@@ -191,12 +191,10 @@ final class ProcessDatasetJob implements ShouldQueue
             $sampleCode = $data[$this->sampleCodeColumn];
 
             // Create sample record
-            $sample = Sample::create(
-                [
-                    'dataset_id' => $dataset->id,
-                    'sample_code' => $sampleCode,
-                ] + $this->mapSampleFields($data)
-            );
+            $sample = Sample::create([
+                'dataset_id' => $dataset->id,
+                'sample_code' => $sampleCode,
+            ]);
 
             // Store custom metadata
             $metadataRecords = [];
@@ -221,21 +219,9 @@ final class ProcessDatasetJob implements ShouldQueue
 
     private function mapSampleFields(array $data): array
     {
-        $mappedFields = [];
-        foreach ($this->columnMapping as $column => $field) {
-            if ($field !== 'custom' && $field !== 'exclude') {
-                $mappedFields[$field] = $data[$column];
-            }
-        }
-        $mappedFields['variety'] ??= '';
-        $mappedFields['plant_stage'] ??= '';
-        $mappedFields['biological_replica'] ??= 0;
-        $mappedFields['sample_conditions'] ??= '';
-        $mappedFields['plant_section'] ??= '';
-        $mappedFields['sampling_date'] ??= now();
-        $mappedFields['location'] ??= '';
-
-        return $mappedFields;
+        // Since we removed all predetermined fields, this method is no longer needed
+        // All fields should be handled as custom metadata
+        return [];
     }
 
     /**

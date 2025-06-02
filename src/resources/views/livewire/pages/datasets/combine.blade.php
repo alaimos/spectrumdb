@@ -95,10 +95,10 @@
                                                                             wire:model="datasetSampleCriteria.{{ $index }}.conditions.{{ $conditionIndex }}.key"
                                                                             size="sm" searchable
                                                                             placeholder="Select field...">
-                                                                            @foreach ($this->sampleMetadataKeys as $key)
+                                                                            @foreach ($this->getSampleMetadataKeys($index) as $meta)
                                                                                 <flux:select.option
-                                                                                    value="{{ $key }}">
-                                                                                    {{ $this->getFieldLabel($key) }}
+                                                                                    value="{{ $meta['key'] }}">
+                                                                                    {{ $meta['label'] }}
                                                                                 </flux:select.option>
                                                                             @endforeach
                                                                         </flux:select>
@@ -106,16 +106,19 @@
 
                                                                     {{-- Operator --}}
                                                                     <div class="col-span-3">
-                                                                        <flux:select wire:model="datasetSampleCriteria.{{ $index }}.conditions.{{ $conditionIndex }}.operator"
-                                                                                   size="sm">
+                                                                        <flux:select
+                                                                            wire:model="datasetSampleCriteria.{{ $index }}.conditions.{{ $conditionIndex }}.operator"
+                                                                            size="sm">
                                                                             <optgroup label="String">
                                                                                 @foreach(SearchOperator::getStringOperatorsForSelect() as $value => $label)
-                                                                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                                                                    <flux:select.option
+                                                                                        value="{{ $value }}">{{ $label }}</flux:select.option>
                                                                                 @endforeach
                                                                             </optgroup>
                                                                             <optgroup label="Numeric">
                                                                                 @foreach(SearchOperator::getNumericOperatorsForSelect() as $value => $label)
-                                                                                    <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
+                                                                                    <flux:select.option
+                                                                                        value="{{ $value }}">{{ $label }}</flux:select.option>
                                                                                 @endforeach
                                                                             </optgroup>
                                                                         </flux:select>
@@ -181,26 +184,26 @@
                                 <div class="space-y-4">
                                     <flux:subheading>Copy Metadata from Selected Datasets</flux:subheading>
 
-                                    @foreach ($this->selectedDatasets as $dataset)
-                                        @if ($dataset->metadata->count() > 0)
-                                            <div class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-                                                <flux:heading size="sm"
-                                                              class="mb-3">{{ $dataset->name }}</flux:heading>
-                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                    @foreach ($dataset->metadata as $metadata)
-                                                        <label class="flex items-center gap-2 cursor-pointer">
-                                                            <flux:checkbox
-                                                                :checked="$this->isMetadataSelected($dataset->id, $metadata->key)"
-                                                                wire:click="toggleMetadataCopy({{ $dataset->id }}, '{{ $metadata->key }}')"/>
-                                                            <span class="text-sm">
+                                    <flux:checkbox.group wire:model="metadataToCopy">
+                                        @foreach ($this->selectedDatasets as $dataset)
+                                            @if ($dataset->metadata->count() > 0)
+                                                <div class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
+                                                    <flux:heading size="sm"
+                                                                  class="mb-3">{{ $dataset->name }}</flux:heading>
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                        @foreach ($dataset->metadata as $metadata)
+                                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                                <flux:checkbox value="{{ $metadata->id }}"/>
+                                                                <span class="text-sm">
                                                                     <strong>{{ $metadata->key }}:</strong> {{ Str::limit($metadata->value, 30) }}
                                                                 </span>
-                                                        </label>
-                                                    @endforeach
+                                                            </label>
+                                                        @endforeach
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        @endif
-                                    @endforeach
+                                            @endif
+                                        @endforeach
+                                    </flux:checkbox.group>
                                 </div>
                             @endif
 

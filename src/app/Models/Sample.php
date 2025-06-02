@@ -17,17 +17,6 @@ final class Sample extends Model
     protected $fillable = [
         'dataset_id',
         'sample_code',
-        'variety',
-        'plant_stage',
-        'biological_replica',
-        'sample_conditions',
-        'plant_section',
-        'sampling_date',
-        'location',
-    ];
-
-    protected $casts = [
-        'sampling_date' => 'date',
     ];
 
     public function dataset(): BelongsTo
