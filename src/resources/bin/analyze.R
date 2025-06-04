@@ -947,196 +947,209 @@ if (!interactive()) {
   if (is.null(method)) {
     stop("--method is required. Use --help for available options.")
   }
-
-  switch(method,
-    "alpha_diversity" = {
-      required_args <- c(
-        "alpha_diversity_file", "metadata_file",
-        "class_variable", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for alpha_diversity method")
-      }
-
-      comparisons <- NULL
-      if (!is.null(args$comparisons) && nchar(args$comparisons) > 0) {
-        comparisons <- strsplit(args$comparisons, ";")[[1]]
-        comparisons <- lapply(comparisons, function(x) unlist(strsplit(x, ",")))
-      }
-
-      alpha_diversity_plot(
-        diversity_file = args$alpha_diversity_file,
-        metadata_file = args$metadata_file,
-        class_variable = args$class_variable,
-        comparisons = comparisons,
-        output_file = args$output_file
-      )
-    },
-    "beta_diversity" = {
-      required_args <- c(
-        "beta_diversity_file", "metadata_file",
-        "color_var", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for beta_diversity method")
-      }
-
-      beta_diversity_plot(
-        diversity_file = args$beta_diversity_file,
-        metadata_file = args$metadata_file,
-        color_var = args$color_var,
-        output_file = args$output_file
-      )
-    },
-    "differential_abundance" = {
-      required_args <- c(
-        "asv_file", "taxonomy_file", "metadata_file",
-        "taxonomy_level", "class_variable", "group1",
-        "group2", "pv_threshold", "fdr_threshold",
-        "output_prefix"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for differential_abundance method")
-      }
-
-      run_deseq2_analysis(
-        asv_file = args$asv_file,
-        taxonomy_file = args$taxonomy_file,
-        metadata_file = args$metadata_file,
-        taxonomy_level = args$taxonomy_level,
-        class_variable = args$class_variable,
-        group1 = args$group1,
-        group2 = args$group2,
-        pv_threshold = args$pv_threshold,
-        fdr_threshold = args$fdr_threshold,
-        output_prefix = args$output_prefix
-      )
-    },
-    "picrust_functional" = {
-      required_args <- c(
-        "asv_file", "metadata_file", "class_variable",
-        "group1", "group2", "pv_threshold", "fdr_threshold",
-        "output_prefix"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for picrust_functional method")
-      }
-
-      run_picrust_analysis(
-        asv_file = args$asv_file,
-        metadata_file = args$metadata_file,
-        class_variable = args$class_variable,
-        group1 = args$group1,
-        group2 = args$group2,
-        pv_threshold = args$pv_threshold,
-        fdr_threshold = args$fdr_threshold,
-        output_prefix = args$output_prefix
-      )
-    },
-    "top_freq_plot" = {
-      required_args <- c(
-        "deseq2_results_file", "n", "class_variable",
-        "group1", "group2", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for top_freq_plot method")
-      }
-
-      validate_file(args$deseq2_results_file, "DESeq2 results file")
-      deseq2_results <- readRDS(args$deseq2_results_file)
-
-      create_top_frequency_plot(
-        deseq2_results = deseq2_results,
-        n = args$n,
-        class_variable = args$class_variable,
-        group1 = args$group1,
-        group2 = args$group2,
-        output_file = args$output_file
-      )
-    },
-    "top_sign_plot" = {
-      required_args <- c(
-        "deseq2_results_file", "n", "class_variable",
-        "group1", "group2", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for top_sign_plot method")
-      }
-
-      validate_file(args$deseq2_results_file, "DESeq2 results file")
-      deseq2_results <- readRDS(args$deseq2_results_file)
-
-      create_top_significance_plot(
-        deseq2_results = deseq2_results,
-        n = args$n,
-        class_variable = args$class_variable,
-        group1 = args$group1,
-        group2 = args$group2,
-        output_file = args$output_file
-      )
-    },
-    "top_fc_plot" = {
-      required_args <- c(
-        "deseq2_results_file", "n", "class_variable",
-        "group1", "group2", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for top_fc_plot method")
-      }
-
-      validate_file(args$deseq2_results_file, "DESeq2 results file")
-      deseq2_results <- readRDS(args$deseq2_results_file)
-
-      create_top_foldchange_plot(
-        deseq2_results = deseq2_results,
-        n = args$n,
-        class_variable = args$class_variable,
-        group1 = args$group1,
-        group2 = args$group2,
-        output_file = args$output_file
-      )
-    },
-    "stacked_abundance_barplot" = {
-      required_args <- c(
-        "asv_file", "taxonomy_file", "metadata_file",
-        "taxonomy_level", "class_variable", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for stacked_abundance_barplot method")
-      }
-
-      create_stacked_abundance_plot(
-        asv_file = args$asv_file,
-        taxonomy_file = args$taxonomy_file,
-        metadata_file = args$metadata_file,
-        taxonomy_level = args$taxonomy_level,
-        class_variable = args$class_variable,
-        output_file = args$output_file,
-        hide_small = ifelse(is.null(args$hide_small), FALSE, args$hide_small),
-        rel_abund_file = args$rel_abund_file
-      )
-    },
-    "abundance_pie_plot" = {
-      required_args <- c(
-        "asv_file", "taxonomy_file", "metadata_file",
-        "taxonomy_level", "class_variable", "output_file"
-      )
-      if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
-        stop("Missing required arguments for abundance_pie_plot method")
-      }
-
-      create_abundance_pie_plot(
-        asv_file = args$asv_file,
-        taxonomy_file = args$taxonomy_file,
-        metadata_file = args$metadata_file,
-        taxonomy_level = args$taxonomy_level,
-        class_variable = args$class_variable,
-        output_file = args$output_file,
-        rel_abund_file = args$rel_abund_file
-      )
-    },
+  tryCatch(
     {
-      stop(paste("Unknown method:", method))
+      switch(method,
+        "alpha_diversity" = {
+          required_args <- c(
+            "alpha_diversity_file", "metadata_file",
+            "class_variable", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for alpha_diversity method")
+          }
+
+          comparisons <- NULL
+          if (!is.null(args$comparisons) && nchar(args$comparisons) > 0) {
+            comparisons <- strsplit(args$comparisons, ";")[[1]]
+            comparisons <- lapply(
+              comparisons,
+              function(x) unlist(strsplit(x, ","))
+            )
+          }
+
+          alpha_diversity_plot(
+            diversity_file = args$alpha_diversity_file,
+            metadata_file = args$metadata_file,
+            class_variable = args$class_variable,
+            comparisons = comparisons,
+            output_file = args$output_file
+          )
+        },
+        "beta_diversity" = {
+          required_args <- c(
+            "beta_diversity_file", "metadata_file",
+            "color_var", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for beta_diversity method")
+          }
+
+          beta_diversity_plot(
+            diversity_file = args$beta_diversity_file,
+            metadata_file = args$metadata_file,
+            color_var = args$color_var,
+            output_file = args$output_file
+          )
+        },
+        "differential_abundance" = {
+          required_args <- c(
+            "asv_file", "taxonomy_file", "metadata_file",
+            "taxonomy_level", "class_variable", "group1",
+            "group2", "pv_threshold", "fdr_threshold",
+            "output_prefix"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for differential_abundance method")
+          }
+
+          run_deseq2_analysis(
+            asv_file = args$asv_file,
+            taxonomy_file = args$taxonomy_file,
+            metadata_file = args$metadata_file,
+            taxonomy_level = args$taxonomy_level,
+            class_variable = args$class_variable,
+            group1 = args$group1,
+            group2 = args$group2,
+            pv_threshold = args$pv_threshold,
+            fdr_threshold = args$fdr_threshold,
+            output_prefix = args$output_prefix
+          )
+        },
+        "picrust_functional" = {
+          required_args <- c(
+            "asv_file", "metadata_file", "class_variable",
+            "group1", "group2", "pv_threshold", "fdr_threshold",
+            "output_prefix"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for picrust_functional method")
+          }
+
+          run_picrust_analysis(
+            asv_file = args$asv_file,
+            metadata_file = args$metadata_file,
+            class_variable = args$class_variable,
+            group1 = args$group1,
+            group2 = args$group2,
+            pv_threshold = args$pv_threshold,
+            fdr_threshold = args$fdr_threshold,
+            output_prefix = args$output_prefix
+          )
+        },
+        "top_freq_plot" = {
+          required_args <- c(
+            "deseq2_results_file", "n", "class_variable",
+            "group1", "group2", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for top_freq_plot method")
+          }
+
+          validate_file(args$deseq2_results_file, "DESeq2 results file")
+          deseq2_results <- readRDS(args$deseq2_results_file)
+
+          create_top_frequency_plot(
+            deseq2_results = deseq2_results,
+            n = args$n,
+            class_variable = args$class_variable,
+            group1 = args$group1,
+            group2 = args$group2,
+            output_file = args$output_file
+          )
+        },
+        "top_sign_plot" = {
+          required_args <- c(
+            "deseq2_results_file", "n", "class_variable",
+            "group1", "group2", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for top_sign_plot method")
+          }
+
+          validate_file(args$deseq2_results_file, "DESeq2 results file")
+          deseq2_results <- readRDS(args$deseq2_results_file)
+
+          create_top_significance_plot(
+            deseq2_results = deseq2_results,
+            n = args$n,
+            class_variable = args$class_variable,
+            group1 = args$group1,
+            group2 = args$group2,
+            output_file = args$output_file
+          )
+        },
+        "top_fc_plot" = {
+          required_args <- c(
+            "deseq2_results_file", "n", "class_variable",
+            "group1", "group2", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for top_fc_plot method")
+          }
+
+          validate_file(args$deseq2_results_file, "DESeq2 results file")
+          deseq2_results <- readRDS(args$deseq2_results_file)
+
+          create_top_foldchange_plot(
+            deseq2_results = deseq2_results,
+            n = args$n,
+            class_variable = args$class_variable,
+            group1 = args$group1,
+            group2 = args$group2,
+            output_file = args$output_file
+          )
+        },
+        "stacked_abundance_barplot" = {
+          required_args <- c(
+            "asv_file", "taxonomy_file", "metadata_file",
+            "taxonomy_level", "class_variable", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for stacked_abundance_barplot method")
+          }
+
+          create_stacked_abundance_plot(
+            asv_file = args$asv_file,
+            taxonomy_file = args$taxonomy_file,
+            metadata_file = args$metadata_file,
+            taxonomy_level = args$taxonomy_level,
+            class_variable = args$class_variable,
+            output_file = args$output_file,
+            hide_small = ifelse(is.null(args$hide_small), FALSE, args$hide_small),
+            rel_abund_file = args$rel_abund_file
+          )
+        },
+        "abundance_pie_plot" = {
+          required_args <- c(
+            "asv_file", "taxonomy_file", "metadata_file",
+            "taxonomy_level", "class_variable", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for abundance_pie_plot method")
+          }
+
+          create_abundance_pie_plot(
+            asv_file = args$asv_file,
+            taxonomy_file = args$taxonomy_file,
+            metadata_file = args$metadata_file,
+            taxonomy_level = args$taxonomy_level,
+            class_variable = args$class_variable,
+            output_file = args$output_file,
+            rel_abund_file = args$rel_abund_file
+          )
+        },
+        {
+          stop(paste("Unknown method:", method))
+        }
+      )
+    },
+    error = function(e) {
+      # print the error message and quit with error code 100
+      cat("//---BEGIN ERROR---//\n")
+      cat(e$message, "\n")
+      cat("//---END ERROR---//\n")
+      quit(save = "no", status = 100)
     }
   )
 

@@ -8,6 +8,7 @@ use App\Events\AnalysisCanceled;
 use App\Events\AnalysisCompleted;
 use App\Events\AnalysisError;
 use App\Events\AnalysisProcessing;
+use App\Exceptions\ProcessingJobException;
 use App\Models\User;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -16,6 +17,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 use Throwable;
 
 /**
@@ -67,6 +69,19 @@ final class PerformActionJob implements ShouldQueue
             );
             AnalysisCompleted::dispatch($this->batch()->id, $this->user->id, $url);
         } catch (Throwable $e) {
+            if ($e instanceof ProcessingJobException && $e->getCode() === 100 &&
+                ($previous = $e->getPrevious()) instanceof ProcessFailedException) {
+                /** @var ProcessFailedException $previous */
+                $output = $previous->getProcess()->getOutput();
+                // Check if the output contains something between "//---BEGIN ERROR---//" and "//---END ERROR---//"
+                if (preg_match('/\/\/---BEGIN ERROR---\/\/(.*?)\/\/---END ERROR---\/\//s', $output, $matches)) {
+                    $e = new ProcessingJobException(
+                        mb_trim($matches[1]),
+                        $e->getCode(),
+                        $previous
+                    );
+                }
+            }
             Log::error($e->getMessage(), $e->getTrace());
             AnalysisError::dispatch($this->batch()->id, $e->getMessage(), $e->getTraceAsString(), $this->user->id);
             throw $e;

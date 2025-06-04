@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Components\Layout;
 
 use App\Enums\NotificationLevel;
+use App\Notifications\GeneralNotification;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
@@ -56,13 +57,15 @@ final class NotificationButton extends Component
     {
         $batchId = $notification['batchId'] ?? null;
         $error = $notification['error'] ?? null;
-        if ($batchId === null || $this->isInCurrentPage($batchId)) {
+        if ($batchId === null) {
             return;
         }
-        Flux::toast(
-            text: 'One of your analyses failed with an error: '.($error ?? 'No error message provided.').' (Batch ID: '.$batchId.')',
-            heading: 'Analysis Error',
-            variant: NotificationLevel::ERROR->variant(),
+        auth()->user()->notify(
+            new GeneralNotification(
+                title: 'Analysis Error',
+                message: 'One of your analyses failed with an error: '.($error ?? 'No error message provided.').' (Batch ID: '.$batchId.')',
+                level: NotificationLevel::ERROR
+            )
         );
     }
 
@@ -72,10 +75,12 @@ final class NotificationButton extends Component
         if ($batchId === null || $this->isInCurrentPage($batchId)) {
             return;
         }
-        Flux::toast(
-            text: 'Your analysis has been completed successfully.',
-            heading: 'Analysis Completed',
-            variant: NotificationLevel::SUCCESS->variant(),
+        auth()->user()->notify(
+            new GeneralNotification(
+                title: 'Analysis Completed',
+                message: 'Your analysis has been completed successfully.',
+                level: NotificationLevel::SUCCESS
+            )
         );
     }
 
