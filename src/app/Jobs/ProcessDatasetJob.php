@@ -242,6 +242,7 @@ final class ProcessDatasetJob implements ShouldQueue
     private function cleanUpTSVFile(string $filePath, string $outputPath): void
     {
         $this->validateInputFile($filePath);
+        $filePath = $this->checkCompressedFile($filePath);
 
         $inputHandle = $this->openFileForReading($filePath);
 
@@ -262,6 +263,37 @@ final class ProcessDatasetJob implements ShouldQueue
         if (Storage::missing($filePath)) {
             throw new RuntimeException("File not found: {$filePath}");
         }
+    }
+
+    /**
+     * Check if the file is compressed and extract it if necessary.
+     *
+     * @throws RuntimeException If the file cannot be opened or extracted
+     */
+    private function checkCompressedFile(string $filePath): string
+    {
+        // Check if the file is compressed and needs to be extracted
+        if (str_ends_with($filePath, '.gz')) {
+            $outputPath = dirname($filePath).'/'.basename($filePath, '.gz');
+            $handle = gzopen(Storage::path($filePath), 'rb');
+            if (! $handle) {
+                throw new RuntimeException("Cannot open compressed file: {$filePath}");
+            }
+            $outHandle = fopen(Storage::path($outputPath), 'wb');
+            if (! $outHandle) {
+                gzclose($handle);
+                throw new RuntimeException('Cannot create temporary file for decompression.');
+            }
+            while (! gzeof($handle)) {
+                fwrite($outHandle, gzread($handle, 4096));
+            }
+            gzclose($handle);
+            fclose($outHandle);
+
+            return $outputPath;
+        }
+
+        return $filePath;
     }
 
     /**
@@ -310,7 +342,7 @@ final class ProcessDatasetJob implements ShouldQueue
         rewind($handle);
         $lineIndex = 0;
         while (($line = fgets($handle)) !== false) {
-            $trimmedLine = mb_trim($line);
+            $trimmedLine = $line;
             if (empty($trimmedLine)) {
                 continue;
             }
@@ -334,7 +366,7 @@ final class ProcessDatasetJob implements ShouldQueue
     private function validatePotentialHeader($handle, string $headerLine, int $lineIndex): ?array
     {
         $headerContent = mb_substr($headerLine, 1); // Remove the #
-        $headerColumns = str_getcsv(mb_trim($headerContent), "\t", escape: '\\');
+        $headerColumns = str_getcsv($headerContent, "\t", escape: '\\');
         $headerColumnCount = count($headerColumns);
         $currentPosition = ftell($handle);
         $dataColumnCount = $this->getConsistentDataColumnCount($handle);
@@ -359,7 +391,7 @@ final class ProcessDatasetJob implements ShouldQueue
         $dataLinesToCheck = 0;
         $consistentColumnCount = null;
         while (($line = fgets($handle)) !== false && $dataLinesToCheck < self::LINES_TO_CHECK_FOR_CONSISTENCY) {
-            $trimmedLine = mb_trim($line);
+            $trimmedLine = $line;
             if (empty($trimmedLine) || str_starts_with($trimmedLine, '#')) {
                 continue;
             }
@@ -394,7 +426,7 @@ final class ProcessDatasetJob implements ShouldQueue
         rewind($handle);
         $lineIndex = 0;
         while (($line = fgets($handle)) !== false) {
-            $trimmedLine = mb_trim($line);
+            $trimmedLine = $line;
             if (empty($trimmedLine) || str_starts_with($trimmedLine, '#')) {
                 $lineIndex++;
 
@@ -462,7 +494,7 @@ final class ProcessDatasetJob implements ShouldQueue
         $headerProcessed = false;
 
         while (($line = fgets($inputHandle)) !== false) {
-            $trimmedLine = mb_trim($line);
+            $trimmedLine = $line;
             if (empty($trimmedLine)) {
                 continue;
             }
@@ -508,7 +540,7 @@ final class ProcessDatasetJob implements ShouldQueue
         // Only process the identified header line, skip all other comments
         if ($currentLineIndex === $headerInfo['headerLineIndex'] && ! $headerProcessed) {
             $headerContent = mb_substr($trimmedLine, 1); // Remove #
-            $headerColumns = str_getcsv(mb_trim($headerContent), "\t", escape: '\\');
+            $headerColumns = str_getcsv($headerContent, "\t", escape: '\\');
 
             if ($this->shouldAddIdColumn($headerInfo)) {
                 array_unshift($headerColumns, self::DEFAULT_ID_COLUMN_NAME);

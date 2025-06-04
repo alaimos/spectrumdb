@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets;
 
-use App\Jobs\CombineDatasetsJob;
+use App\Jobs\ProcessDatasetJob;
 use Exception;
 use Flux;
 use Illuminate\Contracts\View\View;
@@ -21,9 +21,9 @@ final class Create extends Component
 {
     use WithFileUploads;
 
-    public const string REQUIRED_TSV_FILES_RULES = 'required|file|mimes:txt,tsv';
+    public const string REQUIRED_TSV_FILES_RULES = 'required|file|mimes:txt,tsv,gz';
 
-    public const string OPTIONAL_TSV_FILES_RULES = 'nullable|file|mimes:txt,tsv';
+    public const string OPTIONAL_TSV_FILES_RULES = 'nullable|file|mimes:txt,tsv,gz';
 
     public const string OPTIONAL_FILES_RULES = 'nullable|file';
 
@@ -209,9 +209,13 @@ final class Create extends Component
 
             $uploadedFiles = [];
             foreach ($files as $name => $file) {
+                /** @var TemporaryUploadedFile|null $file */
                 if ($file) {
                     $originalName = $file->getClientOriginalName();
                     $extension = $file->getClientOriginalExtension();
+                    if ($extension === 'gz') {
+                        $extension = 'tsv.gz';
+                    }
                     $storedName = $name.'.'.$extension;
                     $file->storeAs($tempDir, $storedName);
                     $uploadedFiles[$name] = [
@@ -222,7 +226,7 @@ final class Create extends Component
             }
 
             // Dispatch job to handle all database operations
-            CombineDatasetsJob::dispatch(
+            ProcessDatasetJob::dispatch(
                 userId: auth()->id(),
                 name: $this->name,
                 description: $this->description,

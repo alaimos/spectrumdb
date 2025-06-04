@@ -11,7 +11,7 @@
             'model' => 'taxonomyFile',
             'label' => 'Taxonomy Data (TSV)',
             'description' => 'A tab-separated file containing feature taxonomy information',
-            'accept' => '.tsv,.txt',
+            'accept' => '.tsv,.txt,.gz',
             'help' => [
                 'Feature ID column (required)',
                 'Taxon column with full taxonomy path (required)',
@@ -22,7 +22,7 @@
             'model' => 'asvTableFile',
             'label' => 'ASV Table (TSV)',
             'description' => 'A tab-separated matrix of ASV abundances per sample',
-            'accept' => '.tsv,.txt',
+            'accept' => '.tsv,.txt,.gz',
             'help' => [
                 'First column: Feature IDs (matching taxonomy file)',
                 'Column headers: Sample codes',
@@ -33,7 +33,7 @@
             'model' => 'metadataFile',
             'label' => 'Sample Metadata (TSV)',
             'description' => 'A tab-separated file containing sample metadata',
-            'accept' => '.tsv,.txt',
+            'accept' => '.tsv,.txt,.gz',
             'help' => [
                 'Sample code column (matching feature table)',
                 'Additional columns for sample metadata',
@@ -46,7 +46,7 @@
             'model' => 'picrustKoFile',
             'label' => 'KEGG Orthology Table (TSV)',
             'description' => 'A tab-separated file containing predicted metagenomic features for kegg orthology',
-            'accept' => '.tsv,.txt',
+            'accept' => '.tsv,.txt,.gz',
             'help' => [
                 'First column: Genetic Feature ID',
                 'Second column: Feature Description',
@@ -57,7 +57,7 @@
             'model' => 'picrustEcFile',
             'label' => 'EC Enzymes Table (TSV)',
             'description' => 'A tab-separated file containing predicted metagenomic features for EC enzymes',
-            'accept' => '.tsv,.txt',
+            'accept' => '.tsv,.txt,.gz',
             'help' => [
                 'First column: Genetic Feature ID',
                 'Second column: Feature Description',
@@ -68,7 +68,7 @@
             'model' => 'picrustPathwaysFile',
             'label' => 'Pathways Table (TSV)',
             'description' => 'A tab-separated file containing predicted metagenomic features for pathways',
-            'accept' => '.tsv,.txt',
+            'accept' => '.tsv,.txt,.gz',
             'help' => [
                 'First column: Genetic Feature ID',
                 'Second column: Feature Description',

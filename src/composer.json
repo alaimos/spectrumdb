@@ -16,7 +16,8 @@
         "livewire/flux": "^2.1.1",
         "livewire/flux-pro": "^2.1",
         "livewire/volt": "^1.7.0",
-        "ext-zip": "*"
+        "ext-zip": "*",
+        "ext-zlib": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -64,7 +65,7 @@
         ],
         "dev:sail": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" \"php artisan reverb:start\" --names=queue,logs,vite,reverb"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan queue:listen --tries=1 --timeout=3600\" \"php artisan pail --timeout=0\" \"npm run dev\" \"php artisan reverb:start\" --names=queue,logs,vite,reverb"
         ],
         "test": [
             "@php artisan config:clear --ansi",
