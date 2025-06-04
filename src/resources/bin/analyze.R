@@ -65,6 +65,20 @@ read_metadata_safe <- function(filepath) {
   metadata
 }
 
+read_cacheable_file <- function(filepath, reader, reader_args = list()) {
+  hashed_args_for_filename <- digest::digest(reader_args)
+  cache_filepath <- file.path(
+    dirname(filepath),
+    paste0(basename(filepath), "_", hashed_args_for_filename, ".rds")
+  )
+  if (file.exists(cache_filepath)) {
+    return(readRDS(cache_filepath))
+  }
+  result <- do.call(reader, reader_args)
+  saveRDS(result, cache_filepath)
+  result
+}
+
 # =============================================================================
 # DIVERSITY ANALYSIS FUNCTIONS
 # =============================================================================
@@ -269,7 +283,14 @@ prepare_deseq_data <- function(asv_file, taxonomy_file, metadata_file,
   load_packages(c("phyloseq"))
 
   # Convert ASV to OTU table
-  otu_data <- convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
+  otu_data <- read_cacheable_file(
+    asv_file,
+    function(taxonomy_file, taxonomy_level) {
+      convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
+    },
+    list(taxonomy_file, taxonomy_level)
+  )
+  # otu_data <- convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
 
   # Prepare taxonomy table
   otu_data$ID <- paste0("Taxa", seq_len(nrow(otu_data)))
@@ -518,9 +539,18 @@ run_picrust_analysis <- function(asv_file, metadata_file, class_variable,
   load_packages(c("DESeq2", "phyloseq"))
 
   # Prepare data
-  phyloseq_data <- prepare_picrust_data(
-    asv_file, metadata_file, class_variable, group1, group2
+  phyloseq_data <- read_cacheable_file(
+    asv_file,
+    function(metadata_file, class_variable, group1, group2) {
+      prepare_picrust_data(
+        asv_file, metadata_file, class_variable, group1, group2
+      )
+    },
+    list(metadata_file, class_variable, group1, group2)
   )
+  # phyloseq_data <- prepare_picrust_data(
+  #   asv_file, metadata_file, class_variable, group1, group2
+  # )
 
   # Run DESeq2
   formula_str <- as.formula(paste("~", class_variable))
@@ -558,7 +588,12 @@ compute_relative_abundance <- function(asv_file, taxonomy_file, metadata_file,
   load_packages(c("dplyr", "tidyr"))
 
   # Get OTU table
-  otu_table <- convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
+  otu_table <- read_cacheable_file(
+    asv_file, function(taxonomy_file, taxonomy_level) {
+      convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
+    }, list(taxonomy_file, taxonomy_level)
+  )
+  # otu_table <- convert_asv_to_otu_table(asv_file, taxonomy_file, taxonomy_level)
   taxa <- otu_table$OTU.ID
   otu_table$OTU.ID <- NULL
 
