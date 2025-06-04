@@ -52,6 +52,35 @@ final class Dataset extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Check if the user has any of the given permissions on the dataset.
+     *
+     * @param  array<DatasetPermission>  $permissions
+     */
+    public function userHasAnyPermission(User $user, array $permissions): bool
+    {
+        // Admin and creator always have all permissions
+        if ($user->id === $this->created_by || $user->isAdmin()) {
+            return true;
+        }
+
+        // Farm users have all permissions on their datasets
+        if ($user->id === $this->created_by && $user->isFarm()) {
+            return true;
+        }
+
+        return $this->users()
+            ->wherePivot('user_id', $user->id)
+            ->get()
+            ->contains(
+                function ($userWithPivot) use ($permissions) {
+                    return collect($permissions)->contains(
+                        fn (DatasetPermission $permission) => $userWithPivot->pivot->permission === $permission->value // @phpstan-ignore-line
+                    );
+                }
+            );
+    }
+
     public function userHasPermission(User $user, DatasetPermission $permission): bool
     {
         // Admin and creator always have all permissions

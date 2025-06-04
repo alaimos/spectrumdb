@@ -32,7 +32,14 @@ final class SamplePolicy
 
     public function view(User $user, Sample $sample): Response
     {
-        return $sample->dataset->userHasPermission($user, DatasetPermission::READ)
+        return $sample->dataset->userHasAnyPermission(
+            $user,
+            [
+                DatasetPermission::READ,
+                DatasetPermission::ANALYZE,
+                DatasetPermission::DOWNLOAD,
+            ]
+        )
             ? Response::allow()
             : Response::deny('You do not have permission to view this sample.');
     }
@@ -64,16 +71,16 @@ final class SamplePolicy
             : Response::deny('Only the dataset owner can delete samples.');
     }
 
-    public function downloadRaw(User $user, Sample $sample): Response
+    public function analyze(User $user, Sample $sample): Response
     {
-        return $sample->dataset->userHasPermission($user, DatasetPermission::DOWNLOAD_RAW)
+        return $sample->dataset->userHasPermission($user, DatasetPermission::ANALYZE)
             ? Response::allow()
             : Response::deny('You do not have permission to download raw data from this sample.');
     }
 
-    public function downloadProcessed(User $user, Sample $sample): Response
+    public function download(User $user, Sample $sample): Response
     {
-        return $sample->dataset->userHasPermission($user, DatasetPermission::DOWNLOAD_PROCESSED)
+        return $sample->dataset->userHasPermission($user, DatasetPermission::DOWNLOAD)
             ? Response::allow()
             : Response::deny('You do not have permission to download processed data from this sample.');
     }

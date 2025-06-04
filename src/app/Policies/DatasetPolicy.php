@@ -32,7 +32,15 @@ final class DatasetPolicy
 
     public function view(User $user, Dataset $dataset): Response
     {
-        return $dataset->userHasPermission($user, DatasetPermission::READ)
+        return $dataset->userHasAnyPermission(
+            $user,
+            [
+                DatasetPermission::READ,
+                DatasetPermission::ANALYZE,
+                DatasetPermission::DOWNLOAD,
+                DatasetPermission::ALL,
+            ]
+        )
             ? Response::allow()
             : Response::deny('You do not have permission to view this dataset.');
     }
@@ -61,25 +69,17 @@ final class DatasetPolicy
             : Response::deny('Only the dataset owner can delete it.');
     }
 
-    public function downloadRaw(User $user, Dataset $dataset): Response
+    public function analyze(User $user, Dataset $dataset): Response
     {
-        return $dataset->userHasPermission($user, DatasetPermission::DOWNLOAD_RAW)
+        return $dataset->userHasAnyPermission($user, [DatasetPermission::ANALYZE, DatasetPermission::ALL])
             ? Response::allow()
-            : Response::deny('You do not have permission to download raw data from this dataset.');
+            : Response::deny('You do not have permission to analyze data from this dataset.');
     }
 
-    public function downloadProcessed(User $user, Dataset $dataset): Response
+    public function download(User $user, Dataset $dataset): Response
     {
-        return $dataset->userHasPermission($user, DatasetPermission::DOWNLOAD_PROCESSED)
+        return $dataset->userHasAnyPermission($user, [DatasetPermission::DOWNLOAD, DatasetPermission::ALL])
             ? Response::allow()
-            : Response::deny('You do not have permission to download processed data from this dataset.');
-    }
-
-    public function managePermissions(User $user, Dataset $dataset): Response
-    {
-        // Only the owner can manage permissions
-        return $user->id === $dataset->created_by
-            ? Response::allow()
-            : Response::deny('Only the dataset owner can manage permissions.');
+            : Response::deny('You do not have permission to download data from this dataset.');
     }
 }

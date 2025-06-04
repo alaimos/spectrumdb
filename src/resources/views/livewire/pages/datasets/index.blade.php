@@ -42,11 +42,13 @@
                         <flux:table.cell>{{ $dataset->created_at->diffForHumans() }}</flux:table.cell>
                         <flux:table.cell>
                             <div class="flex justify-end gap-2 items-center">
-                                <flux:button variant="ghost" size="sm" icon="eye"
-                                             :href="route('datasets.show', $dataset)"
-                                             wire:navigate>
-                                    Explore
-                                </flux:button>
+                                @canany(['analyze', 'download'], $dataset)
+                                    <flux:button variant="ghost" size="sm" icon="eye"
+                                                 :href="route('datasets.show', $dataset)"
+                                                 wire:navigate>
+                                        Explore
+                                    </flux:button>
+                                @endcanany
                                 @canany(['update', 'delete'], $dataset)
                                     <flux:dropdown>
                                         <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal"/>
