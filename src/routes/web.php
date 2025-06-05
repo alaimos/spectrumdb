@@ -15,11 +15,11 @@ Route::get(
     }
 )->name('home');
 
-Route::view('dashboard', 'dashboard')
+Route::get('dashboard', App\Livewire\Pages\Dashboard::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::middleware(['auth'])->group(
+Route::middleware(['auth', 'verified'])->group(
     function () {
         Route::redirect('settings', 'settings/profile');
 
@@ -30,7 +30,7 @@ Route::middleware(['auth'])->group(
     }
 );
 
-Route::middleware(['auth', 'admin'])->group(
+Route::middleware(['auth', 'admin', 'verified'])->group(
     function () {
         Route::get('/admin/users', App\Livewire\Pages\Admin\Users\Index::class)->name('admin.users.index');
         Route::get('/admin/users/create', App\Livewire\Pages\Admin\Users\Create::class)->name('admin.users.create');
@@ -38,7 +38,7 @@ Route::middleware(['auth', 'admin'])->group(
     }
 );
 
-Route::middleware(['auth'])->group(
+Route::middleware(['auth', 'verified'])->group(
     function () {
         Route::get('/datasets', App\Livewire\Pages\Datasets\Index::class)->name('datasets.index');
         Route::get('/datasets/create', App\Livewire\Pages\Datasets\Create::class)->can(
@@ -83,6 +83,14 @@ Route::middleware(['auth'])->group(
             uri: '/datasets/{dataset}/analysis/{analysisId}/assets/{assetName}',
             action: App\Http\Controllers\DatasetAnalysisAssetController::class
         )->can('analyze', 'dataset')->name('datasets.analysis.asset');
+        Route::get(
+            uri: '/datasets/{dataset}/download',
+            action: App\Livewire\Pages\Datasets\Explore\Download::class
+        )->can('download', 'dataset')->name('datasets.show.download');
+        Route::get(
+            uri: '/datasets/{dataset}/download/{assetName}',
+            action: App\Http\Controllers\DatasetDownloadAssetController::class
+        )->can('download', 'dataset')->name('datasets.download.asset');
     }
 );
 

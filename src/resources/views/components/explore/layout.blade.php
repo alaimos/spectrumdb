@@ -30,6 +30,9 @@
                                        wire:navigate>PICRUSt Predictions
                     </flux:navlist.item>
                 @endif
+                <flux:navlist.item :href="route('datasets.show.download', ['dataset' => $dataset])"
+                                   wire:navigate>Download Raw Data
+                </flux:navlist.item>
             @endcan
         </flux:navlist>
     </div>

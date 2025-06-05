@@ -8,6 +8,7 @@ use App\Enums\DatasetPermission;
 use App\Enums\Role;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -31,7 +32,12 @@ final class User extends Authenticatable
         'remember_token',
     ];
 
-    public function datasets(): BelongsToMany
+    public function datasets(): HasMany
+    {
+        return $this->hasMany(Dataset::class, 'created_by');
+    }
+
+    public function sharedDatasets(): BelongsToMany
     {
         return $this->belongsToMany(Dataset::class, 'dataset_user_permissions')
             ->withPivot('permission')

@@ -18,7 +18,7 @@ final class DatasetAnalysisAssetController extends Controller
     public function __invoke(Dataset $dataset, string $analysisId, string $assetName)
     {
         abort_unless(
-            $dataset->userHasPermission(auth()->user(), DatasetPermission::READ),
+            $dataset->userHasAnyPermission(auth()->user(), [DatasetPermission::ANALYZE, DatasetPermission::ALL]),
             404,
             'Dataset not found'
         );

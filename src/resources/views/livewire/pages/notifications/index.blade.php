@@ -1,3 +1,4 @@
+@use(App\Enums\NotificationLevel)
 <flux:card class="p-6">
     <div class="flex justify-between items-center mb-6">
         <div class="flex items-center space-x-4">
@@ -52,7 +53,7 @@
                     </div>
                     <div class="flex-shrink-0">
                         @php
-                            $level = \App\Enums\NotificationLevel::from($notification->data['level'] ?? 'info');
+                            $level = NotificationLevel::from($notification->data['level'] ?? 'info');
                         @endphp
                         <flux:icon
                                 :name="$level->icon()"
