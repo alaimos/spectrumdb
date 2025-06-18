@@ -883,6 +883,112 @@ create_top_foldchange_plot <- function(deseq2_results, n, class_variable,
 }
 
 # =============================================================================
+# CORRELATION ANALYSIS FUNCTIONS
+# =============================================================================
+
+#' Prepare correlation network from OTU table
+#' @param otus OTU table as a matrix
+#' @param taxas Taxonomy table as a matrix
+prepare_correlation_network <- function(otus, taxas) {
+  corrs <- cor(t(otus), method = "spearman")
+  corrs[is.na(corrs)] <- 0  # Replace NA with 0
+  indexes <- which(abs(corrs) > 0, arr.ind = TRUE)
+  indexes <- indexes[indexes[, 1] != indexes[, 2], ]  # Remove self-correlations
+  indexes <- indexes[indexes[, 1] < indexes[, 2], ] # Keep only one direction of correlation
+  edges <- data.frame(
+    id1    = indexes[, 1],
+    id2    = indexes[, 2],
+    source = rownames(corrs)[indexes[, 1]],
+    target = rownames(corrs)[indexes[, 2]],
+    correlation = corrs[indexes],
+    taxa_source = unname(taxas[rownames(corrs)[indexes[, 1]], 1]),
+    taxa_target = unname(taxas[rownames(corrs)[indexes[, 2]], 1]),
+    stringsAsFactors = FALSE
+  )
+  rownames(edges) <- paste0(edges$source, "_", edges$target)
+  edges
+}
+
+#' Compute interaction network between two groups
+#' @param asv_file Path to ASV table
+#' @param taxonomy_file Path to taxonomy file
+#' @param metadata_file Path to metadata file
+#' @param taxonomy_level Taxonomic level
+#' @param class_variable Grouping variable
+#' @param group1 First group for comparison
+#' @param group2 Second group for comparison
+#' @param corr_threshold Correlation threshold for filtering
+#' @param output_file Output file for interaction network
+compute_interaction_network <- function(asv_file, taxonomy_file, metadata_file, 
+                                        taxonomy_level, class_variable, group1, 
+                                        group2, corr_threshold, output_file) {
+  load_packages(c("dplyr", "tidyr"))
+  data <- prepare_deseq_data(asv_file, taxonomy_file, metadata_file, 
+                             taxonomy_level, class_variable, group1, group2)
+  otus    <- as(otu_table(data), "matrix")
+  samples <- as(sample_data(data), "data.frame")
+  taxas   <- as(tax_table(data), "matrix")
+  
+  group1_samples <- rownames(samples)[samples[[class_variable]] == group1]
+  group2_samples <- rownames(samples)[samples[[class_variable]] == group2]
+  otus_group1 <- otus[, group1_samples]
+  otus_group2 <- otus[, group2_samples]
+  network_group1_all <- prepare_correlation_network(otus_group1, taxas)
+  network_group2_all <- prepare_correlation_network(otus_group2, taxas)
+  # Filter networks by correlation threshold
+  network_group1 <- network_group1_all[abs(network_group1_all$correlation) > corr_threshold, ]
+  network_group2 <- network_group2_all[abs(network_group2_all$correlation) > corr_threshold, ]
+  # Compare networks
+  diff_network_group1 <- setdiff(rownames(network_group1), rownames(network_group2))
+  diff_network_group2 <- setdiff(rownames(network_group2), rownames(network_group1))
+  # Diffeential networks
+  network_group1 <- network_group1[diff_network_group1,]
+  network_group2 <- network_group2[diff_network_group2,]
+  # Compute interaction p-values
+  grid_otus <- data.frame(
+    source = c(network_group1$id1, network_group2$id1),
+    target = c(network_group1$id2, network_group2$id2)
+  )
+  m <- factor(samples[[class_variable]], levels = c(group1, group2))
+  p_interaction <- sapply(1:nrow(grid_otus), function (i) {
+    tryCatch({
+      # Get the OTUs for the current pair
+      o1 <- otus[grid_otus$source[i],]
+      o2 <- otus[grid_otus$target[i],]
+      # gene_B ~ gene_A * subgroup
+      lmfit <- stats::lm(o2 ~ o1 * m)
+      stats::coef(summary(lmfit))[4,4]
+    }, error= function(e) {
+      1
+    })
+  })
+  fdr_interaction <- p.adjust(p_interaction, method = "fdr")
+  # Create interaction network
+  interaction_network <- data.frame(
+    source = rownames(otus)[grid_otus$source],
+    target = rownames(otus)[grid_otus$target],
+    p_value = p_interaction,
+    fdr = fdr_interaction,
+    taxa_source = unname(taxas[rownames(otus)[grid_otus$source], 1]),
+    taxa_target = unname(taxas[rownames(otus)[grid_otus$target], 1]),
+    stringsAsFactors = FALSE
+  ) %>%
+    left_join(network_group1_all, 
+              by = c("source", "target", "taxa_source", "taxa_target")) %>%
+    left_join(network_group2_all, 
+              by = c("source", "target", "taxa_source", "taxa_target"), 
+              suffix = c("_group1", "_group2")) %>%
+    select(
+      taxa_source, taxa_target, correlation_group1, correlation_group2, 
+      p_value, fdr
+    )
+  interaction_network[is.na(interaction_network)] <- 0
+  interaction_network <- interaction_network[order(interaction_network$fdr), ]
+  # Save the interaction network to a file
+  save_results_table(interaction_network, output_file)
+}
+
+# =============================================================================
 # MAIN SCRIPT EXECUTION
 # =============================================================================
 
@@ -971,6 +1077,11 @@ if (!interactive()) {
     make_option("--rel_abund_file",
       type = "character",
       help = "Output file for relative abundance table"
+    ),
+    make_option("--corr_threshold",
+      type = "double",
+      default = 0.6,
+      help = "Correlation threshold for interaction network"
     )
   )
 
@@ -1172,6 +1283,28 @@ if (!interactive()) {
             class_variable = args$class_variable,
             output_file = args$output_file,
             rel_abund_file = args$rel_abund_file
+          )
+        },
+        "correlation_network" = {
+          required_args <- c(
+            "asv_file", "taxonomy_file", "metadata_file",
+            "taxonomy_level", "class_variable", "group1",
+            "group2", "corr_threshold", "output_file"
+          )
+          if (any(sapply(required_args, function(x) is.null(args[[x]])))) {
+            stop("Missing required arguments for correlation_network method")
+          }
+
+          compute_interaction_network(
+            asv_file = args$asv_file,
+            taxonomy_file = args$taxonomy_file,
+            metadata_file = args$metadata_file,
+            taxonomy_level = args$taxonomy_level,
+            class_variable = args$class_variable,
+            group1 = args$group1,
+            group2 = args$group2,
+            corr_threshold = args$corr_threshold,
+            output_file = args$output_file
           )
         },
         {

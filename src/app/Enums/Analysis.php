@@ -15,4 +15,5 @@ enum Analysis: string
     case TOP_FC_PLOT = 'top_fc_plot';
     case STACKED_ABUNDANCE_BARPLOT = 'stacked_abundance_barplot';
     case ABUNDANCE_PIE_PLOT = 'abundance_pie_plot';
+    case CORRELATION_NETWORK = 'correlation_network';
 }

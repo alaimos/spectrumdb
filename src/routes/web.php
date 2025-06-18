@@ -76,6 +76,10 @@ Route::middleware(['auth', 'verified'])->group(
             action: App\Livewire\Pages\Datasets\Explore\FunctionalAnalysis::class
         )->can('analyze', 'dataset')->name('datasets.show.functional_analysis');
         Route::get(
+            uri: '/datasets/{dataset}/correlation_network',
+            action: App\Livewire\Pages\Datasets\Explore\CorrelationNetwork::class
+        )->can('analyze', 'dataset')->name('datasets.show.correlation_network');
+        Route::get(
             uri: '/datasets/{dataset}/edit',
             action: App\Livewire\Pages\Datasets\Edit::class
         )->can('analyze', 'dataset')->name('datasets.edit');
