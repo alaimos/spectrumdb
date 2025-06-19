@@ -199,7 +199,7 @@ beta_diversity_plot <- function(diversity_file, metadata_file, color_var, output
     stat_ellipse(aes(colour = .data[[color_var]]), level = 0.95)
 
   # Save plot
-  save_plot(p, output_file, width = 15, height = 10)
+  save_plot(p, output_file, width = DEFAULT_PLOT_WIDTH, width = DEFAULT_PLOT_HEIGHT)
 }
 
 # =============================================================================
@@ -787,24 +787,35 @@ create_top_frequency_plot <- function(deseq2_results, n, class_variable,
   combined_data <- merge(freq_data, res, by = "OTU.ID", all.x = TRUE)
   combined_data <- combined_data[combined_data$Sum != 0, ]
   combined_data <- combined_data[order(combined_data$Sum, decreasing = TRUE), ]
+  combined_data <- combined_data[grep("__Unknown", combined_data$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
 
   n <- min(n, nrow(combined_data))
   combined_data <- combined_data[seq_len(n), ]
   combined_data$pvalue_sign <- gtools::stars.pval(combined_data$pvalue)
+  combined_data$hjust <- ifelse(combined_data$log2FoldChange > 0, -0.2, 1.2)
+  combined_data$change_type <- ifelse(combined_data$log2FoldChange > 0, "Increased", "Decreased")
 
   # Create plot
   p <- ggplot(
     combined_data,
     aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))
   ) +
-    geom_col(aes(fill = Sum), color = "black") +
-    geom_text(aes(label = pvalue_sign), size = 3) +
+    geom_col(aes(fill = change_type), color = "black") +
+    geom_text(
+      aes(label = pvalue_sign, hjust = hjust), 
+      size = 6, 
+      vjust = 0.7
+    ) +
     theme_minimal() +
     labs(
       x = "Log2 Fold Change",
-      y = "",
-      fill = "Total Frequency"
+      y = ""
     ) +
+    scale_fill_manual(
+      values = c("Increased" = "#C0392B", "Decreased" = "#2C3E50"),
+      name = "Change Type"
+    ) +
+    ggtitle(paste0(group1, " vs ", group2)) +
     theme(legend.position = "bottom")
 
   save_plot(p, output_file)
@@ -827,20 +838,31 @@ create_top_significance_plot <- function(deseq2_results, n, class_variable,
 
   # Sort by p-value and take top n
   res <- res[order(res$pvalue, decreasing = FALSE), ]
+  res <- res[grep("__Unknown", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
   n <- min(n, nrow(res))
   res <- res[seq_len(n), ]
   res$pvalue_sign <- gtools::stars.pval(res$pvalue)
+  res$hjust <- ifelse(res$log2FoldChange > 0, -0.2, 1.2)
+  res$change_type <- ifelse(res$log2FoldChange > 0, "Increased", "Decreased")
 
   # Create plot
   p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
-    geom_col(aes(fill = pvalue), color = "black") +
-    geom_text(aes(label = pvalue_sign), size = 3) +
+    geom_col(aes(fill = change_type), color = "black") +
+    geom_text(
+      aes(label = pvalue_sign, hjust = hjust), 
+      size = 6, 
+      vjust = 0.7
+    ) +
     theme_minimal() +
     labs(
       x = "Log2 Fold Change",
-      y = "",
-      fill = "P-value"
+      y = ""
     ) +
+    scale_fill_manual(
+      values = c("Increased" = "#C0392B", "Decreased" = "#2C3E50"),
+      name = "Change Type"
+    ) +
+    ggtitle(paste0(group1, " vs ", group2)) +
     theme(legend.position = "bottom")
 
   save_plot(p, output_file)
@@ -864,21 +886,31 @@ create_top_foldchange_plot <- function(deseq2_results, n, class_variable,
   # Filter non-zero fold changes and sort by absolute value
   res <- res[res$log2FoldChange != 0, ]
   res <- res[order(abs(res$log2FoldChange), decreasing = TRUE), ]
-
+  res <- res[grep("__Unknown", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
   n <- min(n, nrow(res))
   res <- res[seq_len(n), ]
   res$pvalue_sign <- gtools::stars.pval(res$pvalue)
+  res$hjust <- ifelse(res$log2FoldChange > 0, -0.2, 1.2)
+  res$change_type <- ifelse(res$log2FoldChange > 0, "Increased", "Decreased")
 
   # Create plot
   p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
-    geom_col(aes(fill = pvalue), color = "black") +
-    geom_text(aes(label = pvalue_sign), size = 3) +
+    geom_col(aes(fill = change_type), color = "black") +
+    geom_text(
+      aes(label = pvalue_sign, hjust = hjust), 
+      size = 6, 
+      vjust = 0.7
+    ) +
     theme_minimal() +
     labs(
       x = "Log2 Fold Change",
-      y = "",
-      fill = "P-value"
+      y = ""
     ) +
+    scale_fill_manual(
+      values = c("Increased" = "#C0392B", "Decreased" = "#2C3E50"),
+      name = "Change Type"
+    ) +
+    ggtitle(paste0(group1, " vs ", group2)) +
     theme(legend.position = "bottom")
 
   save_plot(p, output_file)
