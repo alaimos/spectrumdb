@@ -199,6 +199,9 @@ final class ProcessDatasetJob implements ShouldQueue
             // Store custom metadata
             $metadataRecords = [];
             foreach ($data as $column => $value) {
+                if ($value === 'NA' || $value === 'NaN' || $value === '') {
+                    continue; // Skip empty or NA values
+                }
                 $mapping = $this->columnMapping[$column] ?? null;
                 if ($mapping === 'custom') {
                     $metadataRecords[] = [
@@ -215,13 +218,6 @@ final class ProcessDatasetJob implements ShouldQueue
         }
 
         fclose($handle);
-    }
-
-    private function mapSampleFields(array $data): array
-    {
-        // Since we removed all predetermined fields, this method is no longer needed
-        // All fields should be handled as custom metadata
-        return [];
     }
 
     /**
