@@ -12,7 +12,7 @@
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        <flux:select wire:model="taxonomicLevel" label="Select taxonomic level" variant="listbox">
+                        <flux:select wire:model="taxonomicLevel" :label="__('Select taxonomic level')" variant="listbox">
                             @foreach(TaxonomicLevels::getValues() as $value => $label)
                                 @if ($value > 1)
                                     <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
@@ -21,8 +21,8 @@
                         </flux:select>
 
                         <flux:select wire:model.live="classVariable"
-                                     label="Select class variable"
-                                     placeholder="Select a variable to use for sample grouping"
+                                     :label="__('Select class variable')"
+                                     :placeholder="__('Select a variable to use for sample grouping')"
                                      variant="listbox">
                             @foreach($this->availableMetadata as $variable)
                                 <flux:select.option value="{{ $variable }}">{{ $variable }}</flux:select.option>
@@ -33,7 +33,7 @@
                     @if (isset($this->classVariable))
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                             <flux:select wire:model="group1"
-                                         label="Group 1"
+                                         :label="__('Group 1')"
                                          variant="listbox">
                                 @foreach($this->availableClasses as $class)
                                     <flux:select.option
@@ -41,7 +41,7 @@
                                 @endforeach
                             </flux:select>
                             <flux:select wire:model="group2"
-                                         label="Group 2"
+                                         :label="__('Group 2')"
                                          variant="listbox">
                                 @foreach($this->availableClasses as $class)
                                     <flux:select.option
@@ -52,17 +52,17 @@
                     @else
                         <flux:callout icon="information-circle" color="blue" inline>
                             <flux:callout.heading>
-                                Please select a class variable to enable group selection.
+                                {{ __('Please select a class variable to enable group selection.') }}
                             </flux:callout.heading>
                         </flux:callout>
                     @endif
 
                     <flux:accordion>
                         <flux:accordion.item>
-                            <flux:accordion.heading>Advanced options</flux:accordion.heading>
+                            <flux:accordion.heading>{{ __('Advanced options') }}</flux:accordion.heading>
                             <flux:accordion.content>
                                 <flux:input wire:model="correlationThreshold"
-                                            label="Correlation threshold"
+                                            :label="__('Correlation threshold')"
                                             type="number"
                                             step="0.01"
                                             min="0"
@@ -74,7 +74,7 @@
                 </div>
                 <div class="flex gap-4">
                     <flux:spacer/>
-                    <flux:button variant="primary" type="submit">Run Analysis</flux:button>
+                    <flux:button variant="primary" type="submit">{{ __('Run Analysis') }}</flux:button>
                     <flux:spacer/>
                 </div>
             </form>
@@ -88,16 +88,16 @@
             @if ($this->networkTable)
                 <div class="mt-4">
                     <div class="flex items-center justify-between mb-2">
-                        <flux:heading size="md">Network Table</flux:heading>
+                        <flux:heading size="md">{{ __('Network Table') }}</flux:heading>
                         <div>
-                            <flux:button href="{{ $this->networkTableUrl }}" icon="arrow-down-tray">Download
+                            <flux:button href="{{ $this->networkTableUrl }}" icon="arrow-down-tray">{{ __('Download') }}
                             </flux:button>
                         </div>
                     </div>
                     @if (is_string($this->networkTable))
                         <flux:callout icon="x-circle" variant="danger" inline>
                             <flux:callout.heading>
-                                {{ $this->networkTable }}
+                                {{ __($this->networkTable) }}
                             </flux:callout.heading>
                         </flux:callout>
                     @else
@@ -107,12 +107,12 @@
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'source_taxa'"
                                                        :direction="$sortDirection"
-                                                       wire:click="sort('source_taxa')">Source
+                                                       wire:click="sort('source_taxa')">{{ __('Source') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'target_taxa'"
                                                        :direction="$sortDirection"
-                                                       wire:click="sort('target_taxa')">Target
+                                                       wire:click="sort('target_taxa')">{{ __('Target') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'correlation_group_1'"
@@ -127,12 +127,12 @@
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'pv'"
                                                        :direction="$sortDirection"
-                                                       wire:click="sort('pv')">p
+                                                       wire:click="sort('pv')">{{ __('p') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'fdr'"
                                                        :direction="$sortDirection"
-                                                       wire:click="sort('fdr')">FDR
+                                                       wire:click="sort('fdr')">{{ __('FDR') }}
                                     </flux:table.column>
                                 </flux:table.columns>
 

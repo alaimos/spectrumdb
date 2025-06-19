@@ -89,8 +89,8 @@ final class CorrelationNetwork extends Component
         $action->handle();
 
         Flux::toast(
-            text: 'Analysis submitted successfully. It will start processing as soon as resources are available.',
-            heading: 'Analysis Submitted',
+            text: __('Analysis submitted successfully. It will start processing as soon as resources are available.'),
+            heading: __('Analysis Submitted'),
             variant: 'success',
         );
         $this->refreshWithAnalysisId($action->batchId);

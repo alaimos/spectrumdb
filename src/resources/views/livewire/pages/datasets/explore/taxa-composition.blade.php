@@ -12,21 +12,21 @@
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        <flux:select wire:model="taxonomicLevel" label="Select taxonomic level" variant="listbox">
+                        <flux:select wire:model="taxonomicLevel" :label="__('Select taxonomic level')" variant="listbox">
                             @foreach(TaxonomicLevels::getValues() as $value => $label)
                                 <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                             @endforeach
                         </flux:select>
 
                         <flux:select wire:model.live="classVariable"
-                                     label="Select class variable"
-                                     placeholder="Select a variable to use for sample grouping"
+                                     :label="__('Select class variable')"
+                                     :placeholder="__('Select a variable to use for sample grouping')"
                                      variant="listbox">
                             @foreach($this->availableMetadata as $variable)
                                 <flux:select.option value="{{ $variable }}">{{ $variable }}</flux:select.option>
                             @endforeach
                         </flux:select>
-                        <flux:select wire:model="chartType" label="Select type of chart" variant="listbox">
+                        <flux:select wire:model="chartType" :label="__('Select type of chart')" variant="listbox">
                             @foreach(TaxaAbundanceCharts::getValues() as $value => $label)
                                 <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                             @endforeach
@@ -35,7 +35,7 @@
                 </div>
                 <div class="flex gap-4">
                     <flux:spacer/>
-                    <flux:button variant="primary" type="submit">Run Analysis</flux:button>
+                    <flux:button variant="primary" type="submit">{{ __('Run Analysis') }}</flux:button>
                     <flux:spacer/>
                 </div>
             </form>
@@ -49,15 +49,15 @@
             @if ($this->abundanceTable)
                 <div class="mt-4">
                     <div class="flex items-center justify-between mb-2">
-                        <flux:heading size="md">Abundance Table</flux:heading>
+                        <flux:heading size="md">{{ __('Abundance Table') }}</flux:heading>
                         <flux:button variant="ghost" size="sm" href="{{ $this->abundanceTableUrl }}">
-                            Download
+                            {{ __('Download') }}
                         </flux:button>
                     </div>
                     @if (is_string($this->abundanceTable))
                         <flux:callout icon="x-circle" variant="danger" inline>
                             <flux:callout.heading>
-                                {{ $this->abundanceTable }}
+                                {{ __($this->abundanceTable) }}
                             </flux:callout.heading>
                         </flux:callout>
                     @else
@@ -70,7 +70,7 @@
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'taxa'"
                                                        :direction="$sortDirection"
-                                                       wire:click="sort('taxa')">Taxa
+                                                       wire:click="sort('taxa')">{{ __('Taxa') }}
                                     </flux:table.column>
                                     @foreach($groups as $group)
                                         <flux:table.column sortable

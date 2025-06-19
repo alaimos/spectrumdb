@@ -62,8 +62,11 @@ final class NotificationButton extends Component
         }
         auth()->user()->notify(
             new GeneralNotification(
-                title: 'Analysis Error',
-                message: 'One of your analyses failed with an error: '.($error ?? 'No error message provided.').' (Batch ID: '.$batchId.')',
+                title: __('Analysis Error'),
+                message: __('One of your analyses failed with an error: :message (ID: :id)', [
+                    'message' => $error ?? __('No error message provided.'),
+                    'id' => $batchId,
+                ]),
                 level: NotificationLevel::ERROR
             )
         );
@@ -77,8 +80,8 @@ final class NotificationButton extends Component
         }
         auth()->user()->notify(
             new GeneralNotification(
-                title: 'Analysis Completed',
-                message: 'Your analysis has been completed successfully.',
+                title: __('Analysis Completed'),
+                message: __('Your analysis has been completed successfully.'),
                 level: NotificationLevel::SUCCESS
             )
         );

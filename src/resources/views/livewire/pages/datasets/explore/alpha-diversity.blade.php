@@ -12,7 +12,7 @@
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        <flux:select wire:model="metrics" label="Select diversity metrics" variant="listbox">
+                        <flux:select wire:model="metrics" :label="__('Select diversity metrics')" variant="listbox">
                             @foreach(AlphaDiversityMetrics::getValues() as $value => $label)
                                 @if ($dataset->getAlphaDiversityFile(AlphaDiversityMetrics::from($value)) !== null)
                                     <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
@@ -21,8 +21,8 @@
                         </flux:select>
 
                         <flux:select wire:model.live="classVariable"
-                                     label="Select class variable"
-                                     placeholder="Select a variable to group samples by"
+                                     :label="__('Select class variable')"
+                                     :placeholder="__('Select a variable to group samples by')"
                                      variant="listbox">
                             @foreach($this->availableMetadata as $variable)
                                 <flux:select.option value="{{ $variable }}">{{ $variable }}</flux:select.option>
@@ -32,7 +32,7 @@
 
                     @isset($this->classVariable)
                         <div class="flex gap-4 mb-4">
-                            <flux:heading>Classes comparisons</flux:heading>
+                            <flux:heading>{{ __('Classes comparisons') }}</flux:heading>
                             <flux:spacer/>
                             <flux:button wire:click="addComparison" icon="plus" size="sm" square></flux:button>
                         </div>
@@ -41,10 +41,10 @@
                                 class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 max-w-6xl mx-auto items-start">
                                 @if (count($this->comparisons) > 0)
                                     <flux:text variant="strong">
-                                        Case
+                                        {{ __('Case') }}
                                     </flux:text>
                                     <flux:text variant="strong">
-                                        Control
+                                        {{ __('Control') }}
                                     </flux:text>
                                     <div></div>
                                 @endif
@@ -74,7 +74,7 @@
                                                  size="sm" square></flux:button>
                                 @empty
                                     <flux:text class="col-span-3">
-                                        No comparisons added yet. Click the plus button to add a comparison.
+                                        {{ __('No comparisons added yet. Click the plus button to add a comparison.') }}
                                     </flux:text>
                                 @endforelse
                             </div>
@@ -83,7 +83,7 @@
                 </div>
                 <div class="flex gap-4">
                     <flux:spacer/>
-                    <flux:button variant="primary" type="submit">Run Analysis</flux:button>
+                    <flux:button variant="primary" type="submit">{{ __('Run Analysis') }}</flux:button>
                     <flux:spacer/>
                 </div>
             </form>
@@ -91,7 +91,7 @@
 
         <x-explore.analysis-viewer :analysisId="$analysisId" :batchStatus="$this->batchStatus">
             <div>
-                <img src="{{ $this->alphaDiversityPlotUrl }}" alt="Alpha Diversity Plot"
+                <img src="{{ $this->alphaDiversityPlotUrl }}" alt="{{ __('Alpha Diversity Plot') }}"
                      class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
             </div>
         </x-explore.analysis-viewer>
