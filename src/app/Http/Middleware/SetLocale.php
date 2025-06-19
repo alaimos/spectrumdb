@@ -11,6 +11,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class SetLocale
 {
+    public const array AVAILABLE_LOCALES = [
+        'en' => 'English',
+        'it' => 'Italian',
+    ];
+
     /**
      * Handle an incoming request.
      *
@@ -18,29 +23,30 @@ final class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-            $http_accept_language = Locale::acceptFromHttp($_SERVER['HTTP_ACCEPT_LANGUAGE']);
-
-            $language = explode('_', $http_accept_language)[0];
-            if ($language === 'en' || $language === 'it') {
-                app()->setLocale($language);
-
-                return $next($request);
-            }
-        }
-
-        if (! $request->user()) {
-            return $next($request);
-        }
-
-        /*
-         @TODO
-        $language = $request->user()->language;
+        $language = $this->detectLanguage($request);
 
         if (isset($language)) {
             app()->setLocale($language);
-        }*/
+        }
 
         return $next($request);
+    }
+
+    private function detectLanguage(Request $request): ?string
+    {
+        $language = null;
+        if (($user = $request->user()) && isset($user->language)) {
+            $language = $user->language;
+        }
+        if (! empty($_SERVER['HTTP_ACCEPT_LANGUAGE']) && empty($language)) {
+            $httpLocale = Locale::acceptFromHttp($_SERVER['HTTP_ACCEPT_LANGUAGE']);
+            $httpLanguage = explode('_', $httpLocale)[0];
+            if (isset(self::AVAILABLE_LOCALES[$httpLanguage])) {
+                $language = $httpLanguage;
+            }
+
+        }
+
+        return $language;
     }
 }

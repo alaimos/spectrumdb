@@ -16,10 +16,10 @@ final class CombineDatasetsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * @param array<int, int> $selectedDatasetIds
-     * @param array<int, array{selectAll: bool, conditions: array, connectors: array}> $datasetSampleCriteria
-     * @param array<int, array{key: string, value: string}> $combinedDatasetMetadata
-     * @param array<int, int> $metadataToCopy
+     * @param  array<int, int>  $selectedDatasetIds
+     * @param  array<int, array{selectAll: bool, conditions: array, connectors: array}>  $datasetSampleCriteria
+     * @param  array<int, array{key: string, value: string}>  $combinedDatasetMetadata
+     * @param  array<int, int>  $metadataToCopy
      */
     public function __construct(
         public int $userId,

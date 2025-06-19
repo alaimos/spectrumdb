@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Settings;
 
+use App\Http\Middleware\SetLocale;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -16,6 +17,8 @@ final class Profile extends Component
 
     public string $email = '';
 
+    public ?string $language = '';
+
     /**
      * Mount the component.
      */
@@ -23,6 +26,7 @@ final class Profile extends Component
     {
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
+        $this->language = Auth::user()->language;
     }
 
     /**
@@ -31,19 +35,27 @@ final class Profile extends Component
     public function updateProfileInformation(): void
     {
         $user = Auth::user();
+        $validLocales = array_keys(SetLocale::AVAILABLE_LOCALES);
 
-        $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+        $validated = $this->validate(
+            [
+                'name' => ['required', 'string', 'max:255'],
 
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
-                Rule::unique(User::class)->ignore($user->id),
-            ],
-        ]);
+                'email' => [
+                    'required',
+                    'string',
+                    'lowercase',
+                    'email',
+                    'max:255',
+                    Rule::unique(User::class)->ignore($user->id),
+                ],
+
+                'language' => [
+                    'nullable',
+                    Rule::in($validLocales),
+                ],
+            ]
+        );
 
         $user->fill($validated);
 
@@ -51,9 +63,14 @@ final class Profile extends Component
             $user->email_verified_at = null;
         }
 
+        $reload = $user->isDirty('language');
+
         $user->save();
 
         $this->dispatch('profile-updated', name: $user->name);
+        if ($reload) {
+            $this->redirectRoute('settings.profile', ['refresh' => now()->timestamp], navigate: true);
+        }
     }
 
     /**

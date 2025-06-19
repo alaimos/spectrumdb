@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets\Explore;
 
-use App\Actions\Batch;
 use App\Actions\BetaDiversityPlotAction;
 use App\Actions\SubmitBatchAction;
 use App\Enums\BetaDiversityMetrics;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Livewire\Components;
 
-use App\Builders\DatasetAdvancedSearchBuilder;
 use App\Models\DatasetMetadata;
 use App\Models\SampleMetadata;
 use Illuminate\Contracts\View\View;

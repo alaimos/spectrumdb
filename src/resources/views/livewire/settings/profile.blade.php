@@ -1,3 +1,4 @@
+@use(App\Http\Middleware\SetLocale)
 <section class="w-full">
     @include('partials.settings-heading')
 
@@ -26,6 +27,17 @@
                     </div>
                 @endif
             </div>
+
+            <flux:select
+                wire:model="language"
+                :label="__('Language')"
+                :placeholder="__('Select Language')"
+                class="w-full">
+                <flux:select.option value="">{{ __('Automatic detection') }}</flux:select.option>"
+                @foreach(SetLocale::AVAILABLE_LOCALES as $locale => $language)
+                    <flux:select.option value="{{ $locale }}">{{ $language }}</flux:select.option>
+                @endforeach
+            </flux:select>
 
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">

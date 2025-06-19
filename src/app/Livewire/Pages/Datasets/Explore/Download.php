@@ -8,10 +8,8 @@ use App\Models\Dataset;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-final class Download extends Component {
-
+final class Download extends Component
+{
     #[Locked]
     public Dataset $dataset;
-
-
 }
