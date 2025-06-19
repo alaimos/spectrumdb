@@ -10,7 +10,7 @@
         <flux:spacer/>
         <div>
             <flux:button variant="ghost" icon="arrow-left" :href="route('datasets.index')" wire:navigate>
-                Back to datasets
+                {{ __('Back to datasets') }}
             </flux:button>
         </div>
     </div>

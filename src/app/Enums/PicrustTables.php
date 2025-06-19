@@ -18,9 +18,9 @@ enum PicrustTables: int
     public function getName(): string
     {
         return match ($this) {
-            self::KO => 'KEGG Orthology (KO)',
-            self::EC => 'Enzyme Commission (EC)',
-            self::PATHWAYS => 'Pathways',
+            self::KO => __('KEGG Orthology (KO)'),
+            self::EC => __('Enzyme Commission (EC)'),
+            self::PATHWAYS => __('Pathways'),
         };
     }
 }

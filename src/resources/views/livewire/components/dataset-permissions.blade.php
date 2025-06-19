@@ -1,20 +1,21 @@
+@use(App\Enums\DatasetPermission)
 <div class="space-y-6">
     <div>
-        <flux:heading size="lg">Manage Access</flux:heading>
-        <flux:subheading>Control who can access "{{ $dataset->name }}"</flux:subheading>
+        <flux:heading size="lg">{{ __('Manage Access') }}</flux:heading>
+        <flux:subheading>{{ __('Control who can access ":dataset"', ['dataset'  => $dataset->name]) }}</flux:subheading>
     </div>
 
     {{-- Current Users List --}}
     <div class="space-y-4">
         <div class="flex items-center justify-between">
-            <flux:heading size="base">Users with Access</flux:heading>
+            <flux:heading size="base">{{ __('Users with Access') }}</flux:heading>
             <flux:button
                 wire:click="toggleAddForm"
                 variant="ghost"
                 size="sm"
                 icon="{{ $showAddForm ? 'minus' : 'plus' }}"
             >
-                {{ $showAddForm ? 'Hide Form' : 'Add User' }}
+                {{ __($showAddForm ? 'Hide Form' : 'Add User') }}
             </flux:button>
         </div>
 
@@ -28,14 +29,14 @@
                                 <div class="text-sm text-gray-500">{{ $user->email }}</div>
                             </div>
                             <div class="flex items-center gap-3">
-                                <flux:badge>{{ \App\Enums\DatasetPermission::from($user->pivot->permission)->label() }}</flux:badge>
+                                <flux:badge>{{ DatasetPermission::from($user->pivot->permission)->label() }}</flux:badge>
                                 <flux:button
                                     wire:click="revokeAccess({{ $user->id }})"
                                     variant="ghost"
                                     size="xs"
                                     icon="x-mark"
                                     negative
-                                    label-sr-only="Revoke access"
+                                    label-sr-only="{{ __('Revoke access') }}"
                                 />
                             </div>
                         </div>
@@ -47,7 +48,7 @@
                         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
                             <flux:icon.users class="w-6 h-6 text-gray-400"/>
                         </div>
-                        <div class="text-sm text-gray-500">No users have been granted access yet</div>
+                        <div class="text-sm text-gray-500">{{ __('No users have been granted access yet') }}</div>
                     </div>
                 </div>
             @endif
@@ -57,18 +58,18 @@
     {{-- Add User Form --}}
     <div class="{{ $showAddForm ? 'block' : 'hidden' }}">
         <div class="border-t pt-6">
-            <flux:heading size="base">Add New User</flux:heading>
+            <flux:heading size="base">{{ __('Add New User') }}</flux:heading>
 
             @if($this->availableUsers->isNotEmpty())
                 <div class="mt-4 space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <flux:select
                             wire:model.live="selectedUserId"
-                            label="Select User"
-                            placeholder="Choose a user..."
+                            label="{{ __('Select User') }}"
+                            placeholder="{{ __('Choose a user...') }}"
                             variant="listbox"
                             searchable
-                            hint="Search by name or email"
+                            hint="{{ __('Search by name or email') }}"
                         >
                             @foreach($this->availableUsers as $user)
                                 <flux:select.option value="{{ $user->id }}">
@@ -82,10 +83,10 @@
 
                         <flux:select
                             wire:model="selectedPermission"
-                            label="Permission Level"
-                            hint="Choose what the user can do"
+                            label="{{ __('Permission Level') }}"
+                            hint="{{ __('Choose what the user can do') }}"
                         >
-                            @foreach(App\Enums\DatasetPermission::getAllPermissions() as $permission)
+                            @foreach(DatasetPermission::getAllPermissions() as $permission)
                                 <flux:select.option value="{{ $permission->value }}">
                                     {{ $permission->label() }}
                                 </flux:select.option>
@@ -99,7 +100,7 @@
                             variant="primary"
                             :disabled="!$selectedUserId"
                         >
-                            Grant Access
+                            {{ __('Grant Access') }}
                         </flux:button>
                     </div>
                 </div>
@@ -112,7 +113,7 @@
                                     class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
                                     <flux:icon.user-plus class="w-6 h-6 text-gray-400"/>
                                 </div>
-                                <div class="text-sm text-gray-500">No more users available to add</div>
+                                <div class="text-sm text-gray-500">{{ __('No more users available to add') }}</div>
                             </div>
                         </div>
                     </flux:card>

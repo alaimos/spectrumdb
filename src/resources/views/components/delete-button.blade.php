@@ -1,5 +1,5 @@
 @props([
-    'title' => 'Are you sure?',
+    'title' => __('Are you sure?'),
     'id' => null,
 ])
 @php
@@ -14,7 +14,7 @@
     $clickAttributes = $clickAttributes->merge([ 'variant' => 'danger' ]);
 @endphp
 <flux:modal.trigger :$name>
-    <flux:button {{ $attributes }}>Delete</flux:button>
+    <flux:button {{ $attributes }}>{{ __('Delete') }}</flux:button>
 </flux:modal.trigger>
 @teleport('body')
 <flux:modal :$name class="min-w-[22rem] space-y-6">
@@ -30,12 +30,12 @@
         <flux:spacer/>
 
         <flux:modal.close>
-            <flux:button variant="ghost">Cancel</flux:button>
+            <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
         </flux:modal.close>
         @php
             $attributes = $clickAttributes;
         @endphp
-        <flux:button {{ $attributes }}>Delete</flux:button>
+        <flux:button {{ $attributes }}>{{ __('Delete') }}</flux:button>
     </div>
 </flux:modal>
 @endteleport

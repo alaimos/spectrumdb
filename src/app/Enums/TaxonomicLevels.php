@@ -22,13 +22,13 @@ enum TaxonomicLevels: int
     public function getName(): string
     {
         return match ($this) {
-            self::DOMAIN_LEVEL => 'Domain',
-            self::PHYLUM_LEVEL => 'Phylum',
-            self::CLASS_LEVEL => 'Class',
-            self::ORDER_LEVEL => 'Order',
-            self::FAMILY_LEVEL => 'Family',
-            self::GENUS_LEVEL => 'Genus',
-            self::SPECIES_LEVEL => 'Species',
+            self::DOMAIN_LEVEL => __('Domain'),
+            self::PHYLUM_LEVEL => __('Phylum'),
+            self::CLASS_LEVEL => __('Class'),
+            self::ORDER_LEVEL => __('Order'),
+            self::FAMILY_LEVEL => __('Family'),
+            self::GENUS_LEVEL => __('Genus'),
+            self::SPECIES_LEVEL => __('Species'),
         };
     }
 }

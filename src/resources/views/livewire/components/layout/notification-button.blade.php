@@ -8,7 +8,7 @@
         wire:navigate
         badge="{{ $unreadCount > 0 ? $unreadCount : null }}"
         badge-color="red">
-        Notifications
+        {{ __('Notifications') }}
     </flux:navlist.item>
 </div>
 

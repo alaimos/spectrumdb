@@ -15,10 +15,10 @@
 
             <flux:navlist variant="outline">
                 <flux:navlist.item icon="home" :href="route('dashboard')" wire:navigate>
-                    Home
+                    {{ __('Home') }}
                 </flux:navlist.item>
                 <flux:navlist.item icon="document-text" :href="route('datasets.index')" wire:navigate>
-                    Datasets
+                    {{ __('Datasets') }}
                 </flux:navlist.item>
             </flux:navlist>
 
@@ -27,7 +27,7 @@
             <flux:navlist variant="outline">
                 @if(auth()->user()->isAdmin())
                     <flux:navlist.item icon="users" href="{{ route('admin.users.index') }}" wire:navigate>
-                        Users
+                        {{ __('Users') }}
                     </flux:navlist.item>
                 @endif
                 <livewire:components.layout.notification-button/>

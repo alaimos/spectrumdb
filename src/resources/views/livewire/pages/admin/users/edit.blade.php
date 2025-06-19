@@ -1,8 +1,8 @@
 <div>
     <div class="flex items-center mb-6">
         <div>
-            <flux:heading size="lg">Edit User</flux:heading>
-            <flux:subheading>Update user information</flux:subheading>
+            <flux:heading size="lg">{{ __('Edit User') }}</flux:heading>
+            <flux:subheading>{{ __('Update user information') }}</flux:subheading>
         </div>
         <flux:spacer/>
     </div>
@@ -12,8 +12,8 @@
                 <div class="sm:col-span-2">
                     <flux:input
                         wire:model="name"
-                        label="Full Name"
-                        placeholder="Enter user's full name"
+                        label="{{ __('Full Name') }}"
+                        placeholder="{{ __('Enter user\'s full name') }}"
                         icon="user"
                         required
                     />
@@ -22,7 +22,7 @@
                 <div class="sm:col-span-2">
                     <flux:input
                         wire:model="email"
-                        label="Email Address"
+                        label="{{ __('Email Address') }}"
                         type="email"
                         placeholder="user@example.com"
                         icon="envelope"
@@ -33,8 +33,8 @@
                 <div class="sm:col-span-2">
                     <flux:select
                         wire:model="role"
-                        label="User Role"
-                        placeholder="Select a role"
+                        label="{{ __('User Role') }}"
+                        placeholder="{{ __('Select a role') }}"
                         icon="user-group"
                         required
                     >
@@ -49,20 +49,20 @@
                 <div>
                     <flux:input
                         wire:model="password"
-                        label="New Password"
+                        label="{{ __('New Password') }}"
                         type="password"
-                        placeholder="Leave blank to keep current"
+                        placeholder="{{ __('Leave blank to keep current') }}"
                         icon="key"
-                        help="Leave blank to keep the current password"
+                        help="{{ __('Leave blank to keep the current password') }}"
                     />
                 </div>
 
                 <div>
                     <flux:input
                         wire:model="password_confirmation"
-                        label="Confirm New Password"
+                        label="{{ __('Confirm New Password') }}"
                         type="password"
-                        placeholder="Leave blank to keep current"
+                        placeholder="{{ __('Leave blank to keep current') }}"
                         icon="key"
                     />
                 </div>
@@ -74,14 +74,14 @@
                     wire:navigate
                     variant="ghost"
                 >
-                    Cancel
+                    {{ __('Cancel') }}
                 </flux:button>
                 <flux:button
                     type="submit"
                     variant="primary"
                     icon="user"
                 >
-                    Update User
+                    {{ __('Update User') }}
                 </flux:button>
             </div>
         </form>

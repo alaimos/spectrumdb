@@ -1,8 +1,7 @@
 @use(App\Enums\TaxonomicLevels)
 @use(App\Enums\BatchStatus)
 <section class="w-full">
-    <x-page-heading title="Explore dataset {{ $dataset->name }}"
-                    subtitle="Explore the dataset {{ $dataset->name }} in detail."/>
+    <x-explore-heading :dataset="$dataset"/>
 
     <x-explore.layout
         heading="Differential Abundance Analysis"

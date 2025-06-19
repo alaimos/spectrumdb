@@ -1,17 +1,19 @@
 <div>
-    <x-page-heading-split title="Datasets" subtitle="View and manage all datasets in the system">
+    <x-page-heading-split :title="__('Datasets')" :subtitle="__('View and manage all datasets in the system')">
         <div class="flex gap-2">
             {{-- Search --}}
             <flux:input.group>
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search datasets..."
+                <flux:input wire:model.live.debounce.300ms="search"
+                            :placeholder="__('Search datasets...')"
                             icon="magnifying-glass"/>
-                <flux:tooltip content="Advanced Search" x-data="{}">
-                    <flux:button icon="adjustments-horizontal" x-on:click="$flux.modal('advanced-search').show()"/>
+                <flux:tooltip :content="__('Advanced Search')" x-data="{}">
+                    <flux:button icon="adjustments-horizontal"
+                                 x-on:click="$flux.modal('advanced-search').show()"/>
                 </flux:tooltip>
             </flux:input.group>
             {{-- Action buttons --}}
             <flux:button variant="primary" icon="plus" wire:navigate href="{{ route('datasets.create') }}">
-                New Dataset
+                {{ __('New Dataset') }}
             </flux:button>
             {{--<flux:button variant="primary" icon="arrow-path" wire:navigate href="{{ route('datasets.combine') }}">
                 Combine Datasets
@@ -23,15 +25,18 @@
         <flux:table :paginate="$this->datasets">
             <flux:table.columns>
                 <flux:table.column sortable :sorted="$sortBy === 'name'" :direction="$sortDirection"
-                                   wire:click="sort('name')">Name
+                                   wire:click="sort('name')">
+                    {{ __('Name') }}
                 </flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'description'" :direction="$sortDirection"
-                                   wire:click="sort('description')">Description
+                                   wire:click="sort('description')">
+                    {{ __('Description') }}
                 </flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'created_at'" :direction="$sortDirection"
-                                   wire:click="sort('created_at')">Created
+                                   wire:click="sort('created_at')">
+                    {{ __('Created At') }}
                 </flux:table.column>
-                <flux:table.column><span class="sr-only">Actions</span></flux:table.column>
+                <flux:table.column><span class="sr-only">{{ __('Actions') }}</span></flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -46,7 +51,7 @@
                                     <flux:button variant="ghost" size="sm" icon="eye"
                                                  :href="route('datasets.show', $dataset)"
                                                  wire:navigate>
-                                        Explore
+                                        {{ __('Explore') }}
                                     </flux:button>
                                 @endcanany
                                 @canany(['update', 'delete'], $dataset)
@@ -55,11 +60,12 @@
                                         <flux:menu>
                                             @can('update', $dataset)
                                                 <flux:menu.item icon="pencil-square" wire:navigate
-                                                                :href="route('datasets.edit', $dataset)">Edit
+                                                                :href="route('datasets.edit', $dataset)">
+                                                    {{ __('Edit') }}
                                                 </flux:menu.item>
                                                 <flux:menu.item icon="users"
-                                                                wire:click="showPermissions({{ $dataset->id }})">Manage
-                                                    Access
+                                                                wire:click="showPermissions({{ $dataset->id }})">
+                                                    {{ __('Manage Access') }}
                                                 </flux:menu.item>
                                             @endcan
                                             @can('delete', $dataset)
@@ -68,9 +74,9 @@
                                                     icon="trash"
                                                     wire:click="deleteDataset({{ $dataset->id }})"
                                                     :id="$dataset->id"
-                                                    title="Delete dataset {{ $dataset->name }}?">
-                                                    <p>Are you sure you want to delete this dataset?</p>
-                                                    <p>This action cannot be undone.</p>
+                                                    :title="__('Delete dataset :name?', ['name' => $dataset->name])">
+                                                    <p>{{ __('Are you sure you want to delete this dataset?') }}</p>
+                                                    <p>{{ __('This action cannot be undone.') }}</p>
                                                 </x-delete-menu-item>
                                             @endcan
                                         </flux:menu>

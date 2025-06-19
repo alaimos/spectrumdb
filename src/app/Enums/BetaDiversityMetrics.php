@@ -19,10 +19,10 @@ enum BetaDiversityMetrics: int
     public function getName(): string
     {
         return match ($this) {
-            self::BRAY_CURTIS => 'Bray-Curtis Distance',
-            self::JACCARD => 'Jaccard Distance',
-            self::UNWEIGHTED_UNIFRAC => 'Unweighted Unifrac Distance',
-            self::WEIGHTED_UNIFRAC => 'Weighted Unifrac Distance',
+            self::BRAY_CURTIS => __('Bray-Curtis Distance'),
+            self::JACCARD => __('Jaccard Distance'),
+            self::UNWEIGHTED_UNIFRAC => __('Unweighted UniFrac Distance'),
+            self::WEIGHTED_UNIFRAC => __('Weighted UniFrac Distance'),
         };
     }
 }

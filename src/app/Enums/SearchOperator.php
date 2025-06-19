@@ -22,21 +22,48 @@ enum SearchOperator: string
     case LESS_THAN_EQUAL = 'less_than_equal';
     case GREATER_THAN_EQUAL = 'greater_than_equal';
 
+    public static function stringOperators(): array
+    {
+        return array_filter(self::cases(), fn ($case) => $case->isStringOperator());
+    }
+
+    public static function numericOperators(): array
+    {
+        return array_filter(self::cases(), fn ($case) => $case->isNumericOperator());
+    }
+
+    public static function getStringOperatorsForSelect(): array
+    {
+        return collect(self::stringOperators())
+            ->mapWithKeys(fn ($operator) => [$operator->value => $operator->label()])
+            ->toArray();
+    }
+
+    public static function getNumericOperatorsForSelect(): array
+    {
+        return collect(self::numericOperators())
+            ->mapWithKeys(fn ($operator) => [$operator->value => $operator->label()])
+            ->toArray();
+    }
+
+    public static function getAllValues(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
     public function label(): string
     {
         return match ($this) {
-            self::EQUALS_STRING => 'Equals',
-            self::NOT_EQUALS_STRING => 'Not Equals',
-            self::CONTAINS => 'Contains',
-            self::NOT_CONTAINS => 'Not Contains',
-            self::STARTS_WITH => 'Starts With',
-            self::ENDS_WITH => 'Ends With',
-            self::EQUALS => 'Equals',
-            self::NOT_EQUALS => 'Not Equals',
-            self::LESS_THAN => 'Less Than',
-            self::GREATER_THAN => 'Greater Than',
-            self::LESS_THAN_EQUAL => 'Less Than or Equal',
-            self::GREATER_THAN_EQUAL => 'Greater Than or Equal',
+            self::EQUALS_STRING, self::EQUALS => __('Equals'),
+            self::NOT_EQUALS_STRING, self::NOT_EQUALS => __('Not Equals'),
+            self::CONTAINS => __('Contains'),
+            self::NOT_CONTAINS => __('Not Contains'),
+            self::STARTS_WITH => __('Starts With'),
+            self::ENDS_WITH => __('Ends With'),
+            self::LESS_THAN => __('Less Than'),
+            self::GREATER_THAN => __('Greater Than'),
+            self::LESS_THAN_EQUAL => __('Less Than or Equal'),
+            self::GREATER_THAN_EQUAL => __('Greater Than or Equal'),
         };
     }
 
@@ -62,34 +89,5 @@ enum SearchOperator: string
             self::LESS_THAN_EQUAL,
             self::GREATER_THAN_EQUAL,
         ]);
-    }
-
-    public static function stringOperators(): array
-    {
-        return array_filter(self::cases(), fn($case) => $case->isStringOperator());
-    }
-
-    public static function numericOperators(): array
-    {
-        return array_filter(self::cases(), fn($case) => $case->isNumericOperator());
-    }
-
-    public static function getStringOperatorsForSelect(): array
-    {
-        return collect(self::stringOperators())
-            ->mapWithKeys(fn($operator) => [$operator->value => $operator->label()])
-            ->toArray();
-    }
-
-    public static function getNumericOperatorsForSelect(): array
-    {
-        return collect(self::numericOperators())
-            ->mapWithKeys(fn($operator) => [$operator->value => $operator->label()])
-            ->toArray();
-    }
-
-    public static function getAllValues(): array
-    {
-        return array_column(self::cases(), 'value');
     }
 }

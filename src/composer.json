@@ -17,7 +17,8 @@
         "livewire/flux-pro": "^2.1",
         "livewire/volt": "^1.7.0",
         "ext-zip": "*",
-        "ext-zlib": "*"
+        "ext-zlib": "*",
+        "ext-intl": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

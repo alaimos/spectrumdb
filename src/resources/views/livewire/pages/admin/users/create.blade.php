@@ -1,8 +1,8 @@
 <div>
     <div class="flex items-center mb-6">
         <div>
-            <flux:heading size="lg">Create New User</flux:heading>
-            <flux:subheading>Add a new user to the system</flux:subheading>
+            <flux:heading size="lg">{{ __('Create New User') }}</flux:heading>
+            <flux:subheading>{{ __('Add a new user to the system') }}</flux:subheading>
         </div>
         <flux:spacer/>
     </div>
@@ -12,8 +12,8 @@
                 <div class="sm:col-span-2">
                     <flux:input
                         wire:model="name"
-                        label="Full Name"
-                        placeholder="Enter user's full name"
+                        label="{{ __('Full Name') }}"
+                        placeholder="{{ __('Enter user\'s full name') }}"
                         icon="user"
                         required
                     />
@@ -22,7 +22,7 @@
                 <div class="sm:col-span-2">
                     <flux:input
                         wire:model="email"
-                        label="Email Address"
+                        label="{{ __('Email Address') }}"
                         type="email"
                         placeholder="user@example.com"
                         icon="envelope"
@@ -33,11 +33,11 @@
                 <div class="sm:col-span-2">
                     <flux:select
                         wire:model="role"
-                        label="User Role"
+                        label="{{ __('User Role') }}"
                         icon="user-group"
                         required
                     >
-                        <flux:select.option value="">Select a role</flux:select.option>
+                        <flux:select.option value="">{{ __('Select a role') }}</flux:select.option>
                         @foreach(\App\Enums\Role::cases() as $role)
                             <flux:select.option value="{{ $role->value }}">
                                 {{ $role->label() }}
@@ -49,7 +49,7 @@
                 <div>
                     <flux:input
                         wire:model="password"
-                        label="Password"
+                        label="{{ __('Password') }}"
                         type="password"
                         placeholder="••••••••"
                         icon="key"
@@ -60,7 +60,7 @@
                 <div>
                     <flux:input
                         wire:model="password_confirmation"
-                        label="Confirm Password"
+                        label="{{ __('Confirm Password') }}"
                         type="password"
                         placeholder="••••••••"
                         icon="key"
@@ -75,14 +75,14 @@
                     wire:navigate
                     variant="ghost"
                 >
-                    Cancel
+                    {{ __('Cancel') }}
                 </flux:button>
                 <flux:button
                     type="submit"
                     variant="primary"
                     icon="user-plus"
                 >
-                    Create User
+                    {{ __('Create User') }}
                 </flux:button>
             </div>
         </form>

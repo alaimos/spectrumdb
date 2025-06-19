@@ -120,6 +120,7 @@ alpha_diversity_plot <- function(diversity_file, metadata_file, class_variable,
   # Merge data
   plot_data <- metadata %>%
     left_join(diversity, by = "sample_id") %>%
+    select(sample_id, alpha_diversity, all_of(class_variable)) %>%
     na.omit()
 
   # Validate class variable
@@ -188,6 +189,7 @@ beta_diversity_plot <- function(diversity_file, metadata_file, color_var, output
   p <- diversity$data$Vectors %>%
     select(SampleID, PC1, PC2) %>%
     left_join(metadata, by = "SampleID") %>%
+    select(PC1, PC2, all_of(color_var)) %>%
     na.omit() %>%
     ggplot(aes(x = PC1, y = PC2)) +
     geom_point(alpha = 0.5, size = 5, aes(colour = .data[[color_var]])) +

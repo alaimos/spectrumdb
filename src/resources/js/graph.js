@@ -1,5 +1,13 @@
 import * as d3 from 'd3';
 
+function linkArc (d) {
+    const r = Math.hypot(d.target.x - d.source.x, d.target.y - d.source.y);
+    return `
+    M${d.source.x},${d.source.y}
+    A${r},${r} 0 0,1 ${d.target.x},${d.target.y}
+  `;
+}
+
 export default function networkChart (data) {
     // Specify the dimensions of the chart.
     const width = 800;
@@ -14,47 +22,48 @@ export default function networkChart (data) {
     const nodes = data.nodes.map(d => ({ ...d }));
 
     // Create a simulation with several forces.
-    const simulation = d3.forceSimulation(nodes).
-                          force('link', d3.forceLink(links).id(d => d.id)).
-                          force('charge', d3.forceManyBody()).
-                          force('center', d3.forceCenter(width / 2, height / 2)).
-                          on('tick', ticked);
+    const simulation = d3.forceSimulation(nodes)
+                         .force('link', d3.forceLink(links).id(d => d.id))
+                         .force('charge', d3.forceManyBody().strength(-200))
+                         .force('x', d3.forceX())
+                         .force('y', d3.forceY())
+                         .on('tick', ticked);
 
     // Create the SVG container.
-    const svg = d3.create('svg').
-                   //attr('width', width).
-                   //attr('height', height).
-                   attr('viewBox', [0, 0, width, height]).
-                   attr('style', 'max-width: 100%; height: auto;');
+    const svg = d3.create('svg')
+                  .attr('width', width)
+                  .attr('height', height)
+                  .attr('viewBox', [-width / 2, -height / 2, width, height])
+                  .attr('style', 'max-width: 100%; height: auto;');
 
     // Add a line for each link, and a circle for each node.
-    const link = svg.append('g').
-                     attr('stroke', '#999').
-                     attr('stroke-opacity', 0.6).
-                     selectAll().
-                     data(links).
-                     join('line').
-                     attr('stroke-width', d => Math.sqrt(d.value));
+    const link = svg.append('g')
+                    .attr('stroke', '#999')
+                    .attr('stroke-opacity', 0.6)
+                    .selectAll()
+                    .data(links)
+                    .join('line')
+                    .attr('stroke-width', d => d.value);
 
-    const node = svg.append('g').
-                     attr('stroke', 'currentColor').
-                     attr('stroke-width', 1.5).
-                     selectAll().
-                     data(nodes).
-                     join('circle').
-                     attr('r', 5).
-                     attr('fill', d => color(d.group));
+    const node = svg.append('g')
+                    .attr('stroke', 'currentColor')
+                    .attr('stroke-width', 1.5)
+                    .selectAll()
+                    .data(nodes)
+                    .join('circle')
+                    .attr('r', 5)
+                    .attr('fill', d => color(d.group));
 
     node.append('title').text(d => d.id);
 
-    const textElems = svg.append('g').
-                          selectAll('text').
-                          data(nodes).
-                          join('text').
-                          text(d => d.id).
-                          attr('font-size', 8).
-                          attr('fill', 'currentColor').
-                          attr('color', 'black');
+    const textElems = svg.append('g')
+                         .selectAll('text')
+                         .data(nodes)
+                         .join('text')
+                         .text(d => d.id)
+                         .attr('font-size', 8)
+                         .attr('fill', 'currentColor')
+                         .attr('color', 'black');
 
     // Add a drag behavior.
     node.call(d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended));
@@ -62,10 +71,10 @@ export default function networkChart (data) {
 
     // Set the position attributes of links and nodes each time the simulation ticks.
     function ticked () {
-        link.attr('x1', d => d.source.x).
-             attr('y1', d => d.source.y).
-             attr('x2', d => d.target.x).
-             attr('y2', d => d.target.y);
+        link.attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
 
         node.attr('cx', d => d.x).attr('cy', d => d.y);
         textElems.attr('dx', d => d.x + 6).attr('dy', d => d.y);

@@ -1,8 +1,12 @@
 @use(\App\Enums\SearchOperator)
 <div class="space-y-6">
     <div>
-        <flux:heading size="lg">Advanced Search</flux:heading>
-        <flux:subheading>Filter datasets using advanced criteria</flux:subheading>
+        <flux:heading size="lg">
+            {{ __('Advanced Search') }}
+        </flux:heading>
+        <flux:subheading>
+            {{ __('Filter datasets using advanced criteria') }}
+        </flux:subheading>
     </div>
 
     <div class="space-y-2">
@@ -15,9 +19,9 @@
                             size="sm"
                             class="!w-24"
                         >
-                            <flux:select.option value="AND">AND</flux:select.option>
-                            <flux:select.option value="OR">OR</flux:select.option>
-                            <flux:select.option value="NOT">NOT</flux:select.option>
+                            <flux:select.option value="AND">{{ __('AND') }}</flux:select.option>
+                            <flux:select.option value="OR">{{ __('OR') }}</flux:select.option>
+                            <flux:select.option value="NOT">{{ __('NOT') }}</flux:select.option>
                         </flux:select>
                     @else
                         <div class="!w-24"></div>
@@ -29,10 +33,10 @@
                             <flux:select
                                 wire:model.live="conditions.{{ $index }}.type"
                                 size="sm"
-                                label-sr-only="Search in"
+                                label-sr-only="{{ __('Search in') }}"
                             >
-                                <flux:select.option value="dataset">Dataset</flux:select.option>
-                                <flux:select.option value="sample">Sample</flux:select.option>
+                                <flux:select.option value="dataset">{{ __('Dataset') }}</flux:select.option>
+                                <flux:select.option value="sample">{{ __('Sample') }}</flux:select.option>
                             </flux:select>
                         </div>
 
@@ -42,8 +46,8 @@
                                 wire:model="conditions.{{ $index }}.key"
                                 size="sm"
                                 searchable
-                                label-sr-only="Field"
-                                placeholder="Select field..."
+                                label-sr-only="{{ __('Field') }}"
+                                placeholder="{{ __('Select field...') }}"
                             >
                                 @foreach($this->getMetadataKeysForType($condition['type']) as $key)
                                     <flux:select.option
@@ -57,14 +61,14 @@
                             <flux:select
                                 wire:model="conditions.{{ $index }}.operator"
                                 size="sm"
-                                label-sr-only="Operator"
+                                label-sr-only="{{ __('Operator') }}"
                             >
-                                <optgroup label="String">
+                                <optgroup label="{{ __('String') }}">
                                     @foreach(SearchOperator::getStringOperatorsForSelect() as $value => $label)
                                         <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                     @endforeach
                                 </optgroup>
-                                <optgroup label="Numeric">
+                                <optgroup label="{{ __('Numeric') }}">
                                     @foreach(SearchOperator::getNumericOperatorsForSelect() as $value => $label)
                                         <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                                     @endforeach
@@ -77,8 +81,8 @@
                             <flux:input
                                 wire:model="conditions.{{ $index }}.value"
                                 size="sm"
-                                label-sr-only="Value"
-                                placeholder="Enter value..."
+                                label-sr-only="{{ __('Value') }}"
+                                placeholder="{{ __('Enter value...') }}"
                             />
                         </div>
 
@@ -90,7 +94,7 @@
                                 icon="x-mark"
                                 size="sm"
                                 :disabled="count($conditions) === 1"
-                                label-sr-only="Remove condition"
+                                label-sr-only="{{ __('Remove condition') }}"
                             />
                         </div>
                     </div>
@@ -106,13 +110,13 @@
             icon="plus"
             size="sm"
         >
-            Add Condition
+            {{ __('Add Condition') }}
         </flux:button>
 
         <div class="flex gap-2">
             <flux:modal.close>
                 <flux:button variant="ghost" size="sm">
-                    Cancel
+                    {{ __('Cancel') }}
                 </flux:button>
             </flux:modal.close>
             <flux:button
@@ -120,7 +124,7 @@
                 wire:click="applySearch"
                 size="sm"
             >
-                Apply Filters
+                {{ __('Apply Filters') }}
             </flux:button>
         </div>
     </div>

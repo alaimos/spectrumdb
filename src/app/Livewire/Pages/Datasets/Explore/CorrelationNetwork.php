@@ -196,6 +196,19 @@ final class CorrelationNetwork extends Component
             return 'Error reading differential abundance table.';
         }
         $nodes = [];
+        $addNode = static function ($taxa, $group) use (&$nodes) {
+            if (! isset($nodes[$taxa])) {
+                $nodes[$taxa] = [
+                    'id' => $taxa,
+                    'group' => $group,
+                ];
+            } else {
+                $previousGroup = $nodes[$taxa]['group'];
+                if ($previousGroup !== $group) {
+                    $nodes[$taxa]['group'] = 3;
+                }
+            }
+        };
         $links = [];
         $header = true;
         while (($line = fgets($stream)) !== false) {
@@ -219,23 +232,13 @@ final class CorrelationNetwork extends Component
             $correlationGroup2 = (float) $correlationGroup2;
             $group = ($correlationGroup1 > $correlationGroup2) ? 1 : 2;
             $correlation = ($group === 1) ? $correlationGroup1 : $correlationGroup2;
-            if (! isset($nodes[$sourceTaxa])) {
-                $nodes[$sourceTaxa] = [
-                    'id' => $sourceTaxa,
-                    'group' => $group,
-                ];
-            }
-            if (! isset($nodes[$targetTaxa])) {
-                $nodes[$targetTaxa] = [
-                    'id' => $targetTaxa,
-                    'group' => $group,
-                ];
-            }
+            $addNode($sourceTaxa, $group);
+            $addNode($targetTaxa, $group);
             $links[] = [
                 'source' => $sourceTaxa,
                 'target' => $targetTaxa,
                 'correlation' => $correlation,
-                'value' => (int) (abs($correlation) * 100), // Convert FDR to an integer value for the link weight
+                'value' => (int) (abs($correlation - $this->correlationThreshold + 0.1) * 10), // Convert FDR to an integer value for the link weight
             ];
         }
         fclose($stream);

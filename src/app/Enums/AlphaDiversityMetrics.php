@@ -19,10 +19,10 @@ enum AlphaDiversityMetrics: int
     public function getName(): string
     {
         return match ($this) {
-            self::FAITH => 'Faith\'s Phylogenetic Diversity',
-            self::CHAO => 'Chao1 Diversity Index',
-            self::EVENNESS => 'Evenness Index',
-            self::SHANNON => 'Shannon Diversity Index',
+            self::FAITH => __('Faith\'s Phylogenetic Diversity Index'),
+            self::CHAO => __('Chao1 Diversity Index'),
+            self::EVENNESS => __('Evenness Index'),
+            self::SHANNON => __('Shannon Diversity Index'),
         };
     }
 }

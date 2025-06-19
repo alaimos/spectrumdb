@@ -17,8 +17,8 @@ enum TaxaAbundanceCharts: string
     public function getName(): string
     {
         return match ($this) {
-            self::STACKED => 'Stacked Barplot',
-            self::PIE => 'Pie Plot',
+            self::STACKED => __('Stacked Barplot'),
+            self::PIE => __('Pie Plot'),
         };
     }
 

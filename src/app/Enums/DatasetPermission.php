@@ -33,10 +33,10 @@ enum DatasetPermission: string
     public function label(): string
     {
         return match ($this) {
-            self::READ => 'Read',
-            self::ANALYZE => 'Analyze',
-            self::DOWNLOAD => 'Download',
-            self::ALL => 'All',
+            self::READ => __('Read'),
+            self::ANALYZE => __('Analyze'),
+            self::DOWNLOAD => __('Download'),
+            self::ALL => __('All'),
         };
     }
 }

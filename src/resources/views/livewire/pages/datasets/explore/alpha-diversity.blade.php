@@ -1,12 +1,11 @@
 @use(App\Enums\AlphaDiversityMetrics)
 @use(App\Enums\BatchStatus)
 <section class="w-full">
-    <x-page-heading title="Explore dataset {{ $dataset->name }}"
-                    subtitle="Explore the dataset {{ $dataset->name }} in detail."/>
+    <x-explore-heading :dataset="$dataset"/>
 
     <x-explore.layout
         heading="Alpha Diversity"
-        subheading="Here you can explore the alpha diversity of the dataset {{ $dataset->name }}."
+        subheading="Here you can explore the alpha diversity of this dataset."
         :dataset="$dataset">
 
         <flux:card>
