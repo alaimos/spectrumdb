@@ -63,14 +63,14 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
                             <h3 class="font-semibold text-zinc-900 dark:text-white truncate">
-                                {{ $notification->data['title'] ?? 'Notification' }}
+                                {{ __($notification->data['title'] ?? 'Notification', $notification->data['replace'] ?? []) }}
                             </h3>
                             <time class="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap ml-4">
                                 {{ $notification->created_at->diffForHumans() }}
                             </time>
                         </div>
                         <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
-                            {{ $notification->data['message'] ?? '' }}
+                            {{ __($notification->data['message'] ?? '', $notification->data['replace'] ?? []) }}
                         </p>
                     </div>
                 </div>

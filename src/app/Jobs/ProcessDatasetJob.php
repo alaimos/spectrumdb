@@ -166,8 +166,9 @@ final class ProcessDatasetJob implements ShouldQueue
             User::find($this->userId)?->notify(
                 new GeneralNotification(
                     title: 'Dataset processing failed',
-                    message: 'An error occurred while processing your dataset: '.$e->getMessage(),
-                    level: NotificationLevel::ERROR
+                    message: 'An error occurred while processing your dataset: :message',
+                    level: NotificationLevel::ERROR,
+                    replace: ['message' => $e->getMessage()]
                 )
             );
             throw $e;

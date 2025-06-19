@@ -45,9 +45,10 @@ final class NotificationButton extends Component
         $title = $notification['title'] ?? 'No title';
         $message = $notification['message'] ?? 'No message';
         $notificationLevel = NotificationLevel::from($notification['level'] ?? 'info');
+        $replace = $notification['replace'] ?? [];
         Flux::toast(
-            text: $message,
-            heading: $title,
+            text: __($message, $replace),
+            heading: __($title, $replace),
             variant: $notificationLevel->variant(),
         );
         $this->updateUnreadCount();
@@ -62,12 +63,13 @@ final class NotificationButton extends Component
         }
         auth()->user()->notify(
             new GeneralNotification(
-                title: __('Analysis Error'),
-                message: __('One of your analyses failed with an error: :message (ID: :id)', [
+                title: 'Analysis Error',
+                message: 'One of your analyses failed with an error: :message (ID: :id)',
+                level: NotificationLevel::ERROR,
+                replace: [
                     'message' => $error ?? __('No error message provided.'),
                     'id' => $batchId,
-                ]),
-                level: NotificationLevel::ERROR
+                ],
             )
         );
     }
@@ -80,8 +82,8 @@ final class NotificationButton extends Component
         }
         auth()->user()->notify(
             new GeneralNotification(
-                title: __('Analysis Completed'),
-                message: __('Your analysis has been completed successfully.'),
+                title: 'Analysis Completed',
+                message: 'Your analysis has been completed successfully.',
                 level: NotificationLevel::SUCCESS
             )
         );

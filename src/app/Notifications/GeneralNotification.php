@@ -9,15 +9,20 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
+use Stringable;
 
 final class GeneralNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * @param  array<string, Stringable|string>  $replace
+     */
     public function __construct(
         public string $title,
         public string $message,
-        public NotificationLevel $level = NotificationLevel::INFO
+        public NotificationLevel $level = NotificationLevel::INFO,
+        public array $replace = [],
     ) {}
 
     public function via($notifiable): array
@@ -31,6 +36,7 @@ final class GeneralNotification extends Notification implements ShouldQueue
             'title' => $this->title,
             'message' => $this->message,
             'level' => $this->level->value,
+            'replace' => $this->replace,
         ];
     }
 
@@ -45,6 +51,7 @@ final class GeneralNotification extends Notification implements ShouldQueue
                 'level' => $this->level->value,
                 'title' => $this->title,
                 'message' => $this->message,
+                'replace' => $this->replace,
                 'created_at' => now()->toISOString(),
             ]
         );
