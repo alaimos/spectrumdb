@@ -194,6 +194,10 @@ return [
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'taxonomyFile' => 'taxonomy',
+        'metadataFile' => 'metadata',
+        'asvTableFile' => 'ASV table',
+    ],
 
 ];
