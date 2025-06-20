@@ -107,8 +107,20 @@
                         <flux:select.option :value="2">{{ __('Top Frequent Features') }}</flux:select.option>
                     </flux:select>
                 </div>
-                <img src="{{ $this->functionalPlotUrl }}" alt="{{ $this->functionalPlotTitle }}"
-                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                <div class="mb-4">
+                    <flux:tooltip :content="__('Click to view the plot in full size')">
+                        <a href="{{ $this->functionalPlotUrl }}" target="_blank">
+                            <img src="{{ $this->functionalPlotUrl }}"
+                                 alt="{{ $this->functionalPlotTitle }}"
+                                 class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                        </a>
+                    </flux:tooltip>
+                </div>
+                <div>
+                    <flux:text class="w-full max-w-3xl mx-auto text-justify mb-2">
+                        {!! $this->functionalPlotDescription !!}
+                    </flux:text>
+                </div>
             </div>
             @if ($this->functionalTable)
                 <div class="mt-4">
@@ -146,31 +158,31 @@
                                                        :sorted="$sortBy === 'feature'"
                                                        :direction="$sortDirection"
                                                        wire:click="sort('taxa')">
-                                                       {{ __('Feature') }}
+                                        {{ __('Feature') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'logFoldChange'"
                                                        :direction="$sortDirection"
                                                        wire:click="sort('logFoldChange')">
-                                                       {{ __('Log Fold Change') }}
+                                        {{ __('Log Fold Change') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'lfcSE'"
                                                        :direction="$sortDirection"
                                                        wire:click="sort('lfcSE')">
-                                                       {{ __('Std. Err.') }}
+                                        {{ __('Std. Err.') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'pValue'"
                                                        :direction="$sortDirection"
                                                        wire:click="sort('pValue')">
-                                                       {{ __('p Value') }}
+                                        {{ __('p Value') }}
                                     </flux:table.column>
                                     <flux:table.column sortable
                                                        :sorted="$sortBy === 'padj'"
                                                        :direction="$sortDirection"
                                                        wire:click="sort('padj')">
-                                                       {{ __('FDR') }}
+                                        {{ __('FDR') }}
                                     </flux:table.column>
                                 </flux:table.columns>
 

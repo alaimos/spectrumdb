@@ -90,9 +90,21 @@
         </flux:card>
 
         <x-explore.analysis-viewer :analysisId="$analysisId" :batchStatus="$this->batchStatus">
+            <div class="mb-4">
+                <flux:tooltip :content="__('Click to view the plot in full size')">
+                    <a href="{{ $this->alphaDiversityPlotUrl }}" target="_blank">
+                        <img src="{{ $this->alphaDiversityPlotUrl }}" alt="{{ __('Alpha Diversity Plot') }}"
+                             class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                    </a>
+                </flux:tooltip>
+            </div>
             <div>
-                <img src="{{ $this->alphaDiversityPlotUrl }}" alt="{{ __('Alpha Diversity Plot') }}"
-                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                <flux:text class="w-full max-w-3xl mx-auto text-justify mb-2">
+                    {{ __('spectrum.alpha_diversity_description_1') }}
+                </flux:text>
+                <flux:text class="w-full max-w-3xl mx-auto text-justify">
+                    {{ __('spectrum.alpha_diversity_description_2') }}
+                </flux:text>
             </div>
         </x-explore.analysis-viewer>
     </x-explore.layout>

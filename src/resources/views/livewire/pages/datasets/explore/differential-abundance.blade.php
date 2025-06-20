@@ -12,7 +12,8 @@
             <form wire:submit="runAnalysis">
                 <div class="space-y-6 mb-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        <flux:select wire:model="taxonomicLevel" :label="__('Select taxonomic level')" variant="listbox">
+                        <flux:select wire:model="taxonomicLevel" :label="__('Select taxonomic level')"
+                                     variant="listbox">
                             @foreach(TaxonomicLevels::getValues() as $value => $label)
                                 @if ($value > 1)
                                     <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
@@ -107,8 +108,20 @@
                         <flux:select.option :value="2">{{ __('Top Frequency Features') }}</flux:select.option>
                     </flux:select>
                 </div>
-                <img src="{{ $this->differentialAbundancePlotUrl }}" alt="{{ $this->differentialAbundancePlotTitle }}"
-                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                <div class="mb-4">
+                    <flux:tooltip :content="__('Click to view the plot in full size')">
+                        <a href="{{ $this->differentialAbundancePlotUrl }}" target="_blank">
+                            <img src="{{ $this->differentialAbundancePlotUrl }}"
+                                 alt="{{ $this->differentialAbundancePlotTitle }}"
+                                 class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                        </a>
+                    </flux:tooltip>
+                </div>
+                <div>
+                    <flux:text class="w-full max-w-3xl mx-auto text-justify mb-2">
+                        {!! $this->differentialAbundancePlotDescription !!}
+                    </flux:text>
+                </div>
             </div>
             @if ($this->differentialAbundanceTable)
                 <div class="mt-4">

@@ -29,6 +29,12 @@ final class DatasetAnalysisAssetController extends Controller
         abort_unless(preg_match('/^[a-zA-Z0-9_\-.]+$/', $assetName), 400, 'Invalid asset name');
         abort_if(Storage::missing($assetPath), 404, 'Asset not found');
 
-        return Storage::download($assetPath);
+        $mimeType = Storage::mimeType($assetPath);
+        $isImage = str_starts_with($mimeType, 'image/');
+
+        return Storage::download($assetPath, $assetName, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => $isImage ? 'inline' : 'attachment; filename="'.$assetName.'"',
+        ]);
     }
 }

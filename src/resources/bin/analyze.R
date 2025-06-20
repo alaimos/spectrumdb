@@ -15,8 +15,8 @@ TAXONOMY_LEVEL_LABELS <- c("d", "p", "c", "o", "f", "g", "s")
 TAXONOMY_LEVELS <- c(
   "Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"
 )
-DEFAULT_PLOT_WIDTH <- 15
-DEFAULT_PLOT_HEIGHT <- 11
+DEFAULT_PLOT_WIDTH <- 20
+DEFAULT_PLOT_HEIGHT <- 15
 DEFAULT_DPI <- 300
 DEFAULT_DEVICE <- "svg"
 
@@ -138,7 +138,13 @@ alpha_diversity_plot <- function(diversity_file, metadata_file, class_variable,
     ylab = "Alpha Diversity",
     xlab = class_variable,
     add = "jitter"
-  ) + theme_minimal()
+  ) + 
+    theme_minimal(base_size = 14) +
+    theme(
+      legend.position = "bottom",
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)
+    ) +
+    ggtitle("Alpha Diversity Boxplot")
 
   # Add statistical comparisons if provided
   if (!is.null(comparisons) && !all(is.na(max(plot_data$alpha_diversity)))) {
@@ -195,11 +201,15 @@ beta_diversity_plot <- function(diversity_file, metadata_file, color_var, output
     geom_point(alpha = 0.5, size = 5, aes(colour = .data[[color_var]])) +
     xlab(paste("PC1:", pc1_explain, "%")) +
     ylab(paste("PC2:", pc2_explain, "%")) +
-    theme_minimal() +
+    theme_minimal(base_size = 14) +
+    theme(
+      legend.position = "bottom"
+    ) +
+    ggtitle("Beta Diversity Plot") +
     stat_ellipse(aes(colour = .data[[color_var]]), level = 0.95)
 
   # Save plot
-  save_plot(p, output_file, width = DEFAULT_PLOT_WIDTH, width = DEFAULT_PLOT_HEIGHT)
+  save_plot(p, output_file)
 }
 
 # =============================================================================
@@ -647,6 +657,22 @@ compute_relative_abundance <- function(asv_file, taxonomy_file, metadata_file,
   list(rel_abund = rel_abund, rel_abund_orig = rel_abund_orig)
 }
 
+#' Join unknown taxa into a single category
+#' @param rel_abund Data frame with relative abundances
+join_unknown_taxa <- function(rel_abund) {
+  unknowns <- c(
+    grep("__Unknown", rel_abund$Taxa), 
+    which(rel_abund$Taxa == "Unknown")
+  )
+  if (length(unknowns) > 0) {
+    rel_abund$Taxa[unknowns] <- "Unknowns"
+    rel_abund <- rel_abund %>%
+      group_by(Group, Taxa) %>%
+      summarise(value = sum(value), .groups = "drop")
+  }
+  rel_abund
+}
+
 #' Create stacked bar plot of relative abundances
 #' @param asv_file Path to ASV table
 #' @param taxonomy_file Path to taxonomy file
@@ -668,7 +694,7 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
     taxonomy_level, class_variable, hide_small
   )
 
-  rel_abund <- rel_abunds$rel_abund
+  rel_abund <- join_unknown_taxa(rel_abunds$rel_abund)
   rel_abund_orig <- rel_abunds$rel_abund_orig
 
   # Save abundance table if requested
@@ -684,9 +710,9 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
   # Create plot
   p <- ggplot(rel_abund, aes(x = Group, y = value, fill = Taxa)) +
     geom_bar(stat = "identity", width = 0.6) +
-    theme_minimal() +
+    theme_minimal(base_size = 14) +
     theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
       legend.position = "bottom"
     ) +
     labs(
@@ -694,7 +720,8 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
       x = "",
       fill = "Taxa"
     ) +
-    scale_fill_manual(values = my_colors)
+    scale_fill_manual(values = my_colors) +
+    ggtitle(paste("Relative Abundance at", TAXONOMY_LEVELS[taxonomy_level]))
 
   # Save plot
   save_plot(p, output_file)
@@ -720,7 +747,7 @@ create_abundance_pie_plot <- function(asv_file, taxonomy_file, metadata_file,
     hide_small = TRUE
   )
 
-  rel_abund <- rel_abunds$rel_abund
+  rel_abund <- join_unknown_taxa(rel_abunds$rel_abund)
   rel_abund_orig <- rel_abunds$rel_abund_orig
 
   # Save abundance table if requested
@@ -806,7 +833,7 @@ create_top_frequency_plot <- function(deseq2_results, n, class_variable,
       size = 6, 
       vjust = 0.7
     ) +
-    theme_minimal() +
+    theme_minimal(base_size = 14) +
     labs(
       x = "Log2 Fold Change",
       y = ""
@@ -853,7 +880,7 @@ create_top_significance_plot <- function(deseq2_results, n, class_variable,
       size = 6, 
       vjust = 0.7
     ) +
-    theme_minimal() +
+    theme_minimal(base_size = 14) +
     labs(
       x = "Log2 Fold Change",
       y = ""
@@ -901,7 +928,7 @@ create_top_foldchange_plot <- function(deseq2_results, n, class_variable,
       size = 6, 
       vjust = 0.7
     ) +
-    theme_minimal() +
+    theme_minimal(base_size = 14) +
     labs(
       x = "Log2 Fold Change",
       y = ""

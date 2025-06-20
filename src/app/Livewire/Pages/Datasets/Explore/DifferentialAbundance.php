@@ -157,6 +157,34 @@ final class DifferentialAbundance extends Component
     }
 
     #[Computed]
+    public function differentialAbundancePlotDescription(): ?string
+    {
+        if (!isset($this->batch)) {
+            return null;
+        }
+
+        if ($this->graph < 0 || $this->graph > 2) {
+            return null;
+        }
+
+        $translationKey = match ($this->graph) {
+            0       => 'spectrum.diff_abundance_top_significant_description',
+            1       => 'spectrum.diff_abundance_top_fold_change_description',
+            2       => 'spectrum.diff_abundance_top_frequent_description', // @phpstan-ignore-line
+            default => null,
+        };
+
+        return __(
+            $translationKey,
+            [
+                'n'          => $this->topN,
+                'condition1' => $this->group1,
+                'condition2' => $this->group2,
+            ]
+        );
+    }
+
+    #[Computed]
     public function differentialAbundancePlotUrl(): ?string
     {
         if (! isset($this->batch)) {

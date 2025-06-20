@@ -182,6 +182,34 @@ final class FunctionalAnalysis extends Component
     }
 
     #[Computed]
+    public function functionalPlotDescription(): ?string
+    {
+        if (! isset($this->batch)) {
+            return null;
+        }
+
+        if ($this->graph < 0 || $this->graph > 2) {
+            return null;
+        }
+
+        $translationKey = match ($this->graph) {
+            0 => 'spectrum.functional_top_significant_description',
+            1 => 'spectrum.functional_top_fold_change_description',
+            2 => 'spectrum.functional_top_frequent_description', // @phpstan-ignore-line
+            default => null,
+        };
+
+        return __(
+            $translationKey,
+            [
+                'n' => $this->topN,
+                'condition1' => $this->group1,
+                'condition2' => $this->group2,
+            ]
+        );
+    }
+
+    #[Computed]
     public function functionalTable(): LengthAwarePaginator|string|null
     {
         if (! isset($this->batch)) {
