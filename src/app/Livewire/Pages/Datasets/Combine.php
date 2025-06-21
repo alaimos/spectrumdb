@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets;
 
+use App\Jobs\CombineDatasetsJob;
 use App\Models\Dataset;
 use App\Models\SampleMetadata;
 use Flux\Flux;
@@ -15,6 +16,11 @@ use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 /**
+ * @template TConditionValue of array<int, string> = array<int, string>
+ * @template TConditionsArray of array{key: string, values: TConditionValue} = array{key: string, values: TConditionValue}
+ * @template TConnector of "AND"|"OR"|"NOT" = "AND"|"OR"|"NOT"
+ * @template TConnectorsArray of array<int, TConnector> = array<int, TConnector>
+ *
  * @property Collection<int, Dataset> $selectedDatasets
  * @property Collection<int, string> $allMetadataKeys
  */
@@ -27,7 +33,7 @@ final class Combine extends Component
     /** @var array<int, int> */
     public array $selectedDatasetIds = [];
 
-    /** @var array<int, array{includeAllSamples: bool, conditions: array, connectors: array}> */
+    /** @var array<int, array{includeAllSamples: bool, conditions: array<int, TConditionsArray>, connectors: TConnectorsArray}> */
     public array $datasetSampleCriteria = [];
 
     // Step 3: Combined Dataset Details
@@ -162,21 +168,30 @@ final class Combine extends Component
     {
         $this->validate();
 
-        dd([
-            'selectedDatasetIds' => $this->selectedDatasetIds,
-            'name' => $this->name,
-            'description' => $this->description,
-            'combinedDatasetMetadata' => $this->combinedDatasetMetadata,
-            'metadataPairing' => $this->metadataPairing,
-            'datasetSampleCriteria' => $this->datasetSampleCriteria,
-        ]);
+        $selectedDatasets = $this->prepareSelectedDatasetsArray();
 
-        // For now, just show a toast indicating the feature is not implemented
-        Flux::toast(
-            text: __('Dataset combination will be implemented in the next step.'),
-            heading: __('Not Implemented'),
-            variant: 'warning'
+        $combinedDatasetMetadata = collect($this->combinedDatasetMetadata)->mapWithKeys(static function ($item) {
+            return [$item['key'] => $item['value']];
+        })->toArray();
+
+        $metadataPairing = $this->prepareMetadataPairingArray();
+
+        CombineDatasetsJob::dispatch(
+            userId: auth()->id(),
+            name: $this->name,
+            description: $this->description,
+            datasetMetadata: $combinedDatasetMetadata,
+            selectedDatasets: $selectedDatasets,
+            samplesMetadataPairing: $metadataPairing
         );
+
+        Flux::toast(
+            text: 'Your dataset is being created. You will be notified when it is ready.',
+            heading: 'Dataset creation started',
+            variant: 'success'
+        );
+
+        $this->redirect(route('datasets.index'), navigate: true);
     }
 
     #[Computed]
@@ -362,6 +377,67 @@ final class Combine extends Component
             'combinedDatasetMetadata.*.key.not_regex' => __('This metadata key is reserved and cannot be used.'),
             'combinedDatasetMetadata.*.value.required_with' => __('Please enter a metadata value.'),
         ];
+    }
+
+    /**
+     * Prepare the selected datasets array for processing.
+     *
+     * @return array<int, array{id: int, criteria: array{includeAllSamples: bool, conditions: array<int, TConditionsArray>, connectors: TConnectorsArray}}>
+     */
+    private function prepareSelectedDatasetsArray(): array
+    {
+        $selectedDatasets = [];
+        foreach ($this->selectedDatasetIds as $index => $datasetId) {
+            $selectedDatasets[] = [
+                'id' => $datasetId,
+                'criteria' => $this->datasetSampleCriteria[$index] ?? ['includeAllSamples' => true],
+            ];
+        }
+
+        return $selectedDatasets;
+    }
+
+    /**
+     * Prepare the metadata pairing array for processing.
+     *
+     * @return array<string, array{datasets: array<int, string>, default_values: array<int, string|null>}>
+     */
+    private function prepareMetadataPairingArray(): array
+    {
+        $metadataPairing = [];
+        foreach ($this->metadataPairing as $key => $pairingData) {
+            if (! $pairingData['included']) {
+                continue; // Skip if not included
+            }
+            $pairingKey = $pairingData['paired_key'];
+            $currentPairing = $metadataPairing[$pairingKey] ?? [
+                'datasets' => [],
+                'default_values' => [],
+            ];
+            foreach (array_keys($pairingData['datasets']) as $datasetId) {
+                $currentPairing['datasets'][$datasetId] = $key;
+                if (isset($currentPairing['default_values'][$datasetId])) {
+                    unset($currentPairing['default_values'][$datasetId]); // Not needed if we hava a field that can be paired
+                }
+            }
+            foreach ($pairingData['default_values'] as $datasetId => $defaultValue) {
+                if (! isset($currentPairing['datasets'][$datasetId])) {
+                    $currentPairing['default_values'][$datasetId] = empty($defaultValue) ? null : $defaultValue; // Only keep default values for datasets not paired with a field
+                }
+            }
+            $metadataPairing[$pairingKey] = $currentPairing;
+        }
+
+        // Ensure all metadata pairings have default values for all unpaired datasets
+        foreach ($this->metadataPairing as &$pairingData) {
+            foreach ($this->selectedDatasetIds as $datasetId) {
+                if (! isset($pairingData['datasets'][$datasetId]) && ! isset($pairingData['default_values'][$datasetId])) {
+                    $pairingData['default_values'][$datasetId] = null; // Set default value for unpaired datasets
+                }
+            }
+        }
+
+        return $metadataPairing;
     }
 
     private function validateStep2(): void
