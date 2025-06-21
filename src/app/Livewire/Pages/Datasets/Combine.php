@@ -4,38 +4,74 @@ declare(strict_types=1);
 
 namespace App\Livewire\Pages\Datasets;
 
-use App\Enums\SearchOperator;
 use App\Models\Dataset;
+use App\Models\SampleMetadata;
 use Flux\Flux;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
+/**
+ * @property Collection<int, Dataset> $selectedDatasets
+ * @property Collection<int, string> $allMetadataKeys
+ */
 final class Combine extends Component
 {
+    // Current step tracking
+    public int $currentStep = 1;
+
+    // Step 2: Dataset Selection & Sample Filtering
     /** @var array<int, int> */
     public array $selectedDatasetIds = [];
 
-    /** @var array<int, array{selectAll: bool, conditions: array, connectors: array}> */
+    /** @var array<int, array{includeAllSamples: bool, conditions: array, connectors: array}> */
     public array $datasetSampleCriteria = [];
 
-    #[Validate()]
+    // Step 3: Combined Dataset Details
+    #[Validate]
     public string $name = '';
 
-    #[Validate()]
+    #[Validate]
     public string $description = '';
 
     /** @var array<int, array{key: string, value: string}> */
-    #[Validate()]
+    #[Validate]
     public array $combinedDatasetMetadata = [];
 
-    /** @var array<int, int> */
-    public array $metadataToCopy = [];
+    // Step 4: Metadata Pairing
+    /** @var array<string, array{included: bool, paired_key: string|null, datasets: array<int, string>, default_values: array<int, string>}> */
+    public array $metadataPairing = [];
 
-    public bool $showMetadataSection = false;
+    public function mount(): void
+    {
+        $this->addDataset();
+        $this->addDataset();
+    }
+
+    public function nextStep(): void
+    {
+        // Validate current step
+        match ($this->currentStep) {
+            2 => $this->validateStep2(),
+            3 => $this->validateStep3(),
+            4 => $this->validateStep4(),
+            default => true,
+        };
+
+        if ($this->currentStep === 2) {
+            $this->updateMetadataPairing();
+        }
+
+        $this->currentStep++;
+    }
+
+    public function previousStep(): void
+    {
+        $this->currentStep--;
+    }
 
     public function addDataset(): void
     {
@@ -45,26 +81,33 @@ final class Combine extends Component
 
     public function removeDataset(int $index): void
     {
+        if (count($this->selectedDatasetIds) <= 2) {
+            Flux::toast(
+                text: __('You must select at least 2 datasets to combine.'),
+                heading: __('Validation Error'),
+                variant: 'danger'
+            );
+
+            return;
+        }
+
         unset($this->selectedDatasetIds[$index], $this->datasetSampleCriteria[$index]);
 
         $this->selectedDatasetIds = array_values($this->selectedDatasetIds);
         $this->datasetSampleCriteria = array_values($this->datasetSampleCriteria);
-
-        $this->updateMetadataToCopy();
     }
 
     public function updatedSelectedDatasetIds($value, $key): void
     {
         $index = (int) $key;
         $this->initializeSampleCriteria($index);
-        $this->updateMetadataToCopy();
     }
 
-    public function toggleSelectAll(int $index): void
+    public function toggleSampleSelectionType(int $index): void
     {
-        $this->datasetSampleCriteria[$index]['selectAll'] = ! $this->datasetSampleCriteria[$index]['selectAll'];
+        $this->datasetSampleCriteria[$index]['includeAllSamples'] = ! $this->datasetSampleCriteria[$index]['includeAllSamples'];
 
-        if ($this->datasetSampleCriteria[$index]['selectAll']) {
+        if ($this->datasetSampleCriteria[$index]['includeAllSamples']) {
             $this->datasetSampleCriteria[$index]['conditions'] = [];
             $this->datasetSampleCriteria[$index]['connectors'] = [];
         } else {
@@ -76,8 +119,7 @@ final class Combine extends Component
     {
         $this->datasetSampleCriteria[$datasetIndex]['conditions'][] = [
             'key' => '',
-            'operator' => 'equals',
-            'value' => '',
+            'values' => [],
         ];
 
         if (count($this->datasetSampleCriteria[$datasetIndex]['conditions']) > 1) {
@@ -111,9 +153,30 @@ final class Combine extends Component
         $this->combinedDatasetMetadata = array_values($this->combinedDatasetMetadata);
     }
 
-    public function toggleMetadataSection(): void
+    public function pairMetadataAutomatically(): void
     {
-        $this->showMetadataSection = ! $this->showMetadataSection;
+        $this->updateMetadataPairing();
+    }
+
+    public function combine(): void
+    {
+        $this->validate();
+
+        dd([
+            'selectedDatasetIds' => $this->selectedDatasetIds,
+            'name' => $this->name,
+            'description' => $this->description,
+            'combinedDatasetMetadata' => $this->combinedDatasetMetadata,
+            'metadataPairing' => $this->metadataPairing,
+            'datasetSampleCriteria' => $this->datasetSampleCriteria,
+        ]);
+
+        // For now, just show a toast indicating the feature is not implemented
+        Flux::toast(
+            text: __('Dataset combination will be implemented in the next step.'),
+            heading: __('Not Implemented'),
+            variant: 'warning'
+        );
     }
 
     #[Computed]
@@ -125,9 +188,6 @@ final class Combine extends Component
             ->get();
     }
 
-    /**
-     * @return Collection<int, Dataset>
-     */
     #[Computed]
     public function selectedDatasets(): Collection
     {
@@ -136,35 +196,70 @@ final class Combine extends Component
         return Dataset::whereIn('id', $validIds)->get();
     }
 
-    /**
-     * @return Collection<int, array{key: string, label: string}>
-     */
     public function getSampleMetadataKeys(int $datasetIndex): Collection
     {
         return Cache::memo()->remember(
             $this->getCacheKey($datasetIndex),
             now()->addMinutes(5),
             function () use ($datasetIndex) {
-                /** @var Dataset|null $dataset */
-                $dataset = $this->selectedDatasets[$datasetIndex] ?? null;
-                if (! $dataset) {
+                $datasetId = $this->selectedDatasetIds[$datasetIndex] ?? null;
+                if (! $datasetId) {
                     return collect();
                 }
 
-                return $dataset
-                    ->through('samples')
-                    ->has('metadata')
-                    ->select('key')
+                return SampleMetadata::whereHas('sample', static function ($query) use ($datasetId) {
+                    $query->where('dataset_id', $datasetId);
+                })
                     ->distinct()
                     ->pluck('key')
-                    ->map(
-                        fn ($key) => [
-                            'key' => $key,
-                            'label' => $this->getFieldLabel($key),
-                        ]
-                    );
+                    ->map(fn ($key) => [
+                        'key' => $key,
+                        'label' => $this->getFieldLabel($key),
+                    ]);
             }
         );
+    }
+
+    public function getSampleMetadataValues(int $datasetIndex, string $key): Collection
+    {
+        $datasetId = $this->selectedDatasetIds[$datasetIndex] ?? null;
+        if (! $datasetId || ! $key) {
+            return collect();
+        }
+
+        return Cache::memo()->remember(
+            "sample_metadata_values_{$datasetId}_{$key}_".auth()->id(),
+            now()->addMinutes(5),
+            function () use ($datasetId, $key) {
+                return SampleMetadata::whereHas('sample', static function ($query) use ($datasetId) {
+                    $query->where('dataset_id', $datasetId);
+                })
+                    ->where('key', $key)
+                    ->distinct()
+                    ->pluck('value')
+                    ->filter()
+                    ->sort()
+                    ->values();
+            }
+        );
+    }
+
+    #[Computed]
+    public function allMetadataKeys(): Collection
+    {
+        $keys = collect();
+
+        foreach ($this->selectedDatasets as $dataset) {
+            $datasetKeys = SampleMetadata::whereHas('sample', static function ($query) use ($dataset) {
+                $query->where('dataset_id', $dataset->id);
+            })
+                ->distinct()
+                ->pluck('key');
+
+            $keys = $keys->merge($datasetKeys);
+        }
+
+        return $keys->unique()->sort()->values();
     }
 
     public function getFieldLabel(string $key): string
@@ -172,62 +267,73 @@ final class Combine extends Component
         return str($key)->replace('_', ' ')->title()->toString();
     }
 
-    public function combine(): void
+    public function getSampleCount(int $datasetIndex): int
     {
-        $this->validate();
-
-        // Validate that at least 2 datasets are selected
-        $validDatasetIds = array_filter($this->selectedDatasetIds);
-        if (count($validDatasetIds) < 2) {
-            Flux::toast(
-                text: 'Please select at least 2 datasets to combine.',
-                heading: 'Validation Error',
-                variant: 'danger'
-            );
-
-            return;
+        $datasetId = $this->selectedDatasetIds[$datasetIndex] ?? null;
+        if (! $datasetId) {
+            return 0;
         }
 
-        dd($this->metadataToCopy);
-        Flux::toast(
-            text: 'Dataset combination will be implemented in the next step.',
-            heading: 'Not Implemented',
-            variant: 'warning'
-        );
+        $dataset = Dataset::find($datasetId);
+        if (! $dataset) {
+            return 0;
+        }
+
+        // If including all samples, return total count
+        if ($this->datasetSampleCriteria[$datasetIndex]['includeAllSamples']) {
+            return $dataset->samples()->count();
+        }
+
+        // If no conditions are set, return total count
+        $conditions = $this->datasetSampleCriteria[$datasetIndex]['conditions'] ?? [];
+        if (empty($conditions)) {
+            return $dataset->samples()->count();
+        }
+
+        // Apply filtering conditions
+        $query = $dataset->samples();
+
+        foreach ($conditions as $index => $condition) {
+            if (empty($condition['key']) || empty($condition['values'])) {
+                continue;
+            }
+
+            $connector = $index > 0 ? ($this->datasetSampleCriteria[$datasetIndex]['connectors'][$index - 1] ?? 'AND') : null;
+
+            $subQuery = function ($q) use ($condition) {
+                $q->whereHas('metadata', function ($metaQuery) use ($condition) {
+                    $metaQuery->where('key', $condition['key'])
+                        ->whereIn('value', $condition['values']);
+                });
+            };
+
+            if ($connector === 'OR') {
+                $query->orWhere($subQuery);
+            } elseif ($connector === 'NOT') {
+                $query->whereNot($subQuery);
+            } else {
+                $query->where($subQuery);
+            }
+        }
+
+        return $query->count();
+    }
+
+    public function render(): View
+    {
+        return view('livewire.pages.datasets.combine');
     }
 
     protected function rules(): array
     {
         return [
-            // Basic dataset information
-            'name' => ['required', 'string', 'min:3', 'max:255'],
-            'description' => ['required', 'string', 'min:3', 'max:1000'],
-
-            // Selected datasets validation
+            // Step 2 validation
             'selectedDatasetIds' => ['required', 'array', 'min:2'],
             'selectedDatasetIds.*' => ['required', 'integer', 'exists:datasets,id'],
 
-            // Dataset sample criteria validation
-            'datasetSampleCriteria' => ['array'],
-            'datasetSampleCriteria.*.selectAll' => ['required', 'boolean'],
-            'datasetSampleCriteria.*.conditions' => ['array'],
-            'datasetSampleCriteria.*.conditions.*.key' => [
-                'required_if:datasetSampleCriteria.*.selectAll,false',
-                'string',
-                'max:255',
-            ],
-            'datasetSampleCriteria.*.conditions.*.operator' => [
-                'required_if:datasetSampleCriteria.*.selectAll,false',
-                'string',
-                Rule::enum(SearchOperator::class),
-            ],
-            'datasetSampleCriteria.*.conditions.*.value' => [
-                'required_if:datasetSampleCriteria.*.selectAll,false',
-                'string',
-                'max:1000',
-            ],
-            'datasetSampleCriteria.*.connectors' => ['array'],
-            'datasetSampleCriteria.*.connectors.*' => ['string', 'in:AND,OR,NOT'],
+            // Step 3 validation
+            'name' => ['required', 'string', 'min:3', 'max:255'],
+            'description' => ['required', 'string', 'min:3', 'max:1000'],
 
             // Combined dataset metadata validation
             'combinedDatasetMetadata' => ['array'],
@@ -243,27 +349,53 @@ final class Combine extends Component
                 'max:2000',
             ],
 
-            // Metadata to copy validation
-            'metadataToCopy' => ['array'],
-            'metadataToCopy.*' => ['required', 'integer'],
         ];
     }
 
     protected function messages(): array
     {
         return [
-            'selectedDatasetIds.min' => 'Please select at least 2 datasets to combine.',
-            'selectedDatasetIds.*.exists' => 'The selected dataset does not exist or you do not have access to it.',
-            'datasetSampleCriteria.*.conditions.*.key.required_if' => 'Please select a field for the sample condition.',
-            'datasetSampleCriteria.*.conditions.*.operator.required_if' => 'Please select an operator for the sample condition.',
-            'datasetSampleCriteria.*.conditions.*.operator.in' => 'The selected operator is not valid.',
-            'datasetSampleCriteria.*.conditions.*.value.required_if' => 'Please enter a value for the sample condition.',
-            'datasetSampleCriteria.*.connectors.*.in' => 'The connector must be AND, OR, or NOT.',
-            'combinedDatasetMetadata.*.key.required_with' => 'Please enter a metadata key.',
-            'combinedDatasetMetadata.*.key.not_regex' => 'This metadata key is reserved and cannot be used.',
-            'combinedDatasetMetadata.*.value.required_with' => 'Please enter a metadata value.',
-            'metadataToCopy.*.dataset_id.exists' => 'The selected dataset for metadata copy does not exist.',
+            'selectedDatasetIds.min' => __('Please select at least 2 datasets to combine.'),
+            'selectedDatasetIds.*.required' => __('Please select a dataset.'),
+            'selectedDatasetIds.*.exists' => __('The selected dataset does not exist or you do not have access to it.'),
+            'combinedDatasetMetadata.*.key.required_with' => __('Please enter a metadata key.'),
+            'combinedDatasetMetadata.*.key.not_regex' => __('This metadata key is reserved and cannot be used.'),
+            'combinedDatasetMetadata.*.value.required_with' => __('Please enter a metadata value.'),
         ];
+    }
+
+    private function validateStep2(): void
+    {
+        $this->validate([
+            'selectedDatasetIds' => ['required', 'array', 'min:2'],
+            'selectedDatasetIds.*' => ['required', 'integer', 'exists:datasets,id'],
+        ]);
+    }
+
+    private function validateStep3(): void
+    {
+        $this->validate([
+            'name' => ['required', 'string', 'min:3', 'max:255'],
+            'description' => ['required', 'string', 'min:3', 'max:1000'],
+            'combinedDatasetMetadata' => ['array'],
+            'combinedDatasetMetadata.*.key' => [
+                'required_with:combinedDatasetMetadata.*.value',
+                'string',
+                'max:255',
+                'not_regex:/^original_.+_filename$/',
+            ],
+            'combinedDatasetMetadata.*.value' => [
+                'required_with:combinedDatasetMetadata.*.key',
+                'string',
+                'max:2000',
+            ],
+        ]);
+    }
+
+    private function validateStep4(): void
+    {
+        // Validation for metadata pairing step if needed
+        // For now, we'll skip validation as this is more of a configuration step
     }
 
     private function getCacheKey(int $datasetIndex): string
@@ -274,19 +406,48 @@ final class Combine extends Component
     private function initializeSampleCriteria(int $index): void
     {
         $this->datasetSampleCriteria[$index] = [
-            'selectAll' => true,
+            'includeAllSamples' => true,
             'conditions' => [],
             'connectors' => [],
         ];
     }
 
-    private function updateMetadataToCopy(): void
+    private function updateMetadataPairing(): void
     {
-        $validDatasetIds = array_filter($this->selectedDatasetIds);
-        $this->metadataToCopy = array_filter(
-            $this->metadataToCopy,
-            static fn ($metadata) => in_array($metadata['dataset_id'], $validDatasetIds, true)
-        );
-        $this->metadataToCopy = array_values($this->metadataToCopy);
+        $allKeys = $this->allMetadataKeys;
+        $existingKeys = array_keys($this->metadataPairing);
+
+        // Remove keys that are no longer present
+        foreach ($existingKeys as $key) {
+            if (! $allKeys->contains($key)) {
+                unset($this->metadataPairing[$key]);
+            }
+        }
+
+        // Add new keys and auto-pair
+        foreach ($allKeys as $key) {
+            if (! isset($this->metadataPairing[$key])) {
+                $this->metadataPairing[$key] = [
+                    'included' => true, // Default to included
+                    'paired_key' => $key, // Auto-pair with same name
+                    'datasets' => [],
+                    'default_values' => [],
+                ];
+
+                // Track which datasets have this metadata and set default values for missing ones
+                foreach ($this->selectedDatasets as $dataset) {
+                    $hasMetadata = SampleMetadata::whereHas('sample', static function ($query) use ($dataset) {
+                        $query->where('dataset_id', $dataset->id);
+                    })->where('key', $key)->exists();
+
+                    if ($hasMetadata) {
+                        $this->metadataPairing[$key]['datasets'][$dataset->id] = $dataset->name;
+                    } else {
+                        // Set default value for datasets that don't have this metadata
+                        $this->metadataPairing[$key]['default_values'][$dataset->id] = '';
+                    }
+                }
+            }
+        }
     }
 }

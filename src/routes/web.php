@@ -46,7 +46,7 @@ Route::middleware(['auth', 'verified'])->group(
             App\Models\Dataset::class
         )->name('datasets.create');
         Route::get('/datasets/combine', App\Livewire\Pages\Datasets\Combine::class)
-            ->can('view', 'dataset')->name('datasets.combine');
+            ->can('create', App\Models\Dataset::class)->name('datasets.combine');
         Route::get(
             uri: '/datasets/{dataset}',
             action: App\Livewire\Pages\Datasets\Explore\Index::class
