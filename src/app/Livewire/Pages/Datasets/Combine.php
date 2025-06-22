@@ -415,12 +415,14 @@ final class Combine extends Component
                 'default_values' => [],
             ];
             foreach (array_keys($pairingData['datasets']) as $datasetId) {
+                $datasetId = (int) $datasetId; // Ensure datasetId is an integer
                 $currentPairing['datasets'][$datasetId] = $key;
                 if (isset($currentPairing['default_values'][$datasetId])) {
                     unset($currentPairing['default_values'][$datasetId]); // Not needed if we hava a field that can be paired
                 }
             }
             foreach ($pairingData['default_values'] as $datasetId => $defaultValue) {
+                $datasetId = (int) $datasetId; // Ensure datasetId is an integer
                 if (! isset($currentPairing['datasets'][$datasetId])) {
                     $currentPairing['default_values'][$datasetId] = empty($defaultValue) ? null : $defaultValue; // Only keep default values for datasets not paired with a field
                 }
@@ -429,13 +431,17 @@ final class Combine extends Component
         }
 
         // Ensure all metadata pairings have default values for all unpaired datasets
-        foreach ($this->metadataPairing as &$pairingData) {
+        foreach ($metadataPairing as &$pairingData) {
             foreach ($this->selectedDatasetIds as $datasetId) {
-                if (! isset($pairingData['datasets'][$datasetId]) && ! isset($pairingData['default_values'][$datasetId])) {
+                $datasetId = (int) $datasetId; // Ensure datasetId is an integer
+                if (isset($pairingData['datasets'][$datasetId]) && array_key_exists($datasetId, $pairingData['default_values'])) {
+                    unset($pairingData['default_values'][$datasetId]);
+                } elseif (! isset($pairingData['datasets'][$datasetId]) && ! array_key_exists($datasetId, $pairingData['default_values'])) {
                     $pairingData['default_values'][$datasetId] = null; // Set default value for unpaired datasets
                 }
             }
         }
+        unset($pairingData); // Unset reference to avoid issues
 
         return $metadataPairing;
     }

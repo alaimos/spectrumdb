@@ -138,7 +138,7 @@ alpha_diversity_plot <- function(diversity_file, metadata_file, class_variable,
     ylab = "Alpha Diversity",
     xlab = class_variable,
     add = "jitter"
-  ) + 
+  ) +
     theme_minimal(base_size = 14) +
     theme(
       legend.position = "bottom",
@@ -661,7 +661,7 @@ compute_relative_abundance <- function(asv_file, taxonomy_file, metadata_file,
 #' @param rel_abund Data frame with relative abundances
 join_unknown_taxa <- function(rel_abund) {
   unknowns <- c(
-    grep("__Unknown", rel_abund$Taxa), 
+    grep("__Unknown", rel_abund$Taxa),
     which(rel_abund$Taxa == "Unknown")
   )
   if (length(unknowns) > 0) {
@@ -829,8 +829,8 @@ create_top_frequency_plot <- function(deseq2_results, n, class_variable,
   ) +
     geom_col(aes(fill = change_type), color = "black") +
     geom_text(
-      aes(label = pvalue_sign, hjust = hjust), 
-      size = 6, 
+      aes(label = pvalue_sign, hjust = hjust),
+      size = 6,
       vjust = 0.7
     ) +
     theme_minimal(base_size = 14) +
@@ -876,8 +876,8 @@ create_top_significance_plot <- function(deseq2_results, n, class_variable,
   p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
     geom_col(aes(fill = change_type), color = "black") +
     geom_text(
-      aes(label = pvalue_sign, hjust = hjust), 
-      size = 6, 
+      aes(label = pvalue_sign, hjust = hjust),
+      size = 6,
       vjust = 0.7
     ) +
     theme_minimal(base_size = 14) +
@@ -924,8 +924,8 @@ create_top_foldchange_plot <- function(deseq2_results, n, class_variable,
   p <- ggplot(res, aes(x = log2FoldChange, y = reorder(OTU.NAME, log2FoldChange))) +
     geom_col(aes(fill = change_type), color = "black") +
     geom_text(
-      aes(label = pvalue_sign, hjust = hjust), 
-      size = 6, 
+      aes(label = pvalue_sign, hjust = hjust),
+      size = 6,
       vjust = 0.7
     ) +
     theme_minimal(base_size = 14) +
@@ -980,16 +980,16 @@ prepare_correlation_network <- function(otus, taxas) {
 #' @param group2 Second group for comparison
 #' @param corr_threshold Correlation threshold for filtering
 #' @param output_file Output file for interaction network
-compute_interaction_network <- function(asv_file, taxonomy_file, metadata_file, 
-                                        taxonomy_level, class_variable, group1, 
+compute_interaction_network <- function(asv_file, taxonomy_file, metadata_file,
+                                        taxonomy_level, class_variable, group1,
                                         group2, corr_threshold, output_file) {
   load_packages(c("dplyr", "tidyr"))
-  data <- prepare_deseq_data(asv_file, taxonomy_file, metadata_file, 
+  data <- prepare_deseq_data(asv_file, taxonomy_file, metadata_file,
                              taxonomy_level, class_variable, group1, group2)
   otus    <- as(otu_table(data), "matrix")
   samples <- as(sample_data(data), "data.frame")
   taxas   <- as(tax_table(data), "matrix")
-  
+
   group1_samples <- rownames(samples)[samples[[class_variable]] == group1]
   group2_samples <- rownames(samples)[samples[[class_variable]] == group2]
   otus_group1 <- otus[, group1_samples]
@@ -1034,13 +1034,13 @@ compute_interaction_network <- function(asv_file, taxonomy_file, metadata_file,
     taxa_target = unname(taxas[rownames(otus)[grid_otus$target], 1]),
     stringsAsFactors = FALSE
   ) %>%
-    left_join(network_group1_all, 
+    left_join(network_group1_all,
               by = c("source", "target", "taxa_source", "taxa_target")) %>%
-    left_join(network_group2_all, 
-              by = c("source", "target", "taxa_source", "taxa_target"), 
+    left_join(network_group2_all,
+              by = c("source", "target", "taxa_source", "taxa_target"),
               suffix = c("_group1", "_group2")) %>%
     select(
-      taxa_source, taxa_target, correlation_group1, correlation_group2, 
+      taxa_source, taxa_target, correlation_group1, correlation_group2,
       p_value, fdr
     )
   interaction_network[is.na(interaction_network)] <- 0

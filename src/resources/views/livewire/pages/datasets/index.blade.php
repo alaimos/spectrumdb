@@ -15,9 +15,9 @@
             <flux:button variant="primary" icon="plus" wire:navigate href="{{ route('datasets.create') }}">
                 {{ __('New Dataset') }}
             </flux:button>
-            {{--<flux:button variant="primary" icon="arrow-path" wire:navigate href="{{ route('datasets.combine') }}">
+            <flux:button variant="primary" icon="arrow-path" wire:navigate href="{{ route('datasets.combine') }}">
                 Combine Datasets
-            </flux:button>--}}
+            </flux:button>
         </div>
     </x-page-heading-split>
     {{-- Table --}}
