@@ -42,7 +42,14 @@
             <flux:table.rows>
                 @foreach ($this->datasets as $dataset)
                     <flux:table.row wire:key="{{ $dataset->id }}">
-                        <flux:table.cell>{{ $dataset->name }}</flux:table.cell>
+                        <flux:table.cell>
+                            <div class="flex items-center gap-2">
+                                {{ $dataset->name }}
+                                @if($dataset->is_public)
+                                    <flux:badge size="sm" color="green" icon="globe-alt">{{ __('Public') }}</flux:badge>
+                                @endif
+                            </div>
+                        </flux:table.cell>
                         <flux:table.cell>{{ Str::limit($dataset->description, 50) }}</flux:table.cell>
                         <flux:table.cell>{{ $dataset->created_at->diffForHumans() }}</flux:table.cell>
                         <flux:table.cell>
@@ -63,10 +70,23 @@
                                                                 :href="route('datasets.edit', $dataset)">
                                                     {{ __('Edit') }}
                                                 </flux:menu.item>
-                                                <flux:menu.item icon="users"
-                                                                wire:click="showPermissions({{ $dataset->id }})">
-                                                    {{ __('Manage Access') }}
-                                                </flux:menu.item>
+                                                @if(auth()->user()->id === $dataset->created_by)
+                                                    <flux:menu.item
+                                                        :icon="$dataset->is_public ? 'lock-closed' : 'globe-alt'"
+                                                        wire:click="togglePublicStatus({{ $dataset->id }})">
+                                                        @if($dataset->is_public)
+                                                            {{ __('Make Private') }}
+                                                        @else
+                                                            {{ __('Make Public') }}
+                                                        @endif
+                                                    </flux:menu.item>
+                                                @endif
+                                                @if(!$dataset->is_public)
+                                                    <flux:menu.item icon="users"
+                                                                    wire:click="showPermissions({{ $dataset->id }})">
+                                                        {{ __('Manage Access') }}
+                                                    </flux:menu.item>
+                                                @endif
                                             @endcan
                                             @can('delete', $dataset)
                                                 <flux:menu.separator/>

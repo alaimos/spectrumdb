@@ -32,6 +32,11 @@ final class DatasetPolicy
 
     public function view(User $user, Dataset $dataset): Response
     {
+        // Public datasets are viewable by all users
+        if ($dataset->is_public) {
+            return Response::allow();
+        }
+
         return $dataset->userHasAnyPermission(
             $user,
             [
@@ -71,6 +76,11 @@ final class DatasetPolicy
 
     public function analyze(User $user, Dataset $dataset): Response
     {
+        // Public datasets can be analyzed by all users
+        if ($dataset->is_public) {
+            return Response::allow();
+        }
+
         return $dataset->userHasAnyPermission($user, [DatasetPermission::ANALYZE, DatasetPermission::ALL])
             ? Response::allow()
             : Response::deny('You do not have permission to analyze data from this dataset.');
@@ -78,6 +88,11 @@ final class DatasetPolicy
 
     public function download(User $user, Dataset $dataset): Response
     {
+        // Public datasets can be downloaded by all users
+        if ($dataset->is_public) {
+            return Response::allow();
+        }
+
         return $dataset->userHasAnyPermission($user, [DatasetPermission::DOWNLOAD, DatasetPermission::ALL])
             ? Response::allow()
             : Response::deny('You do not have permission to download data from this dataset.');

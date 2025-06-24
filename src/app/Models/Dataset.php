@@ -27,6 +27,7 @@ final class Dataset extends Model
     protected $fillable = [
         'name',
         'description',
+        'is_public',
         'created_by',
     ];
 
@@ -59,6 +60,11 @@ final class Dataset extends Model
      */
     public function userHasAnyPermission(User $user, array $permissions): bool
     {
+        // If dataset is public, all users have read, analyze, and download permissions
+        if ($this->is_public) {
+            return true;
+        }
+
         // Admin and creator always have all permissions
         if ($user->id === $this->created_by || $user->isAdmin()) {
             return true;
@@ -83,6 +89,11 @@ final class Dataset extends Model
 
     public function userHasPermission(User $user, DatasetPermission $permission): bool
     {
+        // If dataset is public, all users have read, analyze, and download permissions
+        if ($this->is_public) {
+            return true;
+        }
+
         // Admin and creator always have all permissions
         if ($user->id === $this->created_by || $user->isAdmin()) {
             return true;
@@ -183,6 +194,30 @@ final class Dataset extends Model
     }
 
     /**
+     * Check if the dataset is public.
+     */
+    public function isPublic(): bool
+    {
+        return $this->is_public;
+    }
+
+    /**
+     * Make the dataset public.
+     */
+    public function makePublic(): void
+    {
+        $this->update(['is_public' => true]);
+    }
+
+    /**
+     * Make the dataset private.
+     */
+    public function makePrivate(): void
+    {
+        $this->update(['is_public' => false]);
+    }
+
+    /**
      * Scope a query to only include datasets visible to the given user.
      */
     #[Scope]
@@ -198,8 +233,10 @@ final class Dataset extends Model
         return $query->where(
             function ($query) use ($user): void {
                 $query
-                    // Datasets owned by the user
-                    ->where('created_by', $user->id)
+                    // Public datasets are visible to all users
+                    ->where('is_public', true)
+                    // OR datasets owned by the user
+                    ->orWhere('created_by', $user->id)
                     // OR datasets where the user has been granted any permission
                     ->orWhereHas(
                         'users',
@@ -215,6 +252,7 @@ final class Dataset extends Model
     {
         return [
             'files' => AsDatasetFilesDataObject::class,
+            'is_public' => 'boolean',
         ];
     }
 }

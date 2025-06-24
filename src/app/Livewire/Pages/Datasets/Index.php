@@ -105,6 +105,25 @@ final class Index extends Component
         Flux::modal('dataset-permissions')->show();
     }
 
+    public function togglePublicStatus(Dataset $dataset): void
+    {
+        $this->authorize('update', $dataset);
+
+        if ($dataset->is_public) {
+            $dataset->makePrivate();
+            Flux::toast(
+                text: 'Dataset is now private',
+                variant: 'success'
+            );
+        } else {
+            $dataset->makePublic();
+            Flux::toast(
+                text: 'Dataset is now public',
+                variant: 'success'
+            );
+        }
+    }
+
     public function render(): View
     {
         return view('livewire.pages.datasets.index');
