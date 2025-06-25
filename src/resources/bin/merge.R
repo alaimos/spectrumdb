@@ -84,12 +84,21 @@ read_tsv_safe <- function(filepath, name = "TSV file", check_header = TRUE) {
 #' Write a data frame to a TSV file safely
 #' @param data Data frame to write
 #' @param filepath Path to the output TSV file
-write_tsv_safe <- function(data, filepath) {
+#' @param use_readr Logical indicating whether to use readr's write_tsv
+write_tsv_safe <- function(data, filepath, use_readr = FALSE) {
   dir.create(dirname(filepath), recursive = TRUE, showWarnings = FALSE)
-  write.table(
-    data, file = filepath, sep = "\t", row.names = FALSE,
-    quote = FALSE, col.names = TRUE
-  )
+  rownames(data) <- NULL  # Ensure row names are not written
+  if (use_readr) {
+    write_tsv(
+      x = data, file = filepath, col_names = TRUE, na = "NA", 
+      quote = "needed", append = FALSE
+    )
+  } else {
+    write.table(
+      data, file = filepath, sep = "\t", row.names = FALSE,
+      quote = FALSE, col.names = TRUE
+    )
+  }
 }
 
 #' Prepare metadata selection and renaming based on configuration
@@ -129,7 +138,7 @@ generate_qiime_uuid <- function() {
   uuid_segments <- vapply(uuid_parts, function(n) {
     paste0(sample(c(letters[1:6], 0:9), n, replace = TRUE), collapse = "")
   }, character(1))
-
+  
   return(paste(uuid_segments, collapse = "-"))
 }
 
@@ -140,15 +149,15 @@ generate_qiime_uuid <- function() {
 #' @return character path to the artifact directory
 create_artifact_structure <- function(temp_dir, uuid) {
   artifact_dir <- file.path(temp_dir, uuid)
-
+  
   if (!dir.create(artifact_dir, recursive = TRUE, showWarnings = FALSE)) {
     stop("Failed to create artifact directory")
   }
-
+  
   if (!dir.create(file.path(artifact_dir, "data"), recursive = TRUE, showWarnings = FALSE)) {
     stop("Failed to create data directory")
   }
-
+  
   return(artifact_dir)
 }
 
@@ -266,14 +275,14 @@ merge_metadata_tables <- function (config_data, samples_by_dataset) {
   if (nrow(metadata_data) == 0) {
     stop("No metadata data found in the specified files.")
   }
-
+  
   # Ensure sample IDs are trimmed
   metadata_data$sample_id <- trimws(metadata_data$sample_id)
-
+  
   # Filter samples based on the samples_by_dataset
   valid_samples <- unlist(samples_by_dataset)
   metadata_data <- metadata_data[metadata_data$sample_id %in% valid_samples, , drop = FALSE]
-
+  
   return(metadata_data)
 }
 
@@ -286,9 +295,10 @@ merge_picrust_tables <- function (config_data, type, samples_by_dataset) {
   if (is.null(picrust_files) || length(picrust_files) == 0) {
     stop("No PICRUSt files specified in the configuration.")
   }
-
+  
   picrust_data <- lapply(names(picrust_files), function(id) {
-    tmp <- read_tsv_safe(picrust_files[[id]], paste("PICRUSt file for dataset", id), FALSE)
+    tmp <- read_tsv(picrust_files[[id]])
+    class(tmp) <- "data.frame"
     keep <- colnames(tmp)[1:2]
     samples <- intersect(samples_by_dataset[[id]], colnames(tmp))
     if (length(samples) == 0) {
@@ -298,9 +308,9 @@ merge_picrust_tables <- function (config_data, type, samples_by_dataset) {
     rownames(tmp) <- tmp[[1]]
     tmp
   })
-
+  
   all_rows <- unique(do.call(rbind, lapply(picrust_data, function(x)(x[, 1:2]))))
-
+  
   picrust_data <- lapply(picrust_data, function(x) {
     found_rows <- intersect(all_rows[[1]], x[[1]])
     missing_rows <- setdiff(all_rows[[1]], found_rows)
@@ -327,7 +337,7 @@ merge_picrust_tables <- function (config_data, type, samples_by_dataset) {
   if (nrow(picrust_data) == 0) {
     stop("No PICRUSt data found in the specified files.")
   }
-
+  
   return(picrust_data)
 }
 
@@ -358,10 +368,10 @@ merge_qza_files <- function (config_data, type, samples_by_dataset) {
 #' @return data.frame merged alpha diversity data
 merge_alpha_diversity <- function(qza_files, sample_names = NULL) {
   merged_data <- data.frame()
-
+  
   for (file_path in qza_files) {
     message(sprintf("Processing alpha diversity file: %s", file_path))
-
+    
     # Read and validate QZA file
     qza_data <- tryCatch(
       {
@@ -371,24 +381,24 @@ merge_alpha_diversity <- function(qza_files, sample_names = NULL) {
         stop(sprintf("Failed to read QZA file '%s': %s", file_path, e$message))
       }
     )
-
+    
     alpha_data <- qza_data$data
-
+    
     # Convert to standardized data frame format
     alpha_df <- .convert_alpha_to_dataframe(alpha_data)
-
+    
     # Filter by sample names if provided
     if (!is.null(sample_names) && length(sample_names) > 0) {
       alpha_df <- alpha_df[rownames(alpha_df) %in% sample_names, , drop = FALSE]
     }
-
+    
     # Merge with existing data
     merged_data <- .merge_alpha_dataframes(merged_data, alpha_df)
   }
-
+  
   # Sort by sample names for consistency
   merged_data <- merged_data[order(rownames(merged_data)), , drop = FALSE]
-
+  
   message(sprintf("Successfully merged %d alpha diversity samples", nrow(merged_data)))
   return(merged_data)
 }
@@ -416,7 +426,7 @@ merge_alpha_diversity <- function(qza_files, sample_names = NULL) {
   } else {
     stop("Unsupported alpha diversity data format")
   }
-
+  
   return(alpha_df)
 }
 
@@ -429,14 +439,14 @@ merge_alpha_diversity <- function(qza_files, sample_names = NULL) {
   if (nrow(existing) == 0) {
     return(new_data)
   }
-
+  
   # Check for duplicate samples
   common_samples <- intersect(rownames(existing), rownames(new_data))
   if (length(common_samples) > 0) {
     warning(sprintf("Found %d duplicate samples. Keeping first occurrence.", length(common_samples)))
     new_data <- new_data[!rownames(new_data) %in% common_samples, , drop = FALSE]
   }
-
+  
   # Validate column compatibility
   if (ncol(existing) != ncol(new_data) || !all(colnames(existing) == colnames(new_data))) {
     if (ncol(existing) == ncol(new_data) && !all(colnames(existing) == colnames(new_data))) {
@@ -445,7 +455,7 @@ merge_alpha_diversity <- function(qza_files, sample_names = NULL) {
       stop("Column names or structure differ between files. All files must have the same alpha diversity metric.")
     }
   }
-
+  
   return(rbind(existing, new_data))
 }
 
@@ -458,10 +468,10 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
   merged_vectors <- data.frame()
   merged_proportion_explained <- numeric()
   all_pc_axes <- character()
-
+  
   for (file_path in qza_files) {
     message(sprintf("Processing beta diversity file: %s", file_path))
-
+    
     # Read and validate QZA file
     qza_data <- tryCatch(
       {
@@ -471,42 +481,42 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
         stop(sprintf("Failed to read QZA file '%s': %s", file_path, e$message))
       }
     )
-
+    
     # Extract PCoA components
     pcoa_components <- .extract_pcoa_components(qza_data, file_path)
     vectors <- pcoa_components$vectors
     proportion_explained <- pcoa_components$proportion_explained
-
+    
     # Standardize SampleID column
     vectors <- .standardize_sample_ids(vectors)
-
+    
     # Filter by sample names if provided
     if (!is.null(sample_names) && length(sample_names) > 0) {
       vectors <- vectors %>% filter(SampleID %in% sample_names)
     }
-
+    
     # Track PC axes for consistency across files
     pc_cols <- grep("^PC[0-9]+$", colnames(vectors), value = TRUE)
     all_pc_axes <- unique(c(all_pc_axes, pc_cols))
-
+    
     # Merge with existing data
     merge_result <- .merge_beta_dataframes(merged_vectors, vectors, all_pc_axes)
     merged_vectors <- merge_result$vectors
-
+    
     # Handle proportion explained (use first file's values as reference)
     if (!is.null(proportion_explained) && length(merged_proportion_explained) == 0) {
       merged_proportion_explained <- proportion_explained
     }
   }
-
+  
   # Final data cleaning and organization
   result <- .finalize_beta_merge(merged_vectors, merged_proportion_explained, all_pc_axes)
-
+  
   message(sprintf(
     "Successfully merged %d beta diversity samples with %d PC axes",
     nrow(result$Vectors), length(all_pc_axes)
   ))
-
+  
   return(result)
 }
 
@@ -527,7 +537,7 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
   } else {
     stop(sprintf("Unsupported beta diversity data structure in file: %s", file_path))
   }
-
+  
   return(list(vectors = vectors, proportion_explained = proportion_explained))
 }
 
@@ -544,7 +554,7 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
       vectors <- vectors %>% rownames_to_column("SampleID")
     }
   }
-
+  
   vectors$SampleID <- trimws(as.character(vectors$SampleID))
   return(vectors)
 }
@@ -559,7 +569,7 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
   if (nrow(existing) == 0) {
     return(list(vectors = new_vectors))
   }
-
+  
   # Ensure both data frames have all PC columns
   for (axis in all_pc_axes) {
     if (!axis %in% colnames(existing)) {
@@ -569,15 +579,15 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
       new_vectors[[axis]] <- 0
     }
   }
-
+  
   # Reorder columns to match
   common_cols <- intersect(colnames(existing), colnames(new_vectors))
   existing <- existing[, common_cols, drop = FALSE]
   new_vectors <- new_vectors[, common_cols, drop = FALSE]
-
+  
   # Combine data frames
   merged_vectors <- rbind(existing, new_vectors)
-
+  
   return(list(vectors = merged_vectors))
 }
 
@@ -592,18 +602,18 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
   merged_vectors <- merged_vectors %>%
     distinct(SampleID, .keep_all = TRUE) %>%
     arrange(SampleID)
-
+  
   # Order PC columns properly (PC1, PC2, PC3, etc.)
   pc_nums <- as.numeric(gsub("PC", "", all_pc_axes))
   pc_cols_ordered <- paste0("PC", sort(pc_nums))
-
+  
   other_cols <- setdiff(colnames(merged_vectors), all_pc_axes)
   column_order <- c("SampleID", pc_cols_ordered, setdiff(other_cols, "SampleID"))
   merged_vectors <- merged_vectors[, column_order, drop = FALSE]
-
+  
   # Prepare final result structure
   result <- list(Vectors = merged_vectors)
-
+  
   if (length(proportion_explained) > 0) {
     # Ensure proportion explained matches the number of PC axes
     n_axes <- length(pc_cols_ordered)
@@ -614,7 +624,7 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
     }
     result$ProportionExplained <- proportion_explained
   }
-
+  
   return(result)
 }
 
@@ -632,24 +642,24 @@ merge_beta_diversity <- function(qza_files, sample_names = NULL) {
 write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
   temp_dir <- tempdir()
   uuid <- generate_qiime_uuid()
-
+  
   tryCatch(
     {
       artifact_dir <- create_artifact_structure(temp_dir, uuid)
-
+      
       # Copy provenance from first input file
       .copy_provenance(input_files[1], artifact_dir, temp_dir, uuid)
-
+      
       # Write data based on type
       metadata_content <- switch(data_type,
                                  "alpha" = .write_alpha_data(merged_data, artifact_dir, uuid),
                                  "beta" = .write_beta_data(merged_data, artifact_dir, uuid),
                                  stop(sprintf("Unsupported data type: %s", data_type))
       )
-
+      
       # Write metadata and create QZA file
       .finalize_qza_creation(artifact_dir, metadata_content, output_file, temp_dir, uuid)
-
+      
       message(sprintf("Merged QZA file written to: %s", output_file))
     },
     error = function(e) {
@@ -658,7 +668,7 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
       stop(sprintf("Failed to write QZA file: %s", e$message))
     }
   )
-
+  
   return(invisible(TRUE))
 }
 
@@ -670,18 +680,18 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
 #' @param uuid character UUID for artifact
 .copy_provenance <- function(input_file, artifact_dir, temp_dir, uuid) {
   message("Copying provenance from first input file...")
-
+  
   first_file_temp <- file.path(temp_dir, "first_input_extract")
   dir.create(first_file_temp, recursive = TRUE, showWarnings = FALSE)
-
+  
   # Extract input file
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
-
+  
   setwd(first_file_temp)
   zip_result <- system2("unzip", c("-q", shQuote(input_file)), stdout = FALSE, stderr = FALSE)
   setwd(old_wd)
-
+  
   if (zip_result != 0) {
     warning("Failed to extract provenance from input file")
     .create_minimal_provenance(artifact_dir, uuid)
@@ -698,7 +708,7 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
       .create_minimal_provenance(artifact_dir, uuid)
     }
   }
-
+  
   # Clean up extraction directory
   unlink(first_file_temp, recursive = TRUE)
 }
@@ -710,9 +720,9 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
 .create_minimal_provenance <- function(artifact_dir, uuid) {
   provenance_dir <- file.path(artifact_dir, "provenance")
   dir.create(provenance_dir, recursive = TRUE, showWarnings = FALSE)
-
+  
   writeLines(QIIME_VERSION, file.path(provenance_dir, "VERSION"))
-
+  
   provenance_metadata <- sprintf(
     "uuid: %s\ntype: NoProvenanceMetadata\nformat: NoProvenanceMetadataFormat\n",
     uuid
@@ -728,7 +738,7 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
 #' @return character metadata content
 .write_alpha_data <- function(merged_data, artifact_dir, uuid) {
   data_file <- file.path(artifact_dir, "data", "alpha-diversity.tsv")
-
+  
   write.table(
     merged_data,
     data_file,
@@ -737,7 +747,7 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
     col.names = TRUE,
     row.names = TRUE
   )
-
+  
   return(sprintf(
     "uuid: %s\ntype: SampleData[AlphaDiversity]\nformat: AlphaDiversityDirectoryFormat\n",
     uuid
@@ -753,13 +763,13 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
 .write_beta_data <- function(merged_data, artifact_dir, uuid) {
   # Write ordination.txt file
   .write_ordination_file(merged_data, artifact_dir)
-
+  
   # Write additional TSV files for compatibility
   write_tsv(
     merged_data$Vectors,
     file.path(artifact_dir, "data", "sample-coordinates.tsv")
   )
-
+  
   if ("ProportionExplained" %in% names(merged_data)) {
     prop_df <- data.frame(
       Axis = paste0("PC", seq_along(merged_data$ProportionExplained)),
@@ -767,7 +777,7 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
     )
     write_tsv(prop_df, file.path(artifact_dir, "data", "proportion-explained.tsv"))
   }
-
+  
   return(sprintf(
     "uuid: %s\ntype: PCoAResults\nformat: OrdinationDirectoryFormat\n",
     uuid
@@ -783,9 +793,9 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
   vectors <- merged_data$Vectors
   pc_cols <- grep("^PC[0-9]+$", colnames(vectors), value = TRUE)
   n_axes <- length(pc_cols)
-
+  
   ordination_lines <- character()
-
+  
   # Eigenvalues section
   if ("ProportionExplained" %in% names(merged_data)) {
     prop_explained <- merged_data$ProportionExplained
@@ -795,14 +805,14 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
   } else {
     prop_explained <- rep(1 / n_axes, n_axes)
   }
-
+  
   ordination_lines <- c(
     ordination_lines,
     paste("Eigvals", n_axes, sep = "\t"),
     paste(prop_explained, collapse = "\t"),
     ""
   )
-
+  
   # Proportion explained section
   ordination_lines <- c(
     ordination_lines,
@@ -810,26 +820,26 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
     paste(prop_explained, collapse = "\t"),
     ""
   )
-
+  
   # Species section (empty for beta diversity)
   ordination_lines <- c(ordination_lines, "Species\t0\t0", "")
-
+  
   # Site section (sample coordinates)
   ordination_lines <- c(
     ordination_lines,
     paste("Site", nrow(vectors), n_axes, sep = "\t")
   )
-
+  
   for (i in seq_len(nrow(vectors))) {
     sample_id <- vectors$SampleID[i]
     coords <- as.numeric(vectors[i, pc_cols])
     site_line <- paste(c(sample_id, coords), collapse = "\t")
     ordination_lines <- c(ordination_lines, site_line)
   }
-
+  
   # Site constraints section (empty)
   ordination_lines <- c(ordination_lines, "Site constraints\t0\t0")
-
+  
   writeLines(ordination_lines, ordination_file)
 }
 
@@ -844,18 +854,18 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
   # Write metadata files
   writeLines(metadata_content, file.path(artifact_dir, "metadata.yaml"))
   writeLines(QIIME_VERSION, file.path(artifact_dir, "VERSION"))
-
+  
   # Calculate and write checksums
   .write_checksums(artifact_dir)
-
+  
   # Create QZA file (zip archive)
   .create_zip_archive(temp_dir, uuid, output_file)
-
+  
   # Verify file creation
   if (!file.exists(output_file)) {
     stop(sprintf("Failed to create output file: %s", output_file))
   }
-
+  
   # Clean up temporary files
   unlink(artifact_dir, recursive = TRUE)
 }
@@ -866,9 +876,9 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
 .write_checksums <- function(artifact_dir) {
   checksums_file <- file.path(artifact_dir, "checksums.md5")
   all_files <- list.files(artifact_dir, recursive = TRUE, full.names = TRUE)
-
+  
   checksums <- character()
-
+  
   for (file_path in all_files) {
     if (!file.info(file_path)$isdir) {
       relative_path <- sub(paste0(artifact_dir, "/"), "", file_path)
@@ -876,7 +886,7 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
       checksums <- c(checksums, paste(checksum, relative_path, sep = "  "))
     }
   }
-
+  
   writeLines(checksums, checksums_file)
 }
 
@@ -888,19 +898,19 @@ write_merged_qza <- function(merged_data, output_file, data_type, input_files) {
 .create_zip_archive <- function(temp_dir, uuid, output_file) {
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
-
+  
   setwd(temp_dir)
-
+  
   # Create absolute path for output file
   if (!startsWith(output_file, "/")) {
     output_file <- file.path(old_wd, output_file)
   }
-
+  
   # Create zip archive
   zip_result <- system2("zip", c("-r", shQuote(output_file), shQuote(uuid)),
                         stdout = FALSE, stderr = FALSE
   )
-
+  
   if (zip_result != 0) {
     stop(sprintf("Failed to create zip archive (exit code: %d)", zip_result))
   }
@@ -922,9 +932,9 @@ detect_qza_type <- function(qza_file) {
       stop(sprintf("Failed to read QZA file '%s': %s", qza_file, e$message))
     }
   )
-
+  
   qza_type <- qza_data$type
-
+  
   if (grepl("AlphaDiversity", qza_type, ignore.case = TRUE)) {
     return("alpha")
   } else if (grepl("PCoA|Ordination|BetaDiversity", qza_type, ignore.case = TRUE)) {
@@ -932,7 +942,7 @@ detect_qza_type <- function(qza_file) {
     if (grepl("DistanceMatrix", qza_type, ignore.case = TRUE)) {
       stop("Distance matrix files are not supported. Please use PCoA results instead.")
     }
-
+    
     .validate_beta_structure(qza_data)
     return("beta")
   } else {
@@ -951,7 +961,7 @@ detect_qza_type <- function(qza_file) {
     if ("Vectors" %in% names(qza_data$data) || "ProportionExplained" %in% names(qza_data$data)) {
       return(TRUE)
     }
-
+    
     # Check for distance matrix (not supported)
     if (is.matrix(qza_data$data) ||
         (is.data.frame(qza_data$data) && nrow(qza_data$data) == ncol(qza_data$data))) {
@@ -963,7 +973,7 @@ detect_qza_type <- function(qza_file) {
       return(TRUE)
     }
   }
-
+  
   return(TRUE)
 }
 
@@ -989,17 +999,17 @@ detect_qza_type <- function(qza_file) {
 # Parse command line arguments
 if (!interactive()) {
   load_packages("optparse")
-
+  
   option_list <- list(
     make_option("--config_file",
-      type = "character",
-      help = "Config file"
+                type = "character",
+                help = "Config file"
     )
   )
-
+  
   parser <- OptionParser(option_list = option_list)
   args <- parse_args(parser)
-
+  
   # Execute based on method
   config_file <- args$config_file
   validate_file(config_file, "Configuration file")
@@ -1007,56 +1017,57 @@ if (!interactive()) {
     {
       message("Reading configuration file...")
       config_data <- jsonlite::read_json(config_file)
-
+      
       message("Extracting samples from configuration...")
       samples_by_dataset <- extract_samples_from_config(config_data)
-
+      
       message("Merging taxonomy data...")
       taxonomy <- merge_taxonomy_data(config_data)
-
+      
       message("Merging ASV tables and updating samples and taxonomy...")
       tmp <- merge_asv_tables(
         config_data = config_data,
         samples_by_dataset = samples_by_dataset,
         taxonomy = taxonomy
       )
-
+      
       asv_data <- tmp$asv_data
       taxonomy <- tmp$taxonomy
       samples_by_dataset <- tmp$samples_by_dataset
-
+      
       message("Writing merged ASV table and taxonomy data...")
       write_tsv_safe(asv_data, config_data$outputFiles$asvTable)
       write_tsv_safe(taxonomy, config_data$outputFiles$taxonomy)
-
+      
       rm(tmp)
-
+      
       message("Merging metadata tables...")
       metadata <- merge_metadata_tables(
         config_data = config_data,
         samples_by_dataset = samples_by_dataset
       )
-
+      
       message("Writing merged metadata...")
       write_tsv_safe(metadata, config_data$outputFiles$metadata)
-
+      
       # Merge PICRUSt data for each type
       for (type in PICRUST_TYPES) {
         if (!type %in% names(config_data$outputFiles)) {
           next
         }
-
+        
         message(sprintf("Merging PICRUSt data for type: %s", type))
         picrust_data <- merge_picrust_tables(
           config_data = config_data,
           type = type,
           samples_by_dataset = samples_by_dataset
         )
-
+        
         message(sprintf("Writing merged PICRUSt data for type: %s", type))
-        write_tsv_safe(picrust_data, config_data$outputFiles[[type]])
+        write_tsv_safe(picrust_data, config_data$outputFiles[[type]], 
+                       use_readr = TRUE)
       }
-
+      
       # Merge QZA files for alpha and beta diversity
       for (type in names(config_data$outputFiles)) {
         if (type %in% c("metadata", "asvTable", "taxonomy") ||
@@ -1078,6 +1089,6 @@ if (!interactive()) {
       quit(save = "no", status = 100)
     }
   )
-
+  
   quit(save = "no")
 }

@@ -233,8 +233,11 @@ convert_asv_to_otu_table <- function(asv_file, taxonomy_file, taxonomy_level) {
   asv_table <- read.table(
     asv_file,
     sep = "\t", header = TRUE, stringsAsFactors = FALSE,
-    row.names = 1, check.names = FALSE
+    check.names = FALSE #row.names = 1,
   )
+  asv_table <- asv_table[!is.na(asv_table[[1]]), ]
+  rownames(asv_table) <- asv_table[[1]]
+  asv_table <- asv_table[, -1, drop = FALSE] # Remove first column (Feature.ID)
 
   taxonomy <- read.table(
     taxonomy_file,
@@ -815,6 +818,8 @@ create_top_frequency_plot <- function(deseq2_results, n, class_variable,
   combined_data <- combined_data[combined_data$Sum != 0, ]
   combined_data <- combined_data[order(combined_data$Sum, decreasing = TRUE), ]
   combined_data <- combined_data[grep("__Unknown", combined_data$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
+  combined_data <- combined_data[grep("uncharacterized", combined_data$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
+  combined_data <- combined_data[grep("Unknown", combined_data$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
 
   n <- min(n, nrow(combined_data))
   combined_data <- combined_data[seq_len(n), ]
@@ -866,6 +871,8 @@ create_top_significance_plot <- function(deseq2_results, n, class_variable,
   # Sort by p-value and take top n
   res <- res[order(res$pvalue, decreasing = FALSE), ]
   res <- res[grep("__Unknown", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
+  res <- res[grep("uncharacterized", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
+  res <- res[grep("Unknown", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
   n <- min(n, nrow(res))
   res <- res[seq_len(n), ]
   res$pvalue_sign <- gtools::stars.pval(res$pvalue)
@@ -914,6 +921,8 @@ create_top_foldchange_plot <- function(deseq2_results, n, class_variable,
   res <- res[res$log2FoldChange != 0, ]
   res <- res[order(abs(res$log2FoldChange), decreasing = TRUE), ]
   res <- res[grep("__Unknown", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
+  res <- res[grep("uncharacterized", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
+  res <- res[grep("Unknown", res$OTU.NAME, invert = TRUE), ]  # Exclude unknown taxa
   n <- min(n, nrow(res))
   res <- res[seq_len(n), ]
   res$pvalue_sign <- gtools::stars.pval(res$pvalue)

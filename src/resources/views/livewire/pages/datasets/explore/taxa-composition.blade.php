@@ -43,8 +43,12 @@
 
         <x-explore.analysis-viewer :analysisId="$analysisId" :batchStatus="$this->batchStatus">
             <div>
-                <img src="{{ $this->abundancePlotUrl }}" alt="Abundance Composition Plot"
-                     class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                <flux:tooltip :content="__('Click to view the plot in full size')">
+                    <a href="{{ $this->abundancePlotUrl }}" target="_blank">
+                        <img src="{{ $this->abundancePlotUrl }}" :alt="__('Abundance Composition Plot')"
+                             class="w-full max-w-3xl mx-auto rounded-lg shadow-lg bg-white">
+                    </a>
+                </flux:tooltip>
             </div>
             @if ($this->abundanceTable)
                 <div class="mt-4">

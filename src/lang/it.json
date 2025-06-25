@@ -282,5 +282,6 @@
     "Combine Datasets": "Combina Dataset",
     "Please select a dataset.": "Per favore, seleziona un dataset.",
     "samples selected": "campioni selezionati",
-    "samples": "campioni"
+    "samples": "campioni",
+    "Abundance Composition Plot": "Grafico di Composizione dell'Abbondanza"
 }
