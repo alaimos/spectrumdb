@@ -647,9 +647,11 @@ compute_relative_abundance <- function(asv_file, taxonomy_file, metadata_file,
   # Group small abundances if requested
   if (hide_small) {
     small_abund <- rel_abund[rel_abund$value <= 1, ]
+    small_abund_names <- character(0)
     rel_abund <- rel_abund[rel_abund$value > 1, ]
 
     if (nrow(small_abund) > 0) {
+      small_abund_names <- unique(small_abund$Taxa)
       small_abund <- small_abund %>%
         group_by(Group) %>%
         summarise(Taxa = "Others", value = sum(value), .groups = "drop")
@@ -657,7 +659,8 @@ compute_relative_abundance <- function(asv_file, taxonomy_file, metadata_file,
     }
   }
 
-  list(rel_abund = rel_abund, rel_abund_orig = rel_abund_orig)
+  list(rel_abund = rel_abund, rel_abund_orig = rel_abund_orig, 
+       small_abund_names = small_abund_names)
 }
 
 #' Join unknown taxa into a single category
@@ -667,13 +670,16 @@ join_unknown_taxa <- function(rel_abund) {
     grep("__Unknown", rel_abund$Taxa),
     which(rel_abund$Taxa == "Unknown")
   )
+  unknowns_names <- character(0)
   if (length(unknowns) > 0) {
+    unknowns_names <- unique(rel_abund$Taxa[unknowns])
     rel_abund$Taxa[unknowns] <- "Unknowns"
     rel_abund <- rel_abund %>%
       group_by(Group, Taxa) %>%
       summarise(value = sum(value), .groups = "drop")
   }
-  rel_abund
+  list(rel_abund = rel_abund,
+       unknowns_names = unknowns_names)
 }
 
 #' Create stacked bar plot of relative abundances
@@ -698,17 +704,32 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
   )
 
   rel_abund <- join_unknown_taxa(rel_abunds$rel_abund)
+  others_names <- rel_abunds$small_abund_names
+  unknowns_names <- rel_abund$unknowns_names
+  rel_abund <- rel_abund$rel_abund
   rel_abund_orig <- rel_abunds$rel_abund_orig
-
-  # Save abundance table if requested
-  if (!is.null(rel_abund_file)) {
-    save_results_table(rel_abund_orig, rel_abund_file)
-  }
-
+  
   # Create color palette
   n_colors <- length(unique(rel_abund$Taxa))
   palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
-  my_colors <- palette_fun(n_colors)
+  my_colors <- setNames(palette_fun(n_colors), unique(sort(rel_abund$Taxa)))
+
+  # Save abundance table if requested
+  if (!is.null(rel_abund_file)) {
+    tmp_colors <- my_colors
+    if (length(others_names) > 0) {
+      tmp_colors <- c(tmp_colors, 
+                      setNames(rep(tmp_colors[["Others"]], length(others_names)), 
+                               others_names))
+    }
+    if (length(unknowns_names) > 0) {
+      tmp_colors <- c(tmp_colors, 
+                      setNames(rep(tmp_colors[["Unknowns"]], length(unknowns_names)), 
+                               unknowns_names))
+      rel_abund_orig$Colors <- unname(tmp_colors[rel_abund_orig$Taxa])
+    }
+    save_results_table(rel_abund_orig, rel_abund_file)
+  }
 
   # Create plot
   p <- ggplot(rel_abund, aes(x = Group, y = value, fill = Taxa)) +
@@ -716,7 +737,10 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
     theme_minimal(base_size = 14) +
     theme(
       axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-      legend.position = "bottom"
+      legend.position = "bottom",
+      legend.text = element_text(size = 8),
+      legend.key.size = unit(0.5, "lines"),
+      legend.margin = margin(t = 5, b = 5)
     ) +
     labs(
       y = "Relative Abundance (%)",
@@ -724,8 +748,9 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
       fill = "Taxa"
     ) +
     scale_fill_manual(values = my_colors) +
+    guides(fill = guide_legend(nrow = 10, byrow = TRUE)) +
     ggtitle(paste("Relative Abundance at", TAXONOMY_LEVELS[taxonomy_level]))
-
+  
   # Save plot
   save_plot(p, output_file)
 }
@@ -751,17 +776,32 @@ create_abundance_pie_plot <- function(asv_file, taxonomy_file, metadata_file,
   )
 
   rel_abund <- join_unknown_taxa(rel_abunds$rel_abund)
+  others_names <- rel_abunds$small_abund_names
+  unknowns_names <- rel_abund$unknowns_names
+  rel_abund <- rel_abund$rel_abund
   rel_abund_orig <- rel_abunds$rel_abund_orig
+  
+    # Create color palette
+  n_colors <- length(unique(rel_abund$Taxa))
+  palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
+  my_colors <- setNames(palette_fun(n_colors), unique(sort(rel_abund$Taxa)))
 
   # Save abundance table if requested
   if (!is.null(rel_abund_file)) {
+    tmp_colors <- my_colors
+    if (length(others_names) > 0) {
+      tmp_colors <- c(tmp_colors, 
+                      setNames(rep(tmp_colors[["Others"]], length(others_names)), 
+                               others_names))
+    }
+    if (length(unknowns_names) > 0) {
+      tmp_colors <- c(tmp_colors, 
+                      setNames(rep(tmp_colors[["Unknowns"]], length(unknowns_names)), 
+                               unknowns_names))
+      rel_abund_orig$Colors <- unname(tmp_colors[rel_abund_orig$Taxa])
+    }
     save_results_table(rel_abund_orig, rel_abund_file)
   }
-
-  # Create color palette
-  n_colors <- length(unique(rel_abund$Taxa))
-  palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
-  my_colors <- palette_fun(n_colors)
 
   # Create plot
   p <- ggdonutchart(rel_abund, "value", fill = "Taxa", palette = my_colors) +

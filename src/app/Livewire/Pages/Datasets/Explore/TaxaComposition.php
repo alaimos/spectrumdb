@@ -154,13 +154,14 @@ final class TaxaComposition extends Component
             /** @noinspection PhpRedundantOptionalArgumentInspection */
             /** @noinspection PhpDeprecatedPassingNonEmptyEscapeToCsvFunctionInspection */
             $fields = str_getcsv($line, "\t", escape: '\\');
-            if (count($fields) < 3) {
+            if (count($fields) < 4) {
                 continue; // Skip lines that do not have enough fields
             }
-            [$group, $taxa, $value] = $fields;
+            [$group, $taxa, $value, $color] = $fields;
             if (! isset($data[$taxa])) {
                 $data[$taxa] = [
                     'taxa' => $taxa,
+                    'color' => $color,
                 ];
             }
             $data[$taxa][$group] = (float) $value;

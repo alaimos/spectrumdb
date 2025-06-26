@@ -89,7 +89,11 @@
                                 <flux:table.rows>
                                     @foreach($rows as $row)
                                         <flux:table.row wire:key="{{ $row['taxa'] }}">
-                                            <flux:table.cell class="break-all">{{ $row['taxa'] }}</flux:table.cell>
+                                            <flux:table.cell class="break-all">
+                                                <div class="w-3 h-3 rounded inline-block mx-1"
+                                                     style="background-color: {{ $row['color'] }}"></div>
+                                                {{ $row['taxa'] }}
+                                            </flux:table.cell>
                                             @foreach($groups as $group)
                                                 <flux:table.cell>
                                                     {{ number_format($row[$group] ?? 0, 2) }}%
