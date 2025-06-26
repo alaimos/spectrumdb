@@ -12,10 +12,15 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Stringable;
 
+/**
+ * @property-read bool $hasSearchApplied
+ */
 final class DatasetAdvancedSearch extends Component
 {
+    /** @var array<int, array{type: string, key: string, operator: string, value: string}> */
     public array $conditions = [];
 
+    /** @var array<int, "AND"|"OR"|"NOT"> */
     public array $connectors = [];
 
     public function mount(): void
@@ -76,7 +81,28 @@ final class DatasetAdvancedSearch extends Component
 
     public function applySearch(): void
     {
+        if (count($this->conditions) === 1 && (empty($this->conditions[0]['key']) || empty($this->conditions[0]['value']))) {
+            return;
+        }
         $this->dispatch('advanced-search-applied', conditions: $this->conditions, connectors: $this->connectors);
+    }
+
+    public function resetSearch(): void
+    {
+        $this->conditions = [[
+            'type' => 'dataset', // dataset or sample
+            'key' => '',
+            'operator' => 'equals',
+            'value' => '',
+        ]];
+        $this->connectors = [];
+        $this->dispatch('advanced-search-applied', conditions: [], connectors: []);
+    }
+
+    #[Computed]
+    public function hasSearchApplied(): bool
+    {
+        return ! empty($this->conditions) && ! empty($this->conditions[0]['key']) && ! empty($this->conditions[0]['value']);
     }
 
     public function updatedConditions($value, $key): void

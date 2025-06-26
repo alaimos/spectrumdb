@@ -114,11 +114,14 @@
         </flux:button>
 
         <div class="flex gap-2">
-            <flux:modal.close>
-                <flux:button variant="ghost" size="sm">
+            @if ($this->hasSearchApplied)
+                <flux:button
+                    variant="ghost"
+                    wire:click="resetSearch"
+                    size="sm">
                     {{ __('Cancel') }}
                 </flux:button>
-            </flux:modal.close>
+            @endif
             <flux:button
                 variant="primary"
                 wire:click="applySearch"
