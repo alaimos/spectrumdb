@@ -22,6 +22,11 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
 
+/**
+ * @property-read Collection<int, string> $availableMetadata
+ * @property-read Collection<int, string> $availableClasses
+ * @property-read LengthAwarePaginator|string|null $differentialAbundanceTable
+ */
 final class DifferentialAbundance extends Component
 {
     use RunsBatchableJobs;
@@ -58,7 +63,7 @@ final class DifferentialAbundance extends Component
 
     public int $graph = 0;
 
-    private $batchActionType = DifferentialAbundanceAction::class;
+    private $batchActionType = DifferentialAbundanceAction::class; // @phpstan-ignore-line
 
     public function sort(string $column): void
     {

@@ -22,6 +22,13 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
 
+/**
+ * @property-read Collection<int, string> $availableMetadata
+ * @property-read Collection<int, string> $availableClasses
+ * @property-read LengthAwarePaginator|string|null $networkTable
+ * @property-read array|string|null $networkGraph
+ * @property-read string|null $networkTableUrl
+ */
 final class CorrelationNetwork extends Component
 {
     use RunsBatchableJobs;
@@ -52,7 +59,7 @@ final class CorrelationNetwork extends Component
 
     public int $graph = 0;
 
-    private $batchActionType = CorrelationNetworkAction::class;
+    private $batchActionType = CorrelationNetworkAction::class; // @phpstan-ignore-line
 
     public function sort(string $column): void
     {
@@ -223,7 +230,7 @@ final class CorrelationNetwork extends Component
             if (count($fields) < 6) {
                 continue; // Skip lines that do not have enough fields
             }
-            [$sourceTaxa, $targetTaxa, $correlationGroup1, $correlationGroup2, $pv, $fdr] = $fields;
+            [$sourceTaxa, $targetTaxa, $correlationGroup1, $correlationGroup2, , $fdr] = $fields;
             $fdr = (float) $fdr;
             if ($fdr > 0.05) {
                 continue; // Skip links with FDR > 0.05
@@ -282,11 +289,8 @@ final class CorrelationNetwork extends Component
         return [
             'taxonomicLevel' => ['required', Rule::enum(TaxonomicLevels::class)],
             'classVariable' => ['required', Rule::in($this->availableMetadata->toArray())],
-            // @phpstan-ignore-line
             'group1' => ['required', 'string', Rule::in($this->availableClasses->toArray())],
-            // @phpstan-ignore-line
             'group2' => ['required', 'string', Rule::in($this->availableClasses->toArray())],
-            // @phpstan-ignore-line
             'correlationThreshold' => ['required', 'numeric', 'min:0', 'max:1'],
         ];
     }

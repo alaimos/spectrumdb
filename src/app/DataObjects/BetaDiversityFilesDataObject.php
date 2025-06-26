@@ -19,10 +19,10 @@ final class BetaDiversityFilesDataObject implements Arrayable, JsonSerializable
 
     /**
      * @param  array{
-     *     jaccard: string|null,
-     *     brayCurtis: string|null,
-     *     unweightedUnifrac: string|null,
-     *     weightedUnifrac: string|null
+     *     jaccard?: string|null,
+     *     brayCurtis?: string|null,
+     *     unweightedUnifrac?: string|null,
+     *     weightedUnifrac?: string|null
      * }  $data
      */
     public function __construct(array $data)

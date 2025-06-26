@@ -13,6 +13,9 @@ use Throwable;
 
 final class SubmitBatchAction implements ActionInterface
 {
+    /**
+     * @use Makeable<SubmitBatchAction>
+     */
     use Makeable;
 
     private(set) public string $batchId;

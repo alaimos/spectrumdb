@@ -24,7 +24,7 @@ final class DatasetAdvancedSearchBuilder
      */
     public function __construct(
         private readonly array $advancedSearchConditions = [],
-        private array $advancedSearchConnectors = []
+        private readonly array $advancedSearchConnectors = []
     ) {}
 
     public function __invoke(Builder $query): void
@@ -54,10 +54,12 @@ final class DatasetAdvancedSearchBuilder
     private function applyAllConditionsToBuilder(Builder $query): void
     {
         foreach ($this->advancedSearchConditions as $index => $condition) {
-            $method = $index === 0 ? 'where' : mb_strtolower($this->advancedSearchConnectors[$index - 1]);
-            if ($method === 'not') {
-                $method = 'whereNot';
-            }
+            $connector = $this->advancedSearchConnectors[$index - 1] ?? 'AND';
+            $method = match ($connector) {
+                'OR' => 'orWhere',
+                'NOT' => 'whereNot',
+                default => 'where',
+            };
             $query->$method(fn (Builder $query) => $this->applyMetadataCondition($query, $condition));
         }
     }
@@ -70,7 +72,7 @@ final class DatasetAdvancedSearchBuilder
         $query->whereHas(
             $condition['type'] === 'dataset' ? 'metadata' : 'samples.metadata',
             fn (Builder $query) => $this
-                ->applyOperatorCondition($query, 'value', SearchOperator::from($condition['operator']), $condition['value'])
+                ->applyOperatorCondition($query, 'value', SearchOperator::from($condition['operator']), $condition['value']) // @phpstan-ignore-line
                 ->where('key', $condition['key'])
         );
     }
@@ -95,7 +97,7 @@ final class DatasetAdvancedSearchBuilder
         }
 
         match ($operator) {
-            SearchOperator::EQUALS, SearchOperator::EQUALS_STRING => $query->where($preparedField, $value),
+            SearchOperator::EQUALS, SearchOperator::EQUALS_STRING => $query->where($preparedField, json_encode($value)),
             SearchOperator::NOT_EQUALS, SearchOperator::NOT_EQUALS_STRING => $query->where($preparedField, '!=', $value),
             SearchOperator::CONTAINS => $query->where($preparedField, 'like', "%{$value}%"),
             SearchOperator::NOT_CONTAINS => $query->where($preparedField, 'not like', "%{$value}%"),

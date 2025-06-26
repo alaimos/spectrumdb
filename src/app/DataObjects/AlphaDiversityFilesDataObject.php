@@ -19,10 +19,10 @@ final class AlphaDiversityFilesDataObject implements Arrayable, JsonSerializable
 
     /**
      * @param  array{
-     *     faith: string|null,
-     *     chao: string|null,
-     *     evenness: string|null,
-     *     shannon: string|null
+     *     faith?: string|null,
+     *     chao?: string|null,
+     *     evenness?: string|null,
+     *     shannon?: string|null
      * }  $data
      */
     public function __construct(array $data)

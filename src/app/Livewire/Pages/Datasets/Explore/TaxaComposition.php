@@ -22,6 +22,9 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
 
+/**
+ * @property-read Collection<int, string> $availableMetadata
+ */
 final class TaxaComposition extends Component
 {
     use RunsBatchableJobs;

@@ -25,25 +25,25 @@ final class DatasetFilesDataObject implements Arrayable, Castable, JsonSerializa
 
     /**
      * @param  array{
-     *     taxonomy: string,
-     *     asvTable: string,
-     *     metadata: string,
-     *     picrust: array{
-     *         ko: string|null,
-     *         pathways: string|null,
-     *         ec: string|null
+     *     taxonomy?: string,
+     *     asvTable?: string,
+     *     metadata?: string,
+     *     picrust?: array{
+     *         ko?: string|null,
+     *         pathways?: string|null,
+     *         ec?: string|null
      *     },
-     *     alphaDiversity: array{
-     *         faith: string|null,
-     *         chao: string|null,
-     *         evenness: string|null,
-     *         shannon: string|null
+     *     alphaDiversity?: array{
+     *         faith?: string|null,
+     *         chao?: string|null,
+     *         evenness?: string|null,
+     *         shannon?: string|null
      *     },
-     *     betaDiversity: array{
-     *         jaccard: string|null,
-     *         brayCurtis: string|null,
-     *         unweightedUnifrac: string|null,
-     *         weightedUnifrac: string|null
+     *     betaDiversity?: array{
+     *         jaccard?: string|null,
+     *         brayCurtis?: string|null,
+     *         unweightedUnifrac?: string|null,
+     *         weightedUnifrac?: string|null
      *     }
      * }  $data
      */

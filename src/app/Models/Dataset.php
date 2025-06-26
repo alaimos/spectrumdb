@@ -41,11 +41,17 @@ final class Dataset extends Model
         return $this->hasMany(Sample::class);
     }
 
+    /**
+     * @return HasMany<DatasetMetadata, $this>
+     */
     public function metadata(): HasMany
     {
         return $this->hasMany(DatasetMetadata::class);
     }
 
+    /**
+     * @return BelongsToMany<User, $this>
+     */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'dataset_user_permissions')

@@ -18,6 +18,10 @@ use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Throwable;
 
+/**
+ * @property-read Collection<int, string> $availableMetadata
+ * @property-read Collection<int, string> $availableClasses
+ */
 final class AlphaDiversity extends Component
 {
     use RunsBatchableJobs;
@@ -151,7 +155,7 @@ final class AlphaDiversity extends Component
             'classVariable' => [
                 'required',
                 'string',
-                Rule::in($this->availableMetadata->toArray()), // @phpstan-ignore-line
+                Rule::in($this->availableMetadata->toArray()),
             ],
         ];
         if (isset($this->classVariable) && $this->classVariable) {
@@ -159,12 +163,12 @@ final class AlphaDiversity extends Component
             $rules['comparisons.*.0'] = [
                 'required',
                 'string',
-                Rule::in($this->availableClasses->toArray()), // @phpstan-ignore-line
+                Rule::in($this->availableClasses->toArray()),
             ];
             $rules['comparisons.*.1'] = [
                 'required',
                 'string',
-                Rule::in($this->availableClasses->toArray()), // @phpstan-ignore-line
+                Rule::in($this->availableClasses->toArray()),
             ];
         } else {
             $rules['comparisons'] = ['array', 'max:0'];

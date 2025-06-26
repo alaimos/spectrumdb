@@ -18,6 +18,9 @@ use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Throwable;
 
+/**
+ * @property-read Collection<int, string> $availableMetadata
+ */
 final class BetaDiversity extends Component
 {
     use RunsBatchableJobs;
@@ -31,7 +34,7 @@ final class BetaDiversity extends Component
     #[Validate]
     public ?string $colorVariable;
 
-    private $batchActionType = BetaDiversityPlotAction::class;
+    private $batchActionType = BetaDiversityPlotAction::class; // @phpstan-ignore-line
 
     /**
      * @throws \Illuminate\Contracts\Container\BindingResolutionException|Throwable

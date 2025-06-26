@@ -16,7 +16,7 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 final class CommandExecutor
 {
     /**
-     * @uses \App\Traits\Makeable<\App\CommandExecutor>
+     * @use Makeable<CommandExecutor>
      */
     use Makeable;
 

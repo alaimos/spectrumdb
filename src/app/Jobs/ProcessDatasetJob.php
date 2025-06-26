@@ -80,7 +80,7 @@ final class ProcessDatasetJob implements ShouldQueue
 
             // Process dataset metadata
             foreach ($this->datasetMetadata as $metadata) {
-                if (! empty($metadata['key']) && (isset($metadata['value']) && ($metadata['value'] !== '' && $metadata['value'] !== '0'))) {
+                if (! empty($metadata['key']) && (isset($metadata['value']) && ($metadata['value'] !== '' && $metadata['value'] !== '0'))) { // @phpstan-ignore-line
                     DatasetMetadata::create(
                         [
                             'dataset_id' => $dataset->id,

@@ -17,9 +17,9 @@ final class PicrustFilesDataObject implements Arrayable, JsonSerializable
 
     /**
      * @param  array{
-     *     ko: string|null,
-     *     pathways: string|null,
-     *     ec: string|null
+     *     ko?: string|null,
+     *     pathways?: string|null,
+     *     ec?: string|null
      * }  $data
      */
     public function __construct(array $data)

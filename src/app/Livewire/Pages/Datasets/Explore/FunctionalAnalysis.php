@@ -22,6 +22,11 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
 
+/**
+ * @property-read Collection<int, string> $availableMetadata
+ * @property-read Collection<int, string> $availableClasses
+ * @property-read LengthAwarePaginator<string, array{feature: string, logFoldChange: float, lfcSE: float, pValue: float, padj: float}>|string|null $functionalTable
+ */
 final class FunctionalAnalysis extends Component
 {
     use RunsBatchableJobs;
@@ -58,7 +63,7 @@ final class FunctionalAnalysis extends Component
 
     public int $graph = 0;
 
-    private string $batchActionType = FunctionalAnalysisAction::class;
+    private string $batchActionType = FunctionalAnalysisAction::class; // @phpstan-ignore-line
 
     public function sort(string $column): void
     {

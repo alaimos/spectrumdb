@@ -682,6 +682,18 @@ join_unknown_taxa <- function(rel_abund) {
        unknowns_names = unknowns_names)
 }
 
+#' Convert taxa names to smaller format
+#' @param taxa Vector of taxa names
+convert_to_small_taxa <- function(taxa) {
+  taxa <- unique(taxa)
+  setNames(sapply(strsplit(taxa, ";"), function(x) {
+    if (length(x) < 2) {
+      return (paste0(x, collapse = ";"))
+    }
+    return (paste0(x[c(1:2, length(x))], collapse = ";"))
+  }), taxa)
+}
+
 #' Create stacked bar plot of relative abundances
 #' @param asv_file Path to ASV table
 #' @param taxonomy_file Path to taxonomy file
@@ -709,6 +721,10 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
   rel_abund <- rel_abund$rel_abund
   rel_abund_orig <- rel_abunds$rel_abund_orig
   
+  small_taxa <- convert_to_small_taxa(rel_abund$Taxa)
+  reverse_small_taxa <- setNames(names(small_taxa), small_taxa)
+  rel_abund$Taxa <- unname(small_taxa[rel_abund$Taxa])
+  
   # Create color palette
   n_colors <- length(unique(rel_abund$Taxa))
   palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
@@ -717,6 +733,7 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
   # Save abundance table if requested
   if (!is.null(rel_abund_file)) {
     tmp_colors <- my_colors
+    names(tmp_colors) <- unname(reverse_small_taxa[names(my_colors)])
     if (length(others_names) > 0) {
       tmp_colors <- c(tmp_colors, 
                       setNames(rep(tmp_colors[["Others"]], length(others_names)), 
@@ -730,6 +747,8 @@ create_stacked_abundance_plot <- function(asv_file, taxonomy_file, metadata_file
     }
     save_results_table(rel_abund_orig, rel_abund_file)
   }
+  
+  
 
   # Create plot
   p <- ggplot(rel_abund, aes(x = Group, y = value, fill = Taxa)) +
@@ -781,6 +800,10 @@ create_abundance_pie_plot <- function(asv_file, taxonomy_file, metadata_file,
   rel_abund <- rel_abund$rel_abund
   rel_abund_orig <- rel_abunds$rel_abund_orig
   
+  small_taxa <- convert_to_small_taxa(rel_abund$Taxa)
+  reverse_small_taxa <- setNames(names(small_taxa), small_taxa)
+  rel_abund$Taxa <- unname(small_taxa[rel_abund$Taxa])
+  
     # Create color palette
   n_colors <- length(unique(rel_abund$Taxa))
   palette_fun <- colorRampPalette(brewer.pal(min(12, n_colors), "Paired"))
@@ -789,6 +812,7 @@ create_abundance_pie_plot <- function(asv_file, taxonomy_file, metadata_file,
   # Save abundance table if requested
   if (!is.null(rel_abund_file)) {
     tmp_colors <- my_colors
+    names(tmp_colors) <- unname(reverse_small_taxa[names(my_colors)])
     if (length(others_names) > 0) {
       tmp_colors <- c(tmp_colors, 
                       setNames(rep(tmp_colors[["Others"]], length(others_names)), 

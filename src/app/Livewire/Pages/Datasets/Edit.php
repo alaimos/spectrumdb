@@ -7,7 +7,7 @@ namespace App\Livewire\Pages\Datasets;
 use App\Models\Dataset;
 use App\Models\DatasetMetadata;
 use Exception;
-use Flux;
+use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -38,7 +38,7 @@ final class Edit extends Component
         $this->datasetMetadata = $dataset->metadata()
             ->whereNot('key', 'like', 'original_%_filename')
             ->get()
-            ->map(fn ($meta) => [
+            ->map(fn (DatasetMetadata $meta) => [
                 'key' => $meta->key,
                 'value' => $meta->value,
             ])
