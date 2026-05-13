@@ -1,0 +1,59 @@
+# BuildKit honors <dockerfile>.dockerignore, so this ignore list only applies
+# when building the deployment app image and does NOT affect other tools that
+# might reuse the repository root.
+
+# Repo / IDE noise
+**/.git
+**/.gitignore
+**/.gitattributes
+**/.idea
+**/.vscode
+**/.fleet
+**/.nova
+**/.zed
+**/.DS_Store
+**/.aider*
+.cursor
+**/.cursor
+
+# Existing dev stack (not used by the production image)
+src/docker-compose.yml
+src/docker/8.4/Dockerfile
+src/docker/mysql
+
+# Local secrets and ad-hoc env files. auth.json IS required and is NOT ignored.
+src/.env
+src/.env.backup
+src/.env.local
+src/.env.production
+src/.env.testing
+
+# Build artefacts and dependencies (re-installed inside the image)
+src/vendor
+src/node_modules
+src/public/build
+src/public/hot
+src/public/storage
+src/storage/framework/cache/data/**
+src/storage/framework/sessions/**
+src/storage/framework/testing/**
+src/storage/framework/views/**
+src/storage/logs/**
+src/storage/app/livewire-tmp/**
+src/storage/pail
+
+# Tests / CI / docs we don't need at runtime
+src/.github
+src/tests
+src/.phpunit.cache
+src/.phpunit.result.cache
+src/phpstan.neon
+src/phpunit.xml
+src/rector.php
+src/pint.json
+
+# The deployment folder itself - we only need src/ and the Dockerfile's
+# sibling config, which Docker pulls in from explicit COPY paths.
+deployment/.env
+deployment/.env.*
+!deployment/.env.example

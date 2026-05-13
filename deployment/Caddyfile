@@ -1,0 +1,44 @@
+{
+    email {$ACME_EMAIL}
+    # Caddy auto-provisions Let's Encrypt certs for the site below.
+    # servers { protocols h1 h2 h3 }
+}
+
+{$APP_DOMAIN} {
+    encode zstd gzip
+
+    # Hardening headers. HSTS is enabled because TLS is mandatory in this stack.
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "SAMEORIGIN"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # -------------------------------------------------------------------------
+    # Reverb (Pusher protocol). The WebSocket handshake lives under /app/* and
+    # the HTTP control API used by the Laravel broadcaster lives under /apps/*.
+    # Caddy transparently upgrades the connection when the client sends
+    # `Upgrade: websocket`, so no extra directive is required.
+    # -------------------------------------------------------------------------
+    @reverb {
+        path /app/* /apps/*
+    }
+    reverse_proxy @reverb reverb:8080 {
+        transport http {
+            read_timeout  1h
+            write_timeout 1h
+        }
+    }
+
+    # -------------------------------------------------------------------------
+    # Everything else goes to the Laravel app (nginx + php-fpm).
+    # -------------------------------------------------------------------------
+    reverse_proxy app:80 {
+        header_up Host                {host}
+        header_up X-Real-IP           {remote_host}
+        header_up X-Forwarded-For     {remote_host}
+        header_up X-Forwarded-Proto   {scheme}
+    }
+}

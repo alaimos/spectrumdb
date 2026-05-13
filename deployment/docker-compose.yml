@@ -1,0 +1,281 @@
+# =============================================================================
+# SPECTRUM Database - Production deployment stack
+# -----------------------------------------------------------------------------
+# Usage:
+#   1. cp .env.example .env          # then edit values (APP_DOMAIN, secrets...)
+#   2. Place auth.json in ../src     # required for composer install (flux-pro)
+#   3. docker compose build
+#   4. docker compose up -d
+#   5. docker compose exec app entrypoint artisan migrate --force
+# =============================================================================
+
+name: spectrumdb
+
+x-app-env: &app-env
+  APP_NAME: "${APP_NAME:-SPECTRUM Database}"
+  APP_ENV: "${APP_ENV:-production}"
+  APP_KEY: "${APP_KEY:?APP_KEY is required (php artisan key:generate --show)}"
+  APP_DEBUG: "${APP_DEBUG:-false}"
+  APP_URL: "https://${APP_DOMAIN:?APP_DOMAIN is required}"
+  APP_TIMEZONE: "${APP_TIMEZONE:-UTC}"
+  APP_LOCALE: "${APP_LOCALE:-en}"
+  APP_FALLBACK_LOCALE: "${APP_FALLBACK_LOCALE:-en}"
+  APP_FAKER_LOCALE: "${APP_FAKER_LOCALE:-en_US}"
+  APP_MAINTENANCE_DRIVER: file
+  TZ: "${APP_TIMEZONE:-UTC}"
+
+  LOG_CHANNEL: stack
+  LOG_STACK: single
+  LOG_LEVEL: "${LOG_LEVEL:-warning}"
+  LOG_DEPRECATIONS_CHANNEL: "null"
+
+  BCRYPT_ROUNDS: 12
+
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: "${DB_DATABASE:?DB_DATABASE is required}"
+  DB_USERNAME: "${DB_USERNAME:?DB_USERNAME is required}"
+  DB_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD is required}"
+
+  SESSION_DRIVER: database
+  SESSION_LIFETIME: "${SESSION_LIFETIME:-120}"
+  SESSION_ENCRYPT: "false"
+  SESSION_PATH: /
+  SESSION_DOMAIN: "${APP_DOMAIN}"
+  SESSION_SECURE_COOKIE: "true"
+
+  FILESYSTEM_DISK: local
+  QUEUE_CONNECTION: redis
+  BROADCAST_CONNECTION: reverb
+  CACHE_STORE: redis
+  CACHE_PREFIX: ""
+
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: "${REDIS_PASSWORD:-null}"
+  REDIS_DB: 0
+
+  REVERB_APP_ID: "${REVERB_APP_ID:?REVERB_APP_ID is required}"
+  REVERB_APP_KEY: "${REVERB_APP_KEY:?REVERB_APP_KEY is required}"
+  REVERB_APP_SECRET: "${REVERB_APP_SECRET:?REVERB_APP_SECRET is required}"
+  REVERB_HOST: "${APP_DOMAIN}"
+  REVERB_PORT: 443
+  REVERB_SCHEME: https
+  REVERB_SERVER_HOST: 0.0.0.0
+  REVERB_SERVER_PORT: 8080
+  REVERB_SCALING_ENABLED: "true"
+
+  VITE_APP_NAME: "${APP_NAME:-SPECTRUM Database}"
+  VITE_REVERB_APP_KEY: "${REVERB_APP_KEY}"
+  VITE_REVERB_HOST: "${APP_DOMAIN}"
+  VITE_REVERB_PORT: 443
+  VITE_REVERB_SCHEME: https
+
+  MAIL_MAILER: "${MAIL_MAILER:-smtp}"
+  MAIL_HOST: "${MAIL_HOST:-}"
+  MAIL_PORT: "${MAIL_PORT:-587}"
+  MAIL_USERNAME: "${MAIL_USERNAME:-}"
+  MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
+  MAIL_SCHEME: "${MAIL_SCHEME:-}"
+  MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-no-reply@${APP_DOMAIN}}"
+  MAIL_FROM_NAME: "${MAIL_FROM_NAME:-${APP_NAME:-SPECTRUM Database}}"
+
+  AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+  AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+  AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
+  AWS_BUCKET: "${AWS_BUCKET:-}"
+  AWS_USE_PATH_STYLE_ENDPOINT: "false"
+
+x-app-build: &app-build
+  context: ..
+  dockerfile: deployment/docker/app/Dockerfile
+  args:
+    APP_NAME: "${APP_NAME:-SPECTRUM Database}"
+    APP_DOMAIN: "${APP_DOMAIN:?APP_DOMAIN is required}"
+    REVERB_APP_KEY: "${REVERB_APP_KEY:?REVERB_APP_KEY is required}"
+    REVERB_PORT: "443"
+    REVERB_SCHEME: "https"
+
+x-app-volumes: &app-volumes
+  - laravel-storage:/var/www/html/storage
+
+services:
+  # ---------------------------------------------------------------------------
+  # Reverse proxy. Caddy terminates TLS for ${APP_DOMAIN}, transparently
+  # forwards WebSocket upgrade requests, and routes Reverb's Pusher protocol
+  # paths (/app/* for the WS handshake, /apps/* for the HTTP control API) to
+  # the dedicated reverb container.
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+      - "${CADDY_HTTPS_PORT:-443}:443/udp"
+    environment:
+      APP_DOMAIN: "${APP_DOMAIN:?APP_DOMAIN is required}"
+      ACME_EMAIL: "${ACME_EMAIL:?ACME_EMAIL is required for Let's Encrypt}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - spectrum
+    depends_on:
+      app:
+        condition: service_started
+      reverb:
+        condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # Web (nginx + php-fpm). Serves the Laravel HTTP application behind Caddy.
+  # ---------------------------------------------------------------------------
+  app:
+    build: *app-build
+    image: spectrumdb/app:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: ["web"]
+    environment: *app-env
+    volumes: *app-volumes
+    networks:
+      - spectrum
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Queue worker. Shares the same image as the app, so R + Rscript are
+  # available to long-running jobs (ProcessDatasetJob, PerformActionJob).
+  # ---------------------------------------------------------------------------
+  queue:
+    image: spectrumdb/app:${IMAGE_TAG:-latest}
+    build: *app-build
+    restart: unless-stopped
+    command: ["queue"]
+    environment: *app-env
+    volumes: *app-volumes
+    networks:
+      - spectrum
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    stop_grace_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Reverb websocket server. Sits behind Caddy on the same public domain at
+  # paths /app/* and /apps/* (Pusher protocol).
+  # ---------------------------------------------------------------------------
+  reverb:
+    image: spectrumdb/app:${IMAGE_TAG:-latest}
+    build: *app-build
+    restart: unless-stopped
+    command: ["reverb"]
+    environment: *app-env
+    volumes: *app-volumes
+    networks:
+      - spectrum
+    depends_on:
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"\\$$f=@fsockopen('127.0.0.1',8080); exit(\\$$f?0:1);\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Scheduler (php artisan schedule:work). Runs the Laravel task scheduler
+  # without needing a cron entry on the host.
+  # ---------------------------------------------------------------------------
+  scheduler:
+    image: spectrumdb/app:${IMAGE_TAG:-latest}
+    build: *app-build
+    restart: unless-stopped
+    command: ["scheduler"]
+    environment: *app-env
+    volumes: *app-volumes
+    networks:
+      - spectrum
+    depends_on:
+      app:
+        condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # MySQL 8 - internal only, no published ports.
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}"
+      MYSQL_DATABASE: "${DB_DATABASE:?DB_DATABASE is required}"
+      MYSQL_USER: "${DB_USERNAME:?DB_USERNAME is required}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD is required}"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - spectrum
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Redis - cache + queue + Reverb pub/sub scaling.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    volumes:
+      - redis-data:/data
+    networks:
+      - spectrum
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  spectrum:
+    driver: bridge
+
+volumes:
+  laravel-storage:
+    driver: local
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
