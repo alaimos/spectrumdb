@@ -5,12 +5,24 @@
 # operator places in src/. auth.json is only present in this stage, so the
 # final runtime image never contains the credentials.
 #
+# We pin PHP to 8.4 here so that the platform composer validates against
+# matches the runtime image (and the lock file). The upstream `composer:2`
+# image already ships with PHP 8.5 which is too new for the locked deps
+# (e.g. nette/schema requires php <= 8.4).
+#
 # This Dockerfile is written to be compatible with the classic Docker builder
 # (Docker Engine 20.10 + docker-compose v1). BuildKit cache mounts have been
 # avoided on purpose. Enabling BuildKit is still safe and only makes builds
 # faster:
 #   DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose build
-FROM composer:2 AS composer-deps
+FROM php:8.4-cli-alpine AS composer-deps
+
+# Install just enough to run composer + satisfy the platform requirements
+# declared in composer.json (ext-intl, ext-zip, ext-zlib). zlib is built in.
+RUN apk add --no-cache bash git curl unzip ca-certificates libzip-dev icu-dev $PHPIZE_DEPS \
+ && docker-php-ext-install -j"$(nproc)" intl zip \
+ && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+ && rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /app
 
