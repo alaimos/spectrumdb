@@ -7,6 +7,17 @@
 {$APP_DOMAIN} {
     encode zstd gzip
 
+    # -------------------------------------------------------------------------
+    # Large request bodies (file uploads).
+    # -------------------------------------------------------------------------
+    # Must be >= post_max_size in deployment/docker/app/php.ini and >=
+    # client_max_body_size in nginx.conf. Caddy's default is unlimited but we
+    # set an explicit ceiling here so the limit is documented and stable
+    # across Caddy releases.
+    request_body {
+        max_size 512MB
+    }
+
     # Hardening headers. HSTS is enabled because TLS is mandatory in this stack.
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -33,12 +44,20 @@
     }
 
     # -------------------------------------------------------------------------
-    # Everything else goes to the Laravel app (nginx + php-fpm).
+    # Everything else goes to the Laravel app (nginx + php-fpm). The transport
+    # timeouts match nginx/php-fpm so a long-running upload or analysis
+    # request does not get killed at the proxy boundary.
     # -------------------------------------------------------------------------
     reverse_proxy app:80 {
-        header_up Host                {host}
-        header_up X-Real-IP           {remote_host}
-        header_up X-Forwarded-For     {remote_host}
-        header_up X-Forwarded-Proto   {scheme}
+        # Host, X-Forwarded-For and X-Forwarded-Proto are forwarded by Caddy
+        # automatically. X-Real-IP is not, so we set it explicitly for nginx's
+        # real_ip module.
+        header_up X-Real-IP {remote_host}
+
+        transport http {
+            dial_timeout    10s
+            read_timeout    600s
+            write_timeout   600s
+        }
     }
 }
