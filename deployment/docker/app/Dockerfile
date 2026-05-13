@@ -1,11 +1,15 @@
-# syntax=docker/dockerfile:1.7
-
 # =============================================================================
 # Stage 1 - Composer dependencies
 # =============================================================================
 # Installs PHP dependencies (including flux-pro) using the auth.json that the
 # operator places in src/. auth.json is only present in this stage, so the
 # final runtime image never contains the credentials.
+#
+# This Dockerfile is written to be compatible with the classic Docker builder
+# (Docker Engine 20.10 + docker-compose v1). BuildKit cache mounts have been
+# avoided on purpose. Enabling BuildKit is still safe and only makes builds
+# faster:
+#   DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose build
 FROM composer:2 AS composer-deps
 
 WORKDIR /app
@@ -15,9 +19,7 @@ COPY src/composer.json src/composer.lock src/auth.json ./
 
 # Install without scripts/autoloader so that artisan does not run before the
 # application code has been copied in.
-RUN --mount=type=cache,target=/tmp/composer-cache,sharing=locked \
-    COMPOSER_CACHE_DIR=/tmp/composer-cache \
-    composer install \
+RUN composer install \
         --no-dev \
         --no-scripts \
         --no-autoloader \
@@ -54,8 +56,7 @@ ENV VITE_APP_NAME=$APP_NAME \
 WORKDIR /app
 
 COPY src/package.json src/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 COPY src/ ./
 COPY --from=composer-deps /app/vendor ./vendor

@@ -1,6 +1,6 @@
-# BuildKit honors <dockerfile>.dockerignore, so this ignore list only applies
-# when building the deployment app image and does NOT affect other tools that
-# might reuse the repository root.
+# Used by Docker (classic builder and BuildKit) when building the deployment
+# image from this repository root. The .git directory and other developer-only
+# files must NOT enter the image because they are large and may leak secrets.
 
 # Repo / IDE noise
 **/.git
@@ -52,8 +52,8 @@ src/phpunit.xml
 src/rector.php
 src/pint.json
 
-# The deployment folder itself - we only need src/ and the Dockerfile's
-# sibling config, which Docker pulls in from explicit COPY paths.
+# The deployment folder itself - we only need src/ and the files explicitly
+# referenced via COPY paths in the Dockerfile.
 deployment/.env
 deployment/.env.*
 !deployment/.env.example

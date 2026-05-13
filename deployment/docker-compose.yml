@@ -1,15 +1,20 @@
 # =============================================================================
 # SPECTRUM Database - Production deployment stack
 # -----------------------------------------------------------------------------
+# Targets docker-compose v1.29+ on Docker Engine 20.10+. The Compose project
+# name (legacy v1 has no top-level `name:` field) is set with `-p spectrumdb`
+# or by exporting COMPOSE_PROJECT_NAME=spectrumdb. The provided .env.example
+# sets COMPOSE_PROJECT_NAME automatically.
+#
 # Usage:
-#   1. cp .env.example .env          # then edit values (APP_DOMAIN, secrets...)
+#   1. cp .env.example .env          # edit values (APP_DOMAIN, secrets...)
 #   2. Place auth.json in ../src     # required for composer install (flux-pro)
-#   3. docker compose build
-#   4. docker compose up -d
-#   5. docker compose exec app entrypoint artisan migrate --force
+#   3. docker-compose build
+#   4. docker-compose up -d
+#   5. docker-compose run --rm app artisan migrate --force
 # =============================================================================
 
-name: spectrumdb
+version: '3.8'
 
 x-app-env: &app-env
   APP_NAME: "${APP_NAME:-SPECTRUM Database}"
@@ -125,10 +130,8 @@ services:
     networks:
       - spectrum
     depends_on:
-      app:
-        condition: service_started
-      reverb:
-        condition: service_started
+      - app
+      - reverb
 
   # ---------------------------------------------------------------------------
   # Web (nginx + php-fpm). Serves the Laravel HTTP application behind Caddy.
@@ -143,10 +146,8 @@ services:
     networks:
       - spectrum
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - mysql
+      - redis
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/up || exit 1"]
       interval: 30s
@@ -168,12 +169,9 @@ services:
     networks:
       - spectrum
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      app:
-        condition: service_started
+      - mysql
+      - redis
+      - app
     stop_grace_period: 60s
 
   # ---------------------------------------------------------------------------
@@ -190,10 +188,8 @@ services:
     networks:
       - spectrum
     depends_on:
-      redis:
-        condition: service_healthy
-      app:
-        condition: service_started
+      - redis
+      - app
     healthcheck:
       test: ["CMD-SHELL", "php -r \"\\$$f=@fsockopen('127.0.0.1',8080); exit(\\$$f?0:1);\""]
       interval: 30s
@@ -215,8 +211,7 @@ services:
     networks:
       - spectrum
     depends_on:
-      app:
-        condition: service_started
+      - app
 
   # ---------------------------------------------------------------------------
   # MySQL 8 - internal only, no published ports.
